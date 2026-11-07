@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Ambiente virtual
+venv/
+.venv/
+env/
+
+# Variáveis de ambiente (segredos)
+.env
+
+# Chainlit
+# A pasta .chainlit e o arquivo .chainlit/config.toml são versionados para
+# preservar o tema e as configurações de interface do assistente.
+# Apenas artefatos de cache e uploads locais são ignorados abaixo.
+.chainlit/cache/
+.chainlit/.cache/
+.chainlit/.files/
+.files/
+
+# Banco vetorial local (RAG)
+chroma_db/
+chroma/

@@ -1,0 +1,15 @@
+# Configuração de interface do Chainlit — versionada no repositório.
+# Este arquivo preserva o tema e as configurações de interface do assistente.
+# Documentação oficial: https://docs.chainlit.io/backend/config/overview
+
+[project]
+# Variáveis de ambiente que o usuário pode definir através da interface.
+user_env = []
+# Tempo máximo (em segundos) de inatividade antes do encerramento da sessão.
+session_timeout = 3600
+
+[UI]
+# Nome exibido na interface e na aba do navegador.
+name = 'Assistente Virtual (ZDP)'
+# Tema padrão da interface: 'dark' ou 'light'.
+default_theme = 'dark'
