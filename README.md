@@ -216,3 +216,6 @@ Os testes puros cobrem streaming da Escada com delimitador partido entre tokens,
 ### Revisão de ambientes, ferramentas e perfil
 
 A revisão ampliada e seus limites estão em [Relatório da interface](docs/REVISAO_INTERFACE.md). Foram medidos 288 pares de contraste nas 48 combinações de ambiente, aparência e destaque. A instância com conta fictícia e streaming simulado permitiu conferir histórico redimensionável, Fichário após reinício, três modalidades de avatar e layouts desktop/móvel. Os onze testes automatizados passaram. A segunda conta Google, leitor de tela real, zoom de 200% e uma nova rodada com DeepSeek real continuam pendentes.
+
+
+A revisão visual posterior corrigiu os campos do Foco e a composição dos cartões do histórico. A folha agora decora o próprio viewport de rolagem, preenchendo o espaço até a barra de estudo mesmo depois da última mensagem. A lista de mensagens e a rolagem nativa do Chainlit foram preservadas. Os detalhes e capturas locais estão descritos no relatório da interface.

@@ -584,7 +584,7 @@
     focusStart.disabled = !!focusTimer.end; focusPause.disabled = !focusTimer.end;
     focusState.textContent = focusTimer.phase === "study" ? "Uma tarefa de cada vez. Você pode pausar quando precisar." : "Afaste os olhos da tela por alguns instantes, se quiser.";
   }
-  const focusFields = element("div", "", "study-option-row");
+  const focusFields = element("div", "", "study-form study-option-row study-focus-fields");
   addField(focusFields, "Estudo (minutos)", focusDuration);
   addField(focusFields, "Pausa (minutos)", breakDuration);
   focusDuration.addEventListener("change", () => { if (!focusTimer.end && focusTimer.phase === "study") focusReset.click(); });
@@ -721,7 +721,13 @@
       link.classList.add("study-notebook-link");
       const id = link.getAttribute("href").split("/").pop();
       const metadata = notebookMetadata.find(item => item.id === id);
-      if (metadata?.degrau && !link.querySelector(".study-notebook-level")) link.append(element("span", `Degrau ${metadata.degrau}`, "study-notebook-level"));
+      const badge = link.querySelector(".study-notebook-level");
+      if (metadata?.degrau) {
+        const level = badge || element("span", "", "study-notebook-level");
+        const label = `Degrau ${metadata.degrau}`;
+        if (level.textContent !== label) level.textContent = label;
+        if (!badge) link.append(level);
+      } else badge?.remove();
     }
   }
 
@@ -1018,12 +1024,25 @@
       applyLabel.data = "Aplicar";
     }
 
-    // A coluna de mensagens vira a folha sobre a mesa.
+    // A folha pertence ao viewport de rolagem, incluindo o espaçador nativo após a última resposta.
+    // A árvore React e o elemento de scroll permanecem os mesmos, preservando a navegação do Chainlit.
     const firstStep = document.querySelector(".step");
-    const sheet = firstStep?.parentElement;
-    if (sheet && !sheet.classList.contains("study-sheet")) {
-      document.querySelector(".study-sheet")?.classList.remove("study-sheet");
-      sheet.classList.add("study-sheet");
+    const sheetContent = firstStep?.parentElement;
+    const sheetViewport = sheetContent?.parentElement;
+    if (sheetViewport && sheetContent) {
+      for (const old of document.querySelectorAll(".study-sheet")) {
+        if (old !== sheetViewport) old.classList.remove("study-sheet");
+      }
+      if (!sheetViewport.classList.contains("study-sheet")) sheetViewport.classList.add("study-sheet");
+      if (sheetViewport.getAttribute("tabindex") !== "0") sheetViewport.setAttribute("tabindex", "0");
+      if (sheetViewport.getAttribute("aria-label") !== "Caderno da conversa") sheetViewport.setAttribute("aria-label", "Caderno da conversa");
+      if (!sheetContent.classList.contains("study-sheet-content")) sheetContent.classList.add("study-sheet-content");
+    } else {
+      const oldViewport = document.querySelector(".study-sheet");
+      oldViewport?.classList.remove("study-sheet");
+      oldViewport?.removeAttribute("tabindex");
+      oldViewport?.removeAttribute("aria-label");
+      document.querySelector(".study-sheet-content")?.classList.remove("study-sheet-content");
     }
     for (const message of document.querySelectorAll('[data-step-type="assistant_message"] .ai-message:not([data-study-stamp])')) {
       message.dataset.studyStamp = "true";

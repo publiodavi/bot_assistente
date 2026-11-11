@@ -62,3 +62,16 @@ git diff --check
 ```
 
 A aplicação real permanece em `http://localhost:8103`. Usar `start.ps1` com o PostgreSQL local existente; evitar iniciar instâncias duplicadas. Os commits desta revisão são locais, sem push.
+
+
+## Correções após a revisão de Davi — 11/11/2026
+
+As capturas enviadas pelo responsável mostraram três problemas que a rodada anterior não havia corrigido:
+
+1. **Campos do Foco sem tema:** o contêiner dos campos não tinha a classe `study-form`. Passou a usar as regras comuns de formulário, rótulos acima dos campos e duas colunas no desktop/uma no celular. Campos medidos com 44px de altura; sem rolagem horizontal interna no painel móvel.
+2. **Bordas soltas nos cadernos:** o link nativo era inline e recebia borda/padding enquanto continha um botão em bloco. O cartão passou a ser um bloco único, com o selo de degrau contido e atualizado sem duplicação. As ações nativas foram preservadas.
+3. **Folha terminando antes do rodapé:** o Chainlit mantém um espaçador depois da lista de mensagens para rolagem. A aparência da folha foi transferida para o viewport de rolagem, incluindo essa área vazia. A lista interna usa `study-sheet-content` para controlar padding e largura de texto. Não foi criado wrapper adicional nem alterada a árvore React. A margem pautada foi ajustada no celular.
+
+No teste de fim de rolagem, a diferença entre o fundo da folha e o topo da barra de estudo foi **0px** nas doze combinações de tema/aparência. A mesma medida foi conferida em 375px de largura. O papel permanece visível atrás do espaçador até o rodapé. Testes feitos com a mesma conta fictícia e streaming simulado da rodada anterior.
+
+Novas capturas e medidas: `.local/review-layout/` (`folha-continua-desktop.png`, `folha-continua-mobile.png`, `foco-corrigido.png`, `foco-mobile.png`, `folha.json`). O adaptador mantém os elementos de scroll nativos e acrescenta foco por teclado ao caderno. Os testes automatizados existentes continuam necessários, mas essas correções dependem também de medição e inspeção visual.

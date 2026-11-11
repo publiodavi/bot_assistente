@@ -778,7 +778,6 @@ html[data-study-theme="aracnideo"] .study-effects__actor:has(.study-character-ar
 /* 14. Folha central. Cada ambiente reinterpreta o papel. */
 
 html[data-study-theme="vintage"] .study-sheet {
-  padding-left: 4rem;
   background:
     linear-gradient(90deg, transparent 2.75rem, hsl(356 62% 52% / .5) 2.75rem calc(2.75rem + 1.5px), transparent 0),
     repeating-linear-gradient(transparent 0 1.85rem, hsl(212 45% 55% / .16) 1.85rem calc(1.85rem + 1px)),
@@ -816,7 +815,7 @@ html[data-study-theme="cyberpunk"] .study-sheet {
 .study-sheet {
   position: relative;
   box-sizing: border-box;
-  margin-block: 1rem 1.5rem;
+  margin-block: 0;
   background: hsl(var(--study-surface));
   border: 1px solid hsl(var(--study-border) / .55);
   border-radius: calc(var(--study-bubble-radius) / 2);
@@ -824,9 +823,11 @@ html[data-study-theme="cyberpunk"] .study-sheet {
   width: 100%;
   max-width: min(60rem, 100%) !important;
   margin-inline: auto;
-  padding: 1.25rem 1.5rem 1rem;
+  padding: 0;
+  min-height: 0;
+  flex: 1 1 0;
 }
-html[data-study-theme="vintage"] .study-sheet { padding-left: 3.75rem; }
+html[data-study-theme="vintage"] .study-sheet-content { padding-left: 3.75rem; }
 .study-sheet .message-content .prose { max-width: none; }
 .study-sheet .message-content :is(.leading-7, p, ul, ol, blockquote, h1, h2, h3, h4) { max-width: 72ch; }
 .study-sheet .message-content :is(pre, table, .katex-display) { max-width: 100%; overflow-x: auto; }
@@ -1081,8 +1082,8 @@ html[data-study-theme="castelo"] .study-cover { box-shadow: 0 1.25rem 2.5rem #00
 .study-recent__step { flex: none; color: hsl(var(--study-muted-text)); font-size: .8rem; }
 
 @media (max-width: 36rem) {
-  .study-sheet { padding: 1.25rem 1rem 1rem; margin-block: .5rem 1rem; }
-  html[data-study-theme="vintage"] .study-sheet { padding-left: 2.25rem; background-position: -1.25rem 0, 0 1.1rem, 0 0; }
+  .study-sheet-content { padding: 1.25rem 1rem 1rem; }
+  html[data-study-theme="vintage"] .study-sheet-content { padding-left: 2.25rem; }
   .study-cover { padding: 1.25rem 1rem 1rem 2.25rem; }
   .escada__camada:nth-child(n+2) { margin-left: .75rem; }
   /* Celular: a barra pode ocupar duas linhas compactas. */
@@ -1264,8 +1265,8 @@ html[data-study-text-size="extra"] { --study-reading-size:1.25rem; }
 /* 24. Cadernos e ferramentas de estudo */
 [data-sidebar="sidebar"] { background:hsl(var(--study-surface)); background-image:repeating-linear-gradient(0deg,transparent 0 28px,hsl(var(--study-border) / .05) 28px 29px); }
 .study-notebook-title { font:600 1.1rem var(--study-font-title); padding:.75rem 1rem; }
-.study-notebook-link { border-left:4px solid hsl(var(--study-accent)); border-radius:.25rem .65rem .65rem .25rem; background:hsl(var(--study-muted) / .6); margin:.2rem 0; padding:.65rem; min-width:0; }
-.study-notebook-level { display:block; font-size:.7rem; color:hsl(var(--study-muted-text)); }
+.study-notebook-link { display:block; position:relative; overflow:hidden; border-left:4px solid hsl(var(--study-accent)); border-radius:.25rem .65rem .65rem .25rem; background:hsl(var(--study-muted) / .6); margin:.2rem 0; padding:0; min-width:0; text-decoration:none; }
+.study-notebook-level { display:block; padding:.15rem .5rem .5rem; font-size:.7rem; line-height:1.35; color:hsl(var(--study-muted-text)); }
 .study-sidebar-tools { display:grid; gap:.4rem; padding:.75rem; border-top:1px solid hsl(var(--study-border)); margin-top:auto; }
 .study-sidebar-tools .study-button { text-align:left; font-size:.85rem; }
 .study-focus-clock { display:block; text-align:center; font:600 clamp(3rem,12vw,5rem) var(--study-font-title); padding:1.5rem; color:hsl(var(--study-accent)); }
@@ -1335,3 +1336,15 @@ html[data-study-motion="paused"] .study-companion-card__art { animation-play-sta
 @media(max-width:767px) { html[data-study-entry="topic"] #welcome-screen { margin-top:0!important; justify-content:flex-start; padding-block:.75rem; } }
 
 html[data-study-appearance="dark"] { color-scheme:dark; }
+
+/* 36. Folha contínua e campos das ferramentas: correções da revisão visual. */
+.study-sheet-content { flex:none; box-sizing:border-box; width:100%; max-width:none!important; min-width:0; padding:1.25rem 1.5rem 1rem; }
+html[data-study-theme] .study-sheet { background-attachment:local; }
+.study-focus-fields > label { min-width:0; }
+.study-focus-fields input { min-width:0; font:inherit; }
+.study-focus-clock { line-height:1.1; font-variant-numeric:tabular-nums; }
+.study-sidebar-tools { flex-shrink:0; }
+[data-sidebar="content"] { min-height:0; }
+@media(max-width:36rem) { .study-sheet-content { padding:1.25rem 1rem 1rem; } }
+
+@media(max-width:36rem) { html[data-study-theme="vintage"] .study-sheet { background-position:-1.25rem 0,0 1.1rem,0 0; } }
