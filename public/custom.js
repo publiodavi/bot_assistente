@@ -180,6 +180,49 @@
     return node;
   }
 
+  // Ícones de traço simples desenhados no próprio projeto, sem biblioteca adicional.
+  const iconPaths = {
+    palette: "M12 3a9 9 0 1 0 0 18c.9 0 1.5-.6 1.5-1.4 0-.4-.1-.7-.4-1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8ZM7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01M17 11h.01",
+    companion: "M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M8.5 14.5s1.3 1.5 3.5 1.5 3.5-1.5 3.5-1.5M9 9.5h.01M15 9.5h.01",
+    user: "M8 8a4 4 0 1 0 8 0 4 4 0 1 0-8 0M5 20a7 7 0 0 1 14 0",
+    tools: "M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M6 15v4",
+    clock: "M3 13a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 8v5l3 2M10 2h4",
+    notes: "M6 3h10a3 3 0 0 1 3 3v15H8a3 3 0 0 1-3-3V4a1 1 0 0 1 1-1ZM5 18a3 3 0 0 1 3-3h11M9 7h6",
+    heart: "M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z",
+    edit: "M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3ZM14 8l2.9 2.9",
+    search: "M5 11a6 6 0 1 0 12 0 6 6 0 1 0-12 0M20 20l-4.3-4.3",
+    close: "M6 6l12 12M18 6 6 18",
+    check: "m5 12.5 4.5 4.5L19 7.5",
+    alert: "M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7.5v5.5M12 16.5h.01",
+  };
+  function icon(name) {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", "study-icon");
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", iconPaths[name]);
+    svg.append(path);
+    return svg;
+  }
+
+  // Navegação: ícone e rótulo, sem contorno permanente; o rótulo segue como nome acessível.
+  function navButton(text, iconName, callback, className = "") {
+    const node = button("", callback, `study-nav ${className}`.trim());
+    node.append(icon(iconName), element("span", text, "study-nav__label"));
+    return node;
+  }
+
+  // Confirmação e erro com ícone e texto, sem depender apenas da cor.
+  function setStatus(node, state, text) {
+    node.dataset.state = state;
+    node.replaceChildren();
+    if (!text) return;
+    if (state === "ok" || state === "error") node.append(icon(state === "ok" ? "check" : "alert"));
+    node.append(element("span", text));
+  }
+
   function characterArt(id, expression = "idle", pose = "full") {
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
@@ -203,15 +246,24 @@
     return art;
   }
 
-  function panel(title) {
+  function panel(title, description = "") {
     const dialog = element("dialog", "", "study-dialog");
     const heading = element("h2", title);
     heading.id = "study-dialog-" + document.querySelectorAll(".study-dialog").length;
     dialog.setAttribute("aria-labelledby", heading.id);
     const header = element("div", "", "study-dialog__header");
-    const close = button("×", () => dialog.close(), "study-dialog__close");
+    const headingGroup = element("div", "", "study-dialog__heading");
+    headingGroup.append(heading);
+    if (description) {
+      const text = element("p", description, "study-dialog__description");
+      text.id = heading.id + "-description";
+      dialog.setAttribute("aria-describedby", text.id);
+      headingGroup.append(text);
+    }
+    const close = button("", () => dialog.close(), "study-icon-button study-dialog__close");
+    close.append(icon("close"));
     close.setAttribute("aria-label", "Fechar");
-    header.append(heading, close);
+    header.append(headingGroup, close);
     const body = element("div", "", "study-dialog__body");
     dialog.append(header, body);
     // Clique no fundo escurecido fecha o painel, sem perder o rascunho do campo de mensagem.
@@ -265,7 +317,18 @@
     noticeTimer = setTimeout(() => { notices.textContent = ""; }, 5500);
   }
 
-  const gallery = panel("Temas");
+  // Linha de configuração: rótulo e explicação curta à esquerda, controle à direita.
+  function settingRow(label, hint, control) {
+    const row = element("div", "", "study-setting");
+    const text = element("div", "", "study-setting__text");
+    text.append(element("span", label, "study-setting__label"));
+    if (hint) text.append(element("span", hint, "study-setting__hint"));
+    row.append(text, control);
+    return row;
+  }
+
+  const gallery = panel("Temas", "Ambiente, aparência e leitura. As mudanças valem na hora.");
+  gallery.dialog.classList.add("study-dialog--themes");
   const themeGrid = element("div", "", "study-theme-grid");
   const themeCards = {};
   for (const [id, [title, description]] of Object.entries(catalog)) {
@@ -273,25 +336,49 @@
     card.dataset.preview = id;
     const text = element("span", "", "study-theme-card__text");
     text.append(element("strong", title), element("span", description));
-    card.append(element("span", "", "study-theme-card__art"), text);
+    const art = element("span", "", "study-theme-card__art");
+    const check = element("span", "", "study-theme-card__check");
+    check.append(icon("check"));
+    art.append(check);
+    card.append(art, text);
     themeCards[id] = card;
     themeGrid.append(card);
   }
   const appearance = choiceGroup("Aparência", { light: "Claro", dark: "Escuro" },
     (id) => choosePreferences({ appearance: id }));
-  const motion = choiceGroup("Animações", { enabled: "Ativadas", paused: "Pausadas" },
-    (id) => choosePreferences({ animations: id }));
+  // Chave liga/desliga: o estado fica em aria-checked e a fila de preferências continua a mesma.
+  const motionSwitch = button("", () => choosePreferences({
+    animations: motionSwitch.getAttribute("aria-checked") === "true" ? "paused" : "enabled",
+  }), "study-switch");
+  motionSwitch.setAttribute("role", "switch");
+  motionSwitch.setAttribute("aria-label", "Animações do cenário");
+  const motion = { select(value) { motionSwitch.setAttribute("aria-checked", String(value === "enabled")); } };
   const motionStatus = element("p", "", "study-muted");
   motionStatus.setAttribute("role", "status");
-  const visualOptions = element("div", "", "study-option-row");
-  visualOptions.append(section("Aparência", appearance.group), section("Animações", motion.group, motionStatus));
-  const accentChoice = choiceGroup("Cor de destaque", { "1": "Original", "2": "Variação 2", "3": "Variação 3", "4": "Variação 4" }, (id) => choosePreferences({ accent: id }));
+  const accentNames = { "1": "Original", "2": "Variação 2", "3": "Variação 3", "4": "Variação 4" };
+  const accentChoice = choiceGroup("Cor de destaque", accentNames, (id) => choosePreferences({ accent: id }), "study-swatches");
+  for (const [id, swatch] of Object.entries(accentChoice.buttons)) {
+    swatch.className = "study-swatch";
+    swatch.textContent = "";
+    swatch.title = accentNames[id];
+    swatch.setAttribute("aria-label", accentNames[id]);
+  }
   const intensityChoice = choiceGroup("Intensidade do cenário", { suave: "Suave", normal: "Normal", vivo: "Vivo" }, (id) => choosePreferences({ scene_intensity: id }));
   const sizeChoice = choiceGroup("Tamanho do texto", { normal: "Normal", grande: "Grande", extra: "Extra" }, (id) => choosePreferences({ text_size: id }));
-  gallery.body.append(section("Ambiente", themeGrid), visualOptions,
-    section("Ajustes", element("p", "Cor de destaque", "study-field-label"), accentChoice.group,
-      element("p", "Intensidade do cenário", "study-field-label"), intensityChoice.group,
-      element("p", "Tamanho do texto", "study-field-label"), sizeChoice.group));
+  gallery.body.append(section("Ambiente", themeGrid),
+    section("Aparência",
+      settingRow("Modo", "Claro ou escuro, em qualquer ambiente.", appearance.group),
+      settingRow("Animações", "Movimento discreto nas margens do cenário.", motionSwitch),
+      motionStatus),
+    section("Ajustes",
+      settingRow("Cor de destaque", "Botões, seleção e marcadores.", accentChoice.group),
+      settingRow("Intensidade do cenário", null, intensityChoice.group),
+      settingRow("Tamanho do texto", "Leitura da folha e campo de mensagem.", sizeChoice.group)));
+  const preferenceStatus = element("p", "", "study-form-status");
+  preferenceStatus.setAttribute("role", "status");
+  const galleryFooter = element("div", "", "study-dialog__footer");
+  galleryFooter.append(preferenceStatus);
+  gallery.dialog.append(galleryFooter);
 
   const companionPanel = panel("Companheiros");
   const companionGrid = element("div", "", "study-companion-grid");
@@ -375,17 +462,26 @@
   const toolsPanel = panel("Ferramentas");
   const tools = element("div", "", "study-tools");
   tools.hidden = true;
-  tools.append(button("Temas", () => gallery.dialog.showModal()),
-    button("Companheiros", () => {
+  const openProfile = () => {
+    buildProfile();
+    profilePanel.dialog.showModal();
+  };
+  // Com conta, Ferramentas e Perfil também ficam na lateral; o CSS evita a entrada duplicada.
+  for (const [id, label, iconName, open] of [
+    ["temas", "Temas", "palette", () => gallery.dialog.showModal()],
+    ["companheiros", "Companheiros", "companion", () => {
       nicknameStatus.textContent = "";
       renderCompanions(true);
       companionPanel.dialog.showModal();
-    }),
-    button("Ferramentas", () => toolsPanel.dialog.showModal()),
-    button("Perfil", () => {
-      buildProfile();
-      profilePanel.dialog.showModal();
-    }));
+    }],
+    ["ferramentas", "Ferramentas", "tools", () => toolsPanel.dialog.showModal()],
+    ["perfil", "Perfil", "user", openProfile],
+  ]) {
+    const control = navButton(label, iconName, open);
+    control.dataset.tool = id;
+    control.title = label;
+    tools.append(control);
+  }
 
   let profile = null;
   let currentThread = null;
@@ -522,15 +618,35 @@
   const focusPanel = panel("Uma sessão de foco");
   const notesPanel = panel("Fichário de descobertas");
   const moodPanel = panel("Como você chega hoje?");
+  // A linha do Foco mostra o tempo restante enquanto a sessão corre.
+  const focusMeters = [];
   function toolLinks() {
-    return section("Ferramentas",
-      button("Foco", () => focusPanel.dialog.showModal()),
-      button("Fichário de descobertas", () => { buildNotes(); notesPanel.dialog.showModal(); }),
-      button("Check-in de ânimo", () => { buildMood(); moodPanel.dialog.showModal(); }));
+    const focusLink = navButton("Foco", "clock", () => focusPanel.dialog.showModal());
+    const meter = element("span", "", "study-nav__meta");
+    focusLink.append(meter);
+    focusMeters.push(meter);
+    return section("Ferramentas", focusLink,
+      navButton("Fichário de descobertas", "notes", () => { buildNotes(); notesPanel.dialog.showModal(); }),
+      navButton("Check-in de ânimo", "heart", () => { buildMood(); moodPanel.dialog.showModal(); }));
   }
   toolsPanel.body.append(toolLinks());
   const sidebarTools = toolLinks();
   sidebarTools.classList.add("study-sidebar-tools");
+  // Atalhos da lateral: acionam os botões nativos do Chainlit, sem substituir busca e nova conversa.
+  const sidebarNav = element("nav", "", "study-sidebar-nav");
+  sidebarNav.setAttribute("aria-label", "Ações dos cadernos");
+  const nativeSidebarAction = (id) => document.querySelector(`[data-sidebar="sidebar"] [id="${id}"]`)?.click();
+  sidebarNav.append(navButton("Novo caderno", "edit", () => nativeSidebarAction("new-chat-button")),
+    navButton("Buscar cadernos", "search", () => nativeSidebarAction("search-chats-button")));
+  // Rodapé da lateral: a pessoa e o acesso ao perfil, como nas ferramentas de referência.
+  const sidebarProfile = button("", openProfile, "study-nav study-sidebar-profile");
+  const sidebarProfileFace = element("span", "", "study-user-avatar");
+  sidebarProfileFace.setAttribute("aria-hidden", "true");
+  const sidebarProfileText = element("span", "", "study-sidebar-profile__text");
+  const sidebarProfileName = element("strong");
+  const sidebarProfileLine = element("span");
+  sidebarProfileText.append(sidebarProfileName, sidebarProfileLine);
+  sidebarProfile.append(sidebarProfileFace, sidebarProfileText);
   const focusDuration = element("input");
   focusDuration.type = "number"; focusDuration.min = "1"; focusDuration.max = "120"; focusDuration.value = "25";
   const breakDuration = element("input");
@@ -580,6 +696,8 @@
     const seconds = Math.ceil(left / 1000);
     const label = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
     if (focusClock.textContent !== label) focusClock.textContent = label;
+    const meterText = focusTimer.end ? label : "";
+    for (const meter of focusMeters) if (meter.textContent !== meterText) meter.textContent = meterText;
     focusStart.textContent = focusTimer.phase === "break" ? "Começar pausa" : focusTimer.end ? "Em foco" : "Começar / retomar";
     focusStart.disabled = !!focusTimer.end; focusPause.disabled = !focusTimer.end;
     focusState.textContent = focusTimer.phase === "study" ? "Uma tarefa de cada vez. Você pode pausar quando precisar." : "Afaste os olhos da tela por alguns instantes, se quiser.";
@@ -716,7 +834,19 @@
     if (!sidebar) return;
     const content = sidebar.querySelector('[data-sidebar="content"]') || sidebar;
     if (!sidebar.querySelector(".study-notebook-title")) content.prepend(element("h2", "Meus cadernos", "study-notebook-title"));
+    const title = sidebar.querySelector(".study-notebook-title");
+    if (sidebarNav.nextElementSibling !== title) title.before(sidebarNav);
     if (sidebarTools.parentElement !== content) content.append(sidebarTools);
+    if (account && profile) {
+      if (sidebarTools.nextElementSibling !== sidebarProfile) sidebarTools.after(sidebarProfile);
+      paintUserAvatar(sidebarProfileFace, profile.avatar, profile.name);
+      const profileName = profile.name || "Estudante";
+      const profileLine = profile.tagline || "Meu perfil";
+      if (sidebarProfileName.textContent !== profileName) sidebarProfileName.textContent = profileName;
+      if (sidebarProfileLine.textContent !== profileLine) sidebarProfileLine.textContent = profileLine;
+      const profileLabel = `Meu perfil: ${profileName}`;
+      if (sidebarProfile.getAttribute("aria-label") !== profileLabel) sidebarProfile.setAttribute("aria-label", profileLabel);
+    } else if (sidebarProfile.isConnected) sidebarProfile.remove();
     for (const link of sidebar.querySelectorAll('a[href^="/thread/"]')) {
       link.classList.add("study-notebook-link");
       const id = link.getAttribute("href").split("/").pop();
@@ -1102,6 +1232,7 @@
   const pending = new Map();
   let sequence = 0;
   let savingPreferences = false;
+  let preferenceStatusTimer;
 
   function send(data) {
     window.postMessage({ channel, version: 1, direction: "client", session_id: session, ...data },
@@ -1171,15 +1302,21 @@
     if (savingPreferences) return;
     savingPreferences = true;
     const origin = session;
+    let failed = false;
+    setStatus(preferenceStatus, "", "Salvando…");
     while (Object.keys(desiredPreferences).length && session === origin) {
       const sent = { ...desiredPreferences };
-      await request("study.preferences", { preferences: sent });
+      if (!(await request("study.preferences", { preferences: sent }))) failed = true;
       for (const [key, value] of Object.entries(sent)) {
         if (desiredPreferences[key] === value) delete desiredPreferences[key];
       }
       paintPreferences();
     }
     savingPreferences = false;
+    setStatus(preferenceStatus, failed ? "error" : "ok",
+      failed ? "Não foi possível salvar. Tente de novo." : "Preferências salvas.");
+    clearTimeout(preferenceStatusTimer);
+    preferenceStatusTimer = setTimeout(() => setStatus(preferenceStatus, "", ""), failed ? 8000 : 3000);
     if (Object.keys(desiredPreferences).length) choosePreferences(desiredPreferences);
   }
 
