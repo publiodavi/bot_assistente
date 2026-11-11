@@ -1,16 +1,28 @@
-'''Cliente de conexão e streaming com o modelo de linguagem.
+"""Comunicação com a API de linguagem."""
+import os
 
-Responsabilidades deste módulo:
-- Instanciar o cliente OpenAI SDK apontado para a API DeepSeek
-  (base_url configurável via variáveis de ambiente).
-- Enviar o prompt de sistema pedagógico (ZDP de Vygotsky) junto ao
-  histórico da conversa.
-- Processar respostas em streaming para exibição fluida na interface.
-- Tratar erros de conexão e limites da API de forma resiliente.
-'''
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
-# TODO(llm_client): criar classe LLMClient que carrega DEEPSEEK_API_KEY,
-#            DEEPSEEK_BASE_URL e DEEPSEEK_MODEL do arquivo .env.
-# TODO(llm_client): implementar método de conversa assíncrona com streaming.
-# TODO(llm_client): padronizar a estrutura de mensagens (system, user,
-#            assistant) esperada pelo SDK.
+load_dotenv()
+
+
+def create_client():
+    key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if not key or key == "sua_chave_aqui":
+        raise ValueError("Configure DEEPSEEK_API_KEY no arquivo .env antes de iniciar uma conversa.")
+    return AsyncOpenAI(api_key=key, base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
+
+
+async def stream_reply(messages):
+    client = create_client()
+    stream = await client.chat.completions.create(
+        model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+        messages=messages,
+        stream=True,
+    )
+    async for chunk in stream:
+        if chunk.choices:
+            content = chunk.choices[0].delta.content
+            if content:
+                yield content

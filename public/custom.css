@@ -1,0 +1,878 @@
+@font-face { font-family: "Study Lora"; src: url("fonts/lora-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Study Source Sans"; src: url("fonts/sourcesans3-400.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
+@font-face { font-family: "Study Cinzel"; src: url("fonts/cinzel-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Study Barlow Condensed"; src: url("fonts/barlowcondensed-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Study Barlow"; src: url("fonts/barlow-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Study Barlow"; src: url("fonts/barlow-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Study Space Mono"; src: url("fonts/spacemono-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Study Inter"; src: url("fonts/inter-400.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
+@font-face { font-family: "Study IBM Plex Mono"; src: url("fonts/ibmplexmono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+
+/* Channel lists let the same palette drive Chainlit's HSL-based utilities. */
+:root {
+  color-scheme: light;
+  --study-bg: 38.6 53.8% 89.8%;
+  --study-surface: 40 100% 96.5%;
+  --study-text: 26.7 22.5% 15.7%;
+  --study-accent: 21 44% 34.3%;
+  --study-on-accent: 0 0% 100%;
+  --study-bubble-student: 36 53.2% 81.6%;
+  --study-muted-text: 26.2 24.8% 30.8%;
+  --study-border: 31.6 24.3% 46.1%;
+  --study-muted: 35.6 51.6% 87.8%;
+  --study-code: var(--study-muted);
+  --study-error: 356 69% 32%;
+  --study-on-error: 0 0% 100%;
+  --study-focus: var(--study-accent);
+  --study-link: var(--study-accent);
+  --study-bubble-assistant: var(--study-surface);
+  --study-font-title: "Study Lora", Georgia, serif;
+  --study-font-body: "Study Source Sans", system-ui, sans-serif;
+  --study-font-code: "Study IBM Plex Mono", Consolas, monospace;
+  --study-title-weight: 600;
+  --study-bubble-radius: 1rem;
+  --study-shadow: 0 8px 26px hsl(23 36% 24% / .12);
+  --study-texture: repeating-linear-gradient(transparent 0 27px, hsl(26 40% 35% / .12) 27px 28px);
+  --study-art: none;
+}
+
+html[data-study-theme="castelo"] {
+  color-scheme: dark;
+  --study-bg: 316.4 20.8% 10.4%;
+  --study-surface: 304.3 17.1% 16.1%;
+  --study-text: 33.6 64.1% 92.4%;
+  --study-accent: 39.3 69% 67.1%;
+  --study-on-accent: 330 18.8% 12.5%;
+  --study-bubble-student: 334.3 35.6% 23.1%;
+  --study-muted-text: 321.8 20.4% 78.8%;
+  --study-border: 320 16.1% 56.1%;
+  --study-muted: 315 16.3% 19.2%;
+  --study-error: 351 90% 79%;
+  --study-on-error: var(--study-on-accent);
+  --study-font-title: "Study Cinzel", Georgia, serif;
+  --study-bubble-radius: .625rem;
+  --study-shadow: 0 8px 26px hsl(0 0% 0% / .32);
+  --study-texture: radial-gradient(ellipse at 75% 0, hsl(340 34% 40% / .2), transparent 58%);
+  --study-art: url("themes/castelo.webp");
+}
+
+html[data-study-theme="aracnideo"] {
+  color-scheme: dark;
+  --study-bg: 220.7 43.8% 12.5%;
+  --study-surface: 218.9 36.6% 19.8%;
+  --study-text: 228 100% 98%;
+  --study-accent: 352.1 100% 76.1%;
+  --study-on-accent: 311.3 25.8% 12.2%;
+  --study-bubble-student: 336.5 34.7% 28.8%;
+  --study-muted-text: 220.6 37% 82%;
+  --study-border: 219.6 23.2% 60.2%;
+  --study-muted: 216 32.8% 23.9%;
+  --study-error: 351 90% 79%;
+  --study-on-error: var(--study-on-accent);
+  --study-font-title: "Study Barlow Condensed", system-ui, sans-serif;
+  --study-font-body: "Study Barlow", system-ui, sans-serif;
+  --study-bubble-radius: .25rem;
+  --study-shadow: 3px 4px 0 hsl(352 72% 68% / .22);
+  --study-texture: repeating-linear-gradient(135deg, transparent 0 34px, hsl(351 65% 73% / .1) 34px 35px);
+  --study-art: url("themes/aracnideo.webp");
+}
+
+html[data-study-theme="cyberpunk"] {
+  color-scheme: dark;
+  --study-bg: 212 38.5% 7.6%;
+  --study-surface: 212.3 37.1% 13.7%;
+  --study-text: 203.3 56.2% 93.7%;
+  --study-accent: 170.7 69% 67.1%;
+  --study-on-accent: 193.8 43.3% 11.8%;
+  --study-bubble-student: 195.7 43.7% 18.8%;
+  --study-muted-text: 205.9 33.3% 78.2%;
+  --study-border: 199.3 23.7% 53.7%;
+  --study-muted: 211.8 33.3% 20%;
+  --study-error: 351 90% 79%;
+  --study-on-error: var(--study-on-accent);
+  --study-font-title: "Study Space Mono", Consolas, monospace;
+  --study-font-body: "Study Inter", system-ui, sans-serif;
+  --study-title-weight: 700;
+  --study-bubble-radius: .5rem;
+  --study-shadow: 0 0 18px hsl(170 69% 67% / .13);
+  --study-texture:
+    repeating-linear-gradient(transparent 0 31px, hsl(170 69% 67% / .1) 31px 32px),
+    repeating-linear-gradient(90deg, transparent 0 31px, hsl(170 69% 67% / .1) 31px 32px);
+}
+
+/* Aparência independente do ambiente. Perfis anteriores recebem light. */
+html[data-study-appearance="light"] { color-scheme: light; }
+html[data-study-theme="castelo"][data-study-appearance="light"] {
+  --study-bg: 43 43% 90%;
+  --study-surface: 45 67% 97%;
+  --study-text: 316 24% 16%;
+  --study-accent: 334 48% 30%;
+  --study-on-accent: 45 80% 97%;
+  --study-bubble-student: 340 28% 86%;
+  --study-muted-text: 318 18% 32%;
+  --study-border: 320 16% 46%;
+  --study-muted: 35 30% 86%;
+  --study-error: 356 69% 32%;
+  --study-on-error: 0 0% 100%;
+  --study-shadow: 0 8px 26px hsl(320 20% 26% / .12);
+}
+html[data-study-theme="aracnideo"][data-study-appearance="light"] {
+  --study-bg: 214 45% 93%;
+  --study-surface: 210 60% 99%;
+  --study-text: 222 45% 17%;
+  --study-accent: 350 68% 34%;
+  --study-on-accent: 0 0% 100%;
+  --study-bubble-student: 350 55% 89%;
+  --study-muted-text: 222 28% 33%;
+  --study-border: 220 24% 48%;
+  --study-muted: 214 35% 87%;
+  --study-error: 356 69% 32%;
+  --study-on-error: 0 0% 100%;
+  --study-shadow: 3px 4px 0 hsl(350 60% 38% / .18);
+}
+html[data-study-theme="cyberpunk"][data-study-appearance="light"] {
+  --study-bg: 190 32% 91%;
+  --study-surface: 180 35% 98%;
+  --study-text: 211 52% 14%;
+  --study-accent: 177 82% 21%;
+  --study-on-accent: 0 0% 100%;
+  --study-bubble-student: 177 35% 82%;
+  --study-muted-text: 210 30% 30%;
+  --study-border: 196 28% 42%;
+  --study-muted: 190 29% 84%;
+  --study-error: 356 69% 32%;
+  --study-on-error: 0 0% 100%;
+  --study-shadow: 0 0 18px hsl(178 80% 25% / .13);
+}
+html[data-study-theme="vintage"][data-study-appearance="dark"] {
+  color-scheme: dark;
+  --study-bg: 24 23% 10%;
+  --study-surface: 25 22% 16%;
+  --study-text: 36 55% 91%;
+  --study-accent: 29 67% 74%;
+  --study-on-accent: 20 34% 14%;
+  --study-bubble-student: 24 27% 24%;
+  --study-muted-text: 33 30% 77%;
+  --study-border: 29 24% 54%;
+  --study-muted: 24 18% 22%;
+  --study-error: 351 90% 79%;
+  --study-on-error: 20 34% 14%;
+  --study-shadow: 0 8px 26px #0005;
+}
+
+/* Chainlit 2.12 adapter, including the portalled panel and dropdowns. */
+html:root body {
+  --background: var(--study-bg);
+  --foreground: var(--study-text);
+  --card: var(--study-surface);
+  --card-foreground: var(--study-text);
+  --popover: var(--study-surface);
+  --popover-foreground: var(--study-text);
+  --primary: var(--study-accent);
+  --primary-foreground: var(--study-on-accent);
+  --secondary: var(--study-muted);
+  --secondary-foreground: var(--study-text);
+  --muted: var(--study-muted);
+  --muted-foreground: var(--study-muted-text);
+  --accent: var(--study-muted);
+  --accent-foreground: var(--study-text);
+  --border: var(--study-border);
+  --input: var(--study-border);
+  --ring: var(--study-focus);
+  --destructive: var(--study-error);
+  --destructive-foreground: var(--study-on-error);
+  --sidebar-background: var(--study-surface);
+  --sidebar-foreground: var(--study-text);
+  --sidebar-accent: var(--study-muted);
+  --sidebar-accent-foreground: var(--study-text);
+  --sidebar-border: var(--study-border);
+  --sidebar-ring: var(--study-focus);
+  --radius: var(--study-bubble-radius);
+  background-color: hsl(var(--study-bg));
+  color: hsl(var(--study-text));
+  font-family: var(--study-font-body);
+}
+
+#message-composer, #chat-settings-sidebar-title, #starters button {
+  background: hsl(var(--study-surface));
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  box-shadow: var(--study-shadow);
+}
+
+#chat-settings-sidebar-title {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-step-type="user_message"] .relative.bg-accent.rounded-3xl,
+[data-step-type="assistant_message"] .message-content {
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  color: hsl(var(--study-text));
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+[data-step-type="user_message"] .relative.bg-accent.rounded-3xl {
+  background: hsl(var(--study-bubble-student));
+}
+
+[data-step-type="assistant_message"] .message-content {
+  background: hsl(var(--study-bubble-assistant));
+  padding: .75rem 1rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.message-content :where(h1, h2, h3), #chat-settings-sidebar-title,
+.study-mascot__name {
+  font-family: var(--study-font-title);
+  font-weight: var(--study-title-weight);
+}
+
+.message-content a {
+  color: hsl(var(--study-link));
+  text-decoration: underline;
+}
+
+/* On the Vintage student's tinted bubble, use the darker text for links. */
+[data-step-type="user_message"] .message-content a { color: inherit; }
+
+.message-content :is(code, pre) { font-family: var(--study-font-code); }
+.message-content :not(pre) > code {
+  background: hsl(var(--study-code));
+  color: hsl(var(--study-text));
+}
+
+body :focus-visible {
+  outline: 2px solid hsl(var(--study-focus));
+  outline-offset: 2px;
+}
+
+/* Independent decorative layer. The central reading column is left plain. */
+#study-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--study-art), var(--study-texture);
+  background-repeat: no-repeat, repeat;
+  background-size: min(36vw, 32rem) auto, auto;
+  background-position: right bottom, center;
+  mask-image: linear-gradient(90deg, #000, transparent 17%, transparent 78%, #000);
+}
+
+.study-mascot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  max-width: 100%;
+  width: fit-content;
+  margin: 0 0 .375rem auto;
+  padding: .25rem .375rem .25rem .5rem;
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-text));
+  box-shadow: var(--study-shadow);
+}
+
+.study-mascot[hidden], .study-mascot [hidden] { display: none; }
+.study-mascot__image { width: 2.25rem; height: 2.25rem; flex: none; }
+.study-mascot__details { min-width: 0; overflow-wrap: anywhere; }
+.study-mascot__name { display: block; line-height: 1.2; }
+.study-mascot__status { color: hsl(var(--study-muted-text)); font-size: .875rem; }
+.study-mascot__toggle { flex: none; width: 2.75rem; height: 2.75rem; border-radius: var(--study-bubble-radius); }
+.study-mascot__toggle:hover { background: hsl(var(--study-muted)); }
+@media (prefers-reduced-motion: no-preference) {
+  .study-mascot[data-expression="celebrating"] .study-mascot__image,
+  .study-mascot[data-expression="unlocked"] .study-mascot__image {
+    animation: study-celebrate .35s ease-out;
+  }
+
+  @keyframes study-celebrate {
+    45% { transform: translateY(-.2rem) rotate(-7deg); }
+  }
+}
+
+@media (min-width: 90rem) {
+  body:not(:has(#chat-settings-sidebar-content)) .study-mascot {
+    position: fixed;
+    z-index: 10;
+    right: 1rem;
+    bottom: 2rem;
+    width: 12.5rem;
+    margin: 0;
+  }
+}
+
+@media (max-width: 36rem) {
+  #study-ambient { display: none; }
+  [role="dialog"]:has(#chat-settings-sidebar-title) { max-width: 100vw; }
+  [data-step-type="assistant_message"] .message-content { padding: .625rem; }
+}
+
+/* Galeria e introdução. As prévias mantêm a identidade de cada ambiente. */
+:root, [data-preview="vintage"] {
+  --study-scene: url("themes/vintage-room.webp");
+  --study-scene-color: #613b2a;
+}
+html[data-study-theme="castelo"], [data-preview="castelo"] {
+  --study-scene: url("themes/castelo-room.webp");
+  --study-scene-color: #382738;
+}
+html[data-study-theme="aracnideo"], [data-preview="aracnideo"] {
+  --study-scene: url("themes/aracnideo-room.webp");
+  --study-scene-color: #182a48;
+}
+html[data-study-theme="cyberpunk"], [data-preview="cyberpunk"] {
+  --study-scene: url("themes/cyberpunk-room.webp");
+  --study-scene-color: #102730;
+}
+
+.study-tools { display: flex; align-items: center; gap: .375rem; }
+.study-tools[hidden] { display: none; }
+#header:has(.study-tools:not([hidden])) #theme-toggle { display: none; }
+.study-button {
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-text));
+  padding: .5rem .75rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+}
+.study-button:hover { background: hsl(var(--study-muted)); }
+.study-button--primary { background: hsl(var(--study-accent)); color: hsl(var(--study-on-accent)); }
+.study-button--primary:hover { filter: brightness(.9); background: hsl(var(--study-accent)); }
+.study-button:disabled { opacity: .65; }
+.study-tools .study-button { min-height: 2.25rem; font-size: .875rem; }
+
+.study-welcome {
+  width: min(100%, 52rem);
+  box-sizing: border-box;
+  padding: clamp(1rem, 5vw, 2.5rem);
+  margin: 0 auto;
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  background: linear-gradient(90deg, #101019ed, #101019cc 45%, #10101933 100%),
+    var(--study-scene) center / cover no-repeat, var(--study-scene-color);
+  color: #fff8eb;
+  box-shadow: var(--study-shadow);
+}
+.study-welcome h1 {
+  font: var(--study-title-weight) clamp(1.65rem, 5vw, 3rem) / 1.12 var(--study-font-title);
+}
+.study-welcome p { margin: .5rem 0 1rem; max-width: 22rem; }
+.study-welcome button:focus-visible { outline-color: #fff8eb; }
+
+.study-dialog {
+  inset: 0;
+  margin: auto;
+  width: min(38rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 1rem);
+  overflow: auto;
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  box-shadow: 0 1rem 4rem #0007;
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-text));
+}
+.study-dialog::backdrop { background: #14111c99; }
+.study-dialog__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  background: hsl(var(--study-surface));
+  border-bottom: 1px solid hsl(var(--study-border));
+}
+.study-dialog h2 { font: var(--study-title-weight) 1.35rem / 1.3 var(--study-font-title); }
+.study-dialog__body { display: grid; gap: .75rem; padding: 1rem; }
+.study-theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.study-theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  text-align: start;
+  padding: .5rem;
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  background: hsl(var(--study-muted));
+}
+.study-theme-card[aria-pressed="true"] { box-shadow: inset 0 0 0 2px hsl(var(--study-accent)); }
+.study-theme-card__art {
+  width: 100%;
+  aspect-ratio: 2.6;
+  border-radius: calc(var(--study-bubble-radius) / 2);
+  background: var(--study-scene) center / cover, var(--study-scene-color);
+}
+.study-theme-card strong { font-size: 1rem; }
+.study-theme-card span:last-child { color: hsl(var(--study-muted-text)); font-size: .875rem; }
+.study-form, .study-form label { display: grid; gap: .5rem; }
+.study-form { gap: .75rem; }
+.study-form input, .study-form select {
+  width: 100%;
+  padding: .5rem;
+  min-height: 2.75rem;
+  color: hsl(var(--study-text));
+  background: hsl(var(--study-bg));
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+}
+.study-form textarea {
+  width: 100%;
+  min-height: 5rem;
+  max-height: 14rem;
+  resize: vertical;
+  padding: .625rem;
+  color: hsl(var(--study-text));
+  background: hsl(var(--study-surface));
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+}
+.study-form textarea::placeholder { color: hsl(var(--study-muted-text)); }
+.study-welcome { max-height: none; }
+.study-welcome h1 { max-width: 32rem; }
+html[data-study-entry="topic"] #welcome-screen {
+  justify-content: flex-start;
+  padding-block: 1rem;
+}
+html[data-study-entry="topic"] #welcome-screen #starters,
+html[data-study-entry="topic"] #welcome-screen #message-composer,
+html[data-study-entry="topic"] #welcome-screen img[alt="logo"] { display: none; }
+html[data-study-entry="topic"] .study-welcome {
+  padding: 1.5rem;
+  flex-shrink: 0;
+}
+html[data-study-entry="topic"] .study-welcome h1 { font-size: clamp(1.65rem, 4vw, 2.2rem); }
+.study-welcome > .study-button { margin-top: .625rem; background: transparent; color: #fff8eb; }
+.study-topic-form { max-width: 34rem; color: hsl(var(--study-text)); }
+.study-topic-form label { color: inherit; font-size: .925rem; }
+.study-welcome .study-topic-form label { color: #fff8eb; }
+.study-welcome .study-topic-form select { background: hsl(var(--study-surface)); }
+.study-welcome .study-topic-form button { justify-self: start; padding-inline: 1.75rem; }
+.study-demo-banner:not(:empty) {
+  margin: .25rem auto .5rem;
+  padding-inline: 1rem;
+  text-align: center;
+  color: hsl(var(--study-muted-text));
+  font-size: .8rem;
+  max-width: 55rem;
+}
+.study-choice-row { display: flex; gap: .5rem; }
+.study-choice-row [aria-pressed="true"], .study-companion-card[aria-pressed="true"] {
+  outline: 2px solid hsl(var(--study-accent));
+  outline-offset: -3px;
+}
+.study-companion-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.study-companion-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 10rem;
+  padding: .75rem;
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  background: hsl(var(--study-muted));
+}
+.study-companion-preview { width: 6rem; height: 6rem; position: relative; }
+.study-companion-preview img { position: absolute; inset: 0; }
+.study-companion-preview img:last-child { opacity: 0; }
+.study-muted { color: hsl(var(--study-muted-text)); font-size: .875rem; }
+
+.study-effects {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, #000, #000 12%, transparent 25%, transparent 75%, #000 88%);
+}
+.study-effects__actor {
+  position: absolute;
+  width: clamp(6rem, 13vw, 12rem);
+  aspect-ratio: 1;
+  opacity: 0;
+  filter: drop-shadow(0 3px 5px #0003);
+}
+html[data-study-theme="castelo"] .study-effects__actor {
+  background-position: left;
+  top: 18%;
+  left: -15rem;
+  animation: study-flight 24s linear infinite;
+}
+html[data-study-theme="castelo"] .study-effects__actor:last-child {
+  top: 62%;
+  animation-delay: -12s;
+  animation-duration: 31s;
+}
+html[data-study-theme="aracnideo"] .study-effects__actor {
+  background-position: right;
+  top: -15rem;
+  left: 1%;
+  width: clamp(4rem, 9vw, 8rem);
+  animation: study-spider 23s ease-in-out infinite;
+}
+html[data-study-theme="aracnideo"] .study-effects__actor:last-child {
+  left: auto;
+  right: 2%;
+  animation-delay: -11s;
+  animation-duration: 29s;
+}
+html[data-study-theme="cyberpunk"] .study-effects__actor {
+  width: 5rem;
+  height: 15rem;
+  top: 20%;
+  left: 3%;
+  background-image: repeating-linear-gradient(0deg, transparent 0 1.5rem, #6dfbda 1.5rem 1.6rem);
+  border-inline: 1px solid #6dfbda;
+  box-shadow: 0 0 25px #6dfbda55;
+  animation: study-signal 10s ease-in-out infinite;
+}
+html[data-study-theme="cyberpunk"] .study-effects__actor:last-child {
+  left: auto;
+  right: 3%;
+  top: 55%;
+  animation-delay: -5s;
+}
+@keyframes study-flight {
+  0% { transform: translate(0, 2rem) rotate(-5deg); opacity: 0; }
+  8%, 72% { opacity: .9; }
+  80%, 100% { transform: translate(calc(100vw + 18rem), -3rem) rotate(6deg); opacity: 0; }
+}
+@keyframes study-spider {
+  0%, 100% { transform: translateY(-10rem); opacity: 0; }
+  15%, 70% { opacity: .8; }
+  35% { transform: translateY(40vh) rotate(5deg); }
+  65% { transform: translateY(65vh) rotate(-8deg); }
+}
+@keyframes study-signal {
+  0%, 100% { transform: translateY(0); opacity: .08; }
+  50% { transform: translateY(3rem); opacity: .4; }
+}
+@keyframes study-preview {
+  0%, 40%, 100% { opacity: 0; }
+  50%, 90% { opacity: 1; }
+}
+html[data-study-motion="enabled"] .study-dialog[open] .study-companion-preview img:last-child {
+  animation: study-preview 5s ease-in-out infinite;
+}
+html[data-study-motion="paused"] .study-effects { display: none; }
+html[data-study-motion="paused"] .study-companion-preview img { animation: none; }
+
+@media (max-width: 35rem) {
+  #header { height: auto; min-height: 60px; }
+  #header > :last-child { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  #header a { display: none; }
+  #header #readme-button { display: none; }
+  .study-tools { gap: .2rem; }
+  .study-effects__actor:last-child { display: none; }
+  .study-effects { mask-image: linear-gradient(90deg, #000 0, transparent 25%, transparent 80%, #000); }
+  .study-welcome { padding: 1rem; }
+  .study-welcome h1 { font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .study-effects { display: none; }
+  .study-companion-preview img { animation: none !important; }
+}
+
+/* Personagens chibi desenhados na interface, com cores chapadas e contorno grosso. */
+.study-character {
+  --skin: #f5bea4;
+  --hair: #4d391c;
+  --robe: #171721;
+  --outline: #08090e;
+  position: relative;
+  display: inline-block;
+  width: 8rem;
+  height: 8rem;
+  flex: none;
+  isolation: isolate;
+}
+.study-character > span { position: absolute; display: block; box-sizing: border-box; }
+.study-character__face {
+  z-index: 3;
+  width: 5.1rem;
+  height: 5.1rem;
+  top: .8rem;
+  left: 1.55rem;
+  background: var(--skin);
+  border: .22rem solid var(--outline);
+  border-radius: 46% 46% 44% 44%;
+}
+.study-character__hair {
+  z-index: 4;
+  top: .25rem;
+  left: 1.25rem;
+  width: 5.6rem;
+  height: 3rem;
+  border: .24rem solid var(--outline);
+  background: var(--hair);
+  border-radius: 55% 46% 22% 30%;
+  clip-path: polygon(0 0,100% 0,100% 84%,86% 100%,77% 74%,70% 100%,55% 73%,47% 97%,29% 67%,15% 100%,0 94%);
+}
+.study-character__body {
+  z-index: 2;
+  top: 5.1rem;
+  left: 2.7rem;
+  width: 2.7rem;
+  height: 2.05rem;
+  border: .22rem solid var(--outline);
+  border-radius: .2rem .5rem .6rem .2rem;
+  background: var(--robe);
+  transform: rotate(-13deg);
+}
+.study-character__arm {
+  z-index: 5;
+  top: 5.6rem;
+  left: 4.4rem;
+  width: 1.45rem;
+  height: .6rem;
+  background: var(--skin);
+  border: .19rem solid var(--outline);
+  border-radius: 1rem;
+  transform: rotate(20deg);
+}
+.study-character__foot {
+  z-index: 2;
+  top: 6.5rem;
+  left: 3.4rem;
+  width: 1.35rem;
+  height: .7rem;
+  background: var(--robe);
+  border: .2rem solid var(--outline);
+  border-radius: .5rem;
+  transform: rotate(-32deg);
+}
+.study-character__eye-left, .study-character__eye-right {
+  z-index: 6;
+  top: 3.35rem;
+  left: 2.7rem;
+  width: .4rem;
+  height: .65rem;
+  background: var(--outline);
+  border-radius: 50%;
+}
+.study-character__eye-right { left: 5.45rem; }
+.study-character__glasses {
+  z-index: 5;
+  top: 2.95rem;
+  left: 2.1rem;
+  width: 4.4rem;
+  height: 1.65rem;
+  background: linear-gradient(var(--outline),var(--outline)) center / 1rem .16rem no-repeat;
+}
+.study-character__glasses::before, .study-character__glasses::after {
+  content: "";
+  position: absolute;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: .18rem solid var(--outline);
+  border-radius: 50%;
+}
+.study-character__glasses::before { left: 0; }
+.study-character__glasses::after { right: 0; }
+.study-character__scar {
+  z-index: 6;
+  top: 1.8rem;
+  left: 2.9rem;
+  width: .45rem;
+  height: .7rem;
+  background: #d3744a;
+  clip-path: polygon(60% 0,100% 50%,60% 50%,85% 100%,0 35%,40% 35%,25% 0);
+}
+.study-character__smile {
+  z-index: 6;
+  top: 4.7rem;
+  left: 3.65rem;
+  width: .7rem;
+  height: .35rem;
+  border-bottom: .17rem solid var(--outline);
+  border-radius: 0 0 50% 50%;
+}
+.study-character__broom {
+  z-index: 1;
+  top: 6.75rem;
+  left: .35rem;
+  width: 7rem;
+  height: .4rem;
+  border: .15rem solid var(--outline);
+  background: #be8c66;
+  transform: rotate(-13deg);
+}
+.study-character__broom::before {
+  content: "";
+  position: absolute;
+  width: 2.2rem;
+  height: 1.2rem;
+  top: -.5rem;
+  left: -.3rem;
+  border: .22rem solid var(--outline);
+  border-radius: 65% 20% 20% 65%;
+  background: #81502e;
+}
+.study-character__hat, .study-character__beard, .study-character__web { display: none !important; }
+.study-character[data-character="hermione"] { --hair: #92552c; --robe: #7f2441; }
+.study-character[data-character="hermione"] .study-character__hair {
+  left: 1rem;
+  width: 6rem;
+  height: 4rem;
+  clip-path: polygon(0 0,100% 0,100% 100%,85% 72%,80% 100%,70% 65%,63% 80%,50% 30%,30% 58%,15% 90%,0 100%);
+}
+.study-character[data-character="hermione"] .study-character__glasses,
+.study-character[data-character="hermione"] .study-character__scar { display: none; }
+.study-character[data-character="dumbledore"] { --hair: #ece9e6; --robe: #80528c; }
+.study-character[data-character="dumbledore"] .study-character__scar { display: none; }
+.study-character[data-character="dumbledore"] .study-character__beard {
+  display: block !important;
+  z-index: 7;
+  top: 4.5rem;
+  left: 2.2rem;
+  width: 3.8rem;
+  height: 2.1rem;
+  background: #fff6e6;
+  border: .2rem solid var(--outline);
+  border-radius: 10% 10% 60% 60%;
+}
+.study-character[data-character="dumbledore"] .study-character__hat {
+  display: block !important;
+  z-index: 8;
+  top: -.1rem;
+  left: 1.5rem;
+  width: 5.1rem;
+  height: 2rem;
+  background: #80528c;
+  border: .2rem solid var(--outline);
+  border-radius: 100% 40% 20% 20%;
+}
+.study-character[data-character="voldemort"] { --skin: #e2e5d7; --robe: #233c36; }
+.study-character[data-character="voldemort"] .study-character__hair,
+.study-character[data-character="voldemort"] .study-character__glasses,
+.study-character[data-character="voldemort"] .study-character__scar { display: none; }
+.study-character[data-character="voldemort"] .study-character__eye-left,
+.study-character[data-character="voldemort"] .study-character__eye-right { height: .45rem; }
+.study-character[data-character="spiderman"], .study-character[data-character="miles"] {
+  --skin: #eb3346;
+  --robe: #2761b1;
+}
+.study-character[data-character="miles"] { --skin: #272a35; --robe: #c83348; }
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__hair,
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__glasses,
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__scar,
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__broom { display: none; }
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__face {
+  background: repeating-linear-gradient(35deg,transparent 0 .85rem,#0006 .85rem .91rem), var(--skin);
+}
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__eye-left,
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__eye-right {
+  top: 2.9rem;
+  left: 2.1rem;
+  width: 1.5rem;
+  height: 1.1rem;
+  background: #fffef5;
+  border: .18rem solid var(--outline);
+  border-radius: 15% 20% 50% 50%;
+  transform: rotate(22deg);
+}
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__eye-right {
+  left: 4.45rem;
+  transform: rotate(-22deg);
+}
+.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__web {
+  display: block !important;
+  z-index: -1;
+  top: -8rem;
+  left: 4rem;
+  height: 10rem;
+  width: .16rem;
+  background: #929db0;
+}
+.study-effects__actor:has(.study-character) { background: none; }
+.study-effects__actor:has(.study-spider) { background: none; }
+.study-effects__actor > .study-character { width: 8rem; height: 8rem; }
+.study-mascot__character { width: 2.5rem; height: 2.5rem; flex: none; position: relative; }
+.study-mascot__character > .study-character { transform: scale(.31); transform-origin: top left; }
+.study-companion-card > .study-character { transform: scale(.8); margin: -.8rem; }
+@media (prefers-reduced-motion: no-preference) {
+  html[data-study-motion="enabled"] .study-dialog[open] .study-companion-card > .study-character {
+    animation: study-character-bob 4s ease-in-out infinite;
+  }
+  html[data-study-motion="enabled"] .study-mascot[data-expression="thinking"] .study-mascot__character .study-character {
+    animation: study-character-think 1.8s ease-in-out infinite;
+  }
+}
+@keyframes study-character-bob { 50% { transform: scale(.8) translateY(-.35rem) rotate(-3deg); } }
+@keyframes study-character-think { 50% { transform: scale(.31) rotate(5deg); } }
+.study-mascot[data-expression="encouraging"] .study-character__smile {
+  height: .5rem;
+  width: .85rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-study-motion="enabled"] .study-mascot:is([data-expression="celebrating"],[data-expression="unlocked"]) .study-mascot__character {
+    animation: study-celebrate .35s ease-out;
+  }
+}
+html[data-study-motion="paused"] .study-mascot .study-mascot__image { animation: none; }
+.study-spider { position: relative; display: block; width: 6rem; height: 6rem; }
+.study-spider > span { position: absolute; }
+.study-spider__body {
+  top: 1.1rem; left: 2rem; width: 2.5rem; height: 3rem;
+  border: .22rem solid #10121d; border-radius: 50%; background: #d64a53;
+}
+.study-spider__head {
+  top: 3.2rem; left: 2.2rem; width: 2.1rem; height: 1.7rem;
+  border: .22rem solid #10121d; border-radius: 50%; background: #28334e;
+}
+.study-spider__head::before, .study-spider__head::after {
+  content: ""; position: absolute; top: .3rem; width: .4rem; height: .55rem;
+  border-radius: 50%; background: #fff7e6;
+}
+.study-spider__head::before { left: .25rem; }
+.study-spider__head::after { right: .25rem; }
+.study-spider__leg {
+  top: 2.7rem; left: .2rem; width: 2.8rem; height: 1.2rem;
+  border-top: .23rem solid #10121d; border-left: .23rem solid #10121d;
+  border-radius: .5rem 0 0 0; transform-origin: right center;
+}
+.study-spider__leg:nth-child(1) { transform: rotate(45deg); }
+.study-spider__leg:nth-child(2) { transform: rotate(15deg); }
+.study-spider__leg:nth-child(3) { transform: rotate(-15deg); }
+.study-spider__leg:nth-child(4) { transform: rotate(-45deg); }
+.study-spider__leg:nth-child(n+5) { left: 3rem; transform-origin: left center; border-left: 0; border-right: .23rem solid #10121d; border-radius: 0 .5rem 0 0; }
+.study-spider__leg:nth-child(5) { transform: rotate(45deg); }
+.study-spider__leg:nth-child(6) { transform: rotate(15deg); }
+.study-spider__leg:nth-child(7) { transform: rotate(-15deg); }
+.study-spider__leg:nth-child(8) { transform: rotate(-45deg); }
+.study-intro__question { font-size: 1.12rem; font-weight: 600; }
+.study-intro__hint { padding: .625rem; background: hsl(var(--study-muted)); border-inline-start: .2rem solid hsl(var(--study-accent)); }
+.study-notice:not(:empty) {
+  position: fixed;
+  z-index: 50;
+  inset: auto 1rem 1rem auto;
+  max-width: calc(100vw - 2rem);
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-text));
+  border: 1px solid hsl(var(--study-border));
+  border-radius: var(--study-bubble-radius);
+  padding: .75rem;
+}
+.study-dialog .study-notice:not(:empty) {
+  position: sticky;
+  bottom: 0;
+  margin: 0 .75rem .75rem;
+  box-shadow: var(--study-shadow);
+}
+
+@media (max-width: 35rem) {
+  .study-welcome { background-position: center, 65% center; }
+  .study-tools .study-button { min-height: 2.75rem; padding-inline: .4rem; }
+  #header { gap: .125rem; padding-inline: .25rem; }
+}

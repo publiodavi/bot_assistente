@@ -13,6 +13,7 @@ env/
 
 # Variáveis de ambiente (segredos)
 .env
+.local/
 
 # Chainlit
 # A pasta .chainlit e o arquivo .chainlit/config.toml são versionados para
@@ -26,3 +27,15 @@ env/
 # Banco vetorial local (RAG)
 chroma_db/
 chroma/
+
+# Logs e cópias locais
+*.log
+.chainlit/config.original.toml
+
+# Traduções geradas pelo Chainlit; preservar a revisão brasileira
+.chainlit/translations/*
+!.chainlit/translations/pt-BR.json
+
+# Variações de arquivos de ambiente
+.env.*
+!.env.example
