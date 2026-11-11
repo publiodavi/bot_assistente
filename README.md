@@ -219,3 +219,8 @@ A revisão ampliada e seus limites estão em [Relatório da interface](docs/REVI
 
 
 A revisão visual posterior corrigiu os campos do Foco e a composição dos cartões do histórico. A folha agora decora o próprio viewport de rolagem, preenchendo o espaço até a barra de estudo mesmo depois da última mensagem. A lista de mensagens e a rolagem nativa do Chainlit foram preservadas. Os detalhes e capturas locais estão descritos no relatório da interface.
+
+
+## Direção visual
+
+O arquivo [design.md](design.md) registra a direção visual solicitada pelo responsável, com referências de acabamento do Lovable, critérios para botões, tipografia, navegação e configurações e uma sequência de validação por amostra. É uma orientação para a próxima revisão; sua criação não altera a interface atual.
