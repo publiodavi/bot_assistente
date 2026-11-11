@@ -8,7 +8,7 @@
 @font-face { font-family: "Study Inter"; src: url("fonts/inter-400.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
 @font-face { font-family: "Study IBM Plex Mono"; src: url("fonts/ibmplexmono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 
-/* Channel lists let the same palette drive Chainlit's HSL-based utilities. */
+/* 1. Tokens semânticos e paletas no formato HSL usado pelo Chainlit. */
 :root {
   color-scheme: light;
   --study-bg: 38.6 53.8% 89.8%;
@@ -100,7 +100,7 @@ html[data-study-theme="cyberpunk"] {
     repeating-linear-gradient(90deg, transparent 0 31px, hsl(170 69% 67% / .1) 31px 32px);
 }
 
-/* Aparência independente do ambiente. Perfis anteriores recebem light. */
+/* 2. Aparência independente do ambiente. Perfis anteriores recebem light. */
 html[data-study-appearance="light"] { color-scheme: light; }
 html[data-study-theme="castelo"][data-study-appearance="light"] {
   --study-bg: 43 43% 90%;
@@ -160,7 +160,7 @@ html[data-study-theme="vintage"][data-study-appearance="dark"] {
   --study-shadow: 0 8px 26px #0005;
 }
 
-/* Chainlit 2.12 adapter, including the portalled panel and dropdowns. */
+/* 3. Integração com o Chainlit 2.12, painéis e menus. */
 html:root body {
   --background: var(--study-bg);
   --foreground: var(--study-text);
@@ -213,7 +213,7 @@ html:root body {
   line-height: 1.65;
 }
 
-/* Sem balões: a pessoa escreve anotações na margem da folha. */
+/* 4. Sem balões: a pessoa escreve anotações na margem da folha. */
 [data-step-type="user_message"] .relative.bg-accent.rounded-3xl {
   background: hsl(var(--study-bubble-student) / .55);
   border: 0;
@@ -234,7 +234,7 @@ html:root body {
   color: hsl(var(--study-muted-text));
 }
 
-/* As respostas do companheiro são o próprio texto da folha. */
+/* 5. As respostas do companheiro são o próprio texto da folha. */
 [data-step-type="assistant_message"] .message-content {
   background: transparent;
   border: 0;
@@ -255,7 +255,7 @@ html:root body {
   text-decoration: underline;
 }
 
-/* On the Vintage student's tinted bubble, use the darker text for links. */
+/* 6. On the Vintage student's tinted bubble, use the darker text for links. */
 [data-step-type="user_message"] .message-content a { color: inherit; }
 
 .message-content :is(code, pre) { font-family: var(--study-font-code); }
@@ -269,7 +269,7 @@ body :focus-visible {
   outline-offset: 2px;
 }
 
-/* Independent decorative layer. The central reading column is left plain. */
+/* 7. Cenário decorativo; a coluna de leitura preserva uma superfície sólida. */
 #study-ambient {
   position: fixed;
   inset: 0;
@@ -281,7 +281,7 @@ body :focus-visible {
   mask-image: linear-gradient(90deg, #000, transparent 17%, transparent 78%, #000);
 }
 
-/* Barra de estudo: companheiro, degrau e condução numa faixa compacta acima do campo. */
+/* 8. Barra de estudo: companheiro, degrau e condução numa faixa compacta acima do campo. */
 .study-bar {
   position: relative;
   display: flex;
@@ -341,7 +341,7 @@ html[data-study-entry="topic"] .study-bar { display: none; }
 .study-bar__ladder .study-ladder__steps { display: flex; margin-top: .5rem; }
 .study-bar__ladder .study-muted[hidden] { display: none; }
 
-/* Grupo segmentado (Guia/Aprende, Claro/Escuro, níveis de apoio). */
+/* 9. Grupo segmentado (Guia/Aprende, Claro/Escuro, níveis de apoio). */
 .study-segmented {
   display: inline-flex;
   flex-wrap: wrap;
@@ -364,7 +364,7 @@ html[data-study-entry="topic"] .study-bar { display: none; }
 .study-chip:hover { background: hsl(var(--study-surface)); }
 .study-chip[aria-pressed="true"] { background: hsl(var(--study-accent)); color: hsl(var(--study-on-accent)); }
 
-/* Miniatura contida do companheiro: recorte circular, sem nada atravessando a borda. */
+/* 10. Miniatura contida do companheiro: recorte circular, sem nada atravessando a borda. */
 .study-avatar {
   --avatar-size: 2.25rem;
   --avatar-scale: .36;
@@ -404,7 +404,7 @@ html[data-study-entry="topic"] .study-bar { display: none; }
   [data-step-type="assistant_message"] .message-content { padding: .625rem; }
 }
 
-/* Galeria e introdução. As prévias mantêm a identidade de cada ambiente. */
+/* 11. Galeria e introdução. As prévias mantêm a identidade de cada ambiente. */
 :root, [data-preview="vintage"] {
   --study-scene: url("themes/vintage-room.webp");
   --study-scene-color: #613b2a;
@@ -440,38 +440,15 @@ html[data-study-theme="cyberpunk"], [data-preview="cyberpunk"] {
 .study-button:disabled { opacity: .65; }
 .study-tools .study-button { min-height: 2.25rem; font-size: .875rem; }
 
-.study-welcome {
-  width: min(100%, 52rem);
-  box-sizing: border-box;
-  padding: clamp(1rem, 5vw, 2.5rem);
-  margin: 0 auto;
-  border: 1px solid hsl(var(--study-border));
-  border-radius: var(--study-bubble-radius);
-  background: linear-gradient(90deg, #101019ed, #101019cc 45%, #10101933 100%),
-    var(--study-scene) center / cover no-repeat, var(--study-scene-color);
-  color: #fff8eb;
-  box-shadow: var(--study-shadow);
-}
+
 .study-welcome h1 {
   font: var(--study-title-weight) clamp(1.65rem, 5vw, 3rem) / 1.12 var(--study-font-title);
 }
 .study-welcome p { margin: .5rem 0 1rem; max-width: 22rem; }
 .study-welcome button:focus-visible { outline-color: #fff8eb; }
 
-/* Painéis de personalização: mesma estrutura, cabeçalho fixo e rolagem interna. */
-.study-dialog {
-  inset: 0;
-  margin: auto;
-  width: min(44rem, calc(100vw - 1.5rem));
-  max-height: min(48rem, calc(100dvh - 1.5rem));
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid hsl(var(--study-border));
-  border-radius: calc(var(--study-bubble-radius) / 1.25);
-  box-shadow: 0 1rem 4rem #0007;
-  background: hsl(var(--study-surface));
-  color: hsl(var(--study-text));
-}
+/* 12. Painéis de personalização: mesma estrutura, cabeçalho fixo e rolagem interna. */
+
 .study-dialog[open] { display: flex; flex-direction: column; }
 .study-dialog::backdrop { background: #14111c99; }
 .study-dialog__header {
@@ -512,18 +489,7 @@ html[data-study-theme="cyberpunk"], [data-preview="cyberpunk"] {
 .study-option-row .study-muted:empty { display: none; }
 
 .study-theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
-.study-theme-card {
-  display: grid;
-  gap: .5rem;
-  width: 100%;
-  min-width: 0;
-  text-align: start;
-  padding: .5rem;
-  border: 1px solid hsl(var(--study-border) / .8);
-  border-radius: calc(var(--study-bubble-radius) / 1.25);
-  background: hsl(var(--study-muted));
-  color: hsl(var(--study-text));
-}
+
 .study-theme-card:hover { border-color: hsl(var(--study-accent)); }
 .study-theme-card[aria-pressed="true"] { box-shadow: 0 0 0 2px hsl(var(--study-accent)); border-color: hsl(var(--study-accent)); }
 .study-theme-card__art {
@@ -564,7 +530,7 @@ html[data-study-theme="cyberpunk"], [data-preview="cyberpunk"] {
 }
 .study-form textarea::placeholder { color: hsl(var(--study-muted-text)); }
 .study-form label, .study-field-label { margin: 0; font-weight: 600; font-size: .9rem; }
-.study-form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+
 .study-form-status { margin: 0; font-size: .875rem; color: hsl(var(--study-muted-text)); }
 .study-form-status[data-state="ok"] { color: hsl(var(--study-accent)); font-weight: 600; }
 .study-form-status[data-state="error"] { color: hsl(var(--study-error)); font-weight: 600; }
@@ -588,7 +554,7 @@ html[data-study-theme="cyberpunk"], [data-preview="cyberpunk"] {
   font-weight: 600;
 }
 .study-chip-option input:focus-visible + span { outline: 2px solid hsl(var(--study-focus)); outline-offset: 2px; }
-.study-welcome { max-height: none; }
+
 .study-welcome h1 { max-width: 32rem; }
 html[data-study-entry="topic"] #welcome-screen {
   justify-content: flex-start;
@@ -809,17 +775,8 @@ html[data-study-theme="aracnideo"] .study-effects__actor:has(.study-character-ar
    Mesa de estudos: a conversa é uma folha sobre a mesa de cada ambiente.
    =================================================================== */
 
-/* Folha central. Cada ambiente reinterpreta o papel. */
-.study-sheet {
-  position: relative;
-  box-sizing: border-box;
-  margin-block: 1rem 1.5rem;
-  padding: 1.75rem 2rem 1.25rem;
-  background: hsl(var(--study-surface));
-  border: 1px solid hsl(var(--study-border) / .55);
-  border-radius: calc(var(--study-bubble-radius) / 2);
-  box-shadow: var(--study-shadow), 0 1px 0 hsl(var(--study-border) / .4);
-}
+/* 14. Folha central. Cada ambiente reinterpreta o papel. */
+
 html[data-study-theme="vintage"] .study-sheet {
   padding-left: 4rem;
   background:
@@ -857,6 +814,13 @@ html[data-study-theme="cyberpunk"] .study-sheet {
 /* Área de leitura: a folha acompanha a largura útil até ~960px. O texto corrido mantém
    uma medida confortável; equações, tabelas e código podem usar toda a largura. */
 .study-sheet {
+  position: relative;
+  box-sizing: border-box;
+  margin-block: 1rem 1.5rem;
+  background: hsl(var(--study-surface));
+  border: 1px solid hsl(var(--study-border) / .55);
+  border-radius: calc(var(--study-bubble-radius) / 2);
+  box-shadow: var(--study-shadow), 0 1px 0 hsl(var(--study-border) / .4);
   width: 100%;
   max-width: min(60rem, 100%) !important;
   margin-inline: auto;
@@ -872,7 +836,7 @@ div.mx-auto:has(> div > #message-composer) {
 }
 div:has(> #message-composer) { gap: .375rem !important; }
 
-/* Campo de mensagem numa linha: anexar, texto que cresce até um limite e enviar. */
+/* 15. Campo de mensagem numa linha: anexar, texto que cresce até um limite e enviar. */
 #message-composer {
   display: grid !important;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -897,7 +861,7 @@ html[data-study-entry="topic"] #welcome-screen #message-composer { display: none
 }
 .watermark { margin-top: -.125rem; }
 
-/* Selo do companheiro no alto de cada resposta. */
+/* 16. Selo do companheiro no alto de cada resposta. */
 .study-stamp {
   display: flex;
   align-items: center;
@@ -907,7 +871,7 @@ html[data-study-entry="topic"] #welcome-screen #message-composer { display: none
   font: var(--study-title-weight) .9rem / 1.2 var(--study-font-title);
   letter-spacing: .02em;
 }
-/* Escada de dicas dentro da resposta. Os degraus avançam para a direita. */
+/* 17. Escada de dicas dentro da resposta. Os degraus avançam para a direita. */
 .escada {
   margin-top: .875rem;
   padding-top: .75rem;
@@ -981,7 +945,7 @@ html[data-study-entry="topic"] #welcome-screen #message-composer { display: none
 .escada__botao--ensinar { background: hsl(var(--study-accent)); color: hsl(var(--study-on-accent)); }
 .escada__botao--ensinar:hover { background: hsl(var(--study-accent)); filter: brightness(.92); }
 .escada__ensinar p { margin: 0; color: hsl(var(--study-muted-text)); font-size: .9rem; }
-/* O convite para ensinar vale só na resposta mais recente. */
+/* 18. O convite para ensinar vale só na resposta mais recente. */
 .step:has(~ .step[data-step-type="user_message"]) .escada__ensinar { display: none; }
 .escada__nota {
   display: grid;
@@ -1020,30 +984,14 @@ html[data-study-entry="topic"] #welcome-screen #message-composer { display: none
 .study-ladder__step span { color: hsl(var(--study-muted-text)); }
 .study-ladder__step--solo { border-left-color: hsl(var(--study-accent)); }
 .study-ladder__step--teach { border-left: 4px double hsl(var(--study-accent)); }
-/* Degraus mais recentes ficam mais à direita, formando a escada. */
+/* 19. Degraus mais recentes ficam mais à direita, formando a escada. */
 .study-ladder__step:nth-last-child(2) { margin-right: .4rem; }
 .study-ladder__step:nth-last-child(3) { margin-right: .8rem; }
 .study-ladder__step:nth-last-child(n+4) { margin-right: 1.2rem; }
 
-/* Tela inicial: um caderno fechado sobre a mesa do ambiente. */
-.study-welcome {
-  display: grid;
-  gap: 1.25rem;
-  padding: clamp(1rem, 4vw, 2.25rem);
-  background: linear-gradient(180deg, #0000 40%, #0006), var(--study-scene) center / cover no-repeat, var(--study-scene-color);
-}
-.study-cover {
-  position: relative;
-  max-width: 34rem;
-  padding: 1.5rem 1.5rem 1.25rem 3rem;
-  border-radius: .35rem .75rem .75rem .35rem;
-  color: #fff8eb;
-  background:
-    linear-gradient(90deg, #0007 0 1.4rem, #fff2 1.4rem calc(1.4rem + 1px), #0002 calc(1.4rem + 1px) 1.8rem, transparent 1.8rem),
-    repeating-linear-gradient(45deg, #ffffff06 0 2px, transparent 2px 5px),
-    var(--study-scene-color);
-  box-shadow: 0 1.25rem 2.5rem #0008, inset 0 0 0 1px #fff2;
-}
+/* 20. Tela inicial: um caderno fechado sobre a mesa do ambiente. */
+
+
 html[data-study-theme="aracnideo"] .study-cover { border: 3px solid #0b1020; box-shadow: 8px 8px 0 #e8536a; }
 html[data-study-theme="cyberpunk"] .study-cover {
   border-radius: 0;
@@ -1148,12 +1096,12 @@ html[data-study-theme="castelo"] .study-cover { box-shadow: 0 1.25rem 2.5rem #00
   .study-nickname .study-avatar--large { --avatar-size: 2.75rem; --avatar-scale: .44; }
 }
 
-/* 10. Redimensionamento acessível do painel desktop */
+/* 21. Redimensionamento acessível do painel desktop */
 .study-sidebar-handle { position:absolute; inset:0 -5px 0 auto; width:10px; z-index:30; padding:0; border:0; background:transparent; cursor:col-resize; touch-action:none; }
 .study-sidebar-handle:hover, .study-sidebar-handle:focus-visible { background:hsl(var(--study-accent) / .3); outline:2px solid hsl(var(--study-focus)); outline-offset:-2px; }
 @media(max-width:767px) { .study-sidebar-handle { display:none; } }
 
-/* 11. Cenas vetoriais e acabamento dos ambientes */
+/* 22. Cenas vetoriais e acabamento dos ambientes */
 html[data-study-theme="vintage"][data-study-appearance="light"] { --study-scene: url("themes/vintage-scene-light.svg"); }
 html[data-study-theme="vintage"][data-study-appearance="dark"] { --study-scene: url("themes/vintage-scene-dark.svg"); }
 html[data-study-theme="castelo"][data-study-appearance="light"] { --study-scene: url("themes/castelo-scene-light.svg"); }
@@ -1167,20 +1115,72 @@ html[data-study-theme="cafe"][data-study-appearance="dark"] { --study-scene: url
 html[data-study-theme="jardim"][data-study-appearance="light"] { --study-scene: url("themes/jardim-scene-light.svg"); }
 html[data-study-theme="jardim"][data-study-appearance="dark"] { --study-scene: url("themes/jardim-scene-dark.svg"); }
 
-.study-welcome { min-height: min(650px, calc(100dvh - 7rem)); border-radius:1.25rem; align-content:center; padding:clamp(1.25rem,4vw,3rem); background-position:center,right center; box-shadow:0 18px 55px #30201626; }
-.study-cover { width:min(100%,27rem); padding:1.5rem 1.5rem 1.5rem 2.5rem; background-color:var(--study-scene-color); box-shadow:0 1rem 2rem #0003,inset 0 0 0 1px #fff3; }
+.study-welcome {
+  width: min(100%, 52rem);
+  box-sizing: border-box;
+  margin: 0 auto;
+  border: 1px solid hsl(var(--study-border));
+  color: #fff8eb;
+  max-height: none;
+  display: grid;
+  gap: 1.25rem;
+  background: linear-gradient(180deg, #0000 40%, #0006), var(--study-scene) center / cover no-repeat, var(--study-scene-color);
+  min-height: min(650px, calc(100dvh - 7rem));
+  border-radius: 1.25rem;
+  align-content: center;
+  padding: clamp(1.25rem,4vw,3rem);
+  background-position: center,right center;
+  box-shadow: 0 18px 55px #30201626;
+}
+.study-cover {
+  position: relative;
+  max-width: 34rem;
+  border-radius: .35rem .75rem .75rem .35rem;
+  color: #fff8eb;
+  background: linear-gradient(90deg, #0007 0 1.4rem, #fff2 1.4rem calc(1.4rem + 1px), #0002 calc(1.4rem + 1px) 1.8rem, transparent 1.8rem),
+    repeating-linear-gradient(45deg, #ffffff06 0 2px, transparent 2px 5px),
+    var(--study-scene-color);
+  width: min(100%,27rem);
+  padding: 1.5rem 1.5rem 1.5rem 2.5rem;
+  background-color: var(--study-scene-color);
+  box-shadow: 0 1rem 2rem #0003,inset 0 0 0 1px #fff3;
+}
 .study-cover h1 { font-size:clamp(1.5rem,2.6vw,2.05rem); line-height:1.22; }
 .study-cover .study-markers legend { color:#fff2d9; }
 .study-section { padding-block:.35rem; }
-.study-dialog { border-radius:1.4rem; box-shadow:0 28px 80px #0004; }
-.study-theme-card { border-radius:1rem; overflow:hidden; }
+.study-dialog {
+  inset: 0;
+  margin: auto;
+  width: min(44rem, calc(100vw - 1.5rem));
+  max-height: min(48rem, calc(100dvh - 1.5rem));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid hsl(var(--study-border));
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-text));
+  border-radius: 1.4rem;
+  box-shadow: 0 28px 80px #0004;
+}
+.study-theme-card {
+  display: grid;
+  gap: .5rem;
+  width: 100%;
+  min-width: 0;
+  text-align: start;
+  padding: .5rem;
+  border: 1px solid hsl(var(--study-border) / .8);
+  background: hsl(var(--study-muted));
+  color: hsl(var(--study-text));
+  border-radius: 1rem;
+  overflow: hidden;
+}
 .study-form input, .study-form textarea { box-shadow:inset 0 2px 5px #3020160a; }
 html[data-study-theme="vintage"] .study-sheet { box-shadow:0 4px 8px #4d321b0b,0 22px 55px #4d321b1a; }
 html[data-study-theme="aracnideo"] .study-dialog { border-radius:.5rem 1.5rem .5rem 1.5rem; }
 html[data-study-theme="cyberpunk"] .study-dialog { border-radius:.65rem; }
 @media(max-width:600px) { .study-welcome { padding:1rem; background-position:70% center; min-height:0; } .study-cover { padding:1.25rem 1.25rem 1.25rem 2rem; } }
 
-/* 12. Café e Jardim; ajustes independentes do ambiente */
+/* 23. Café e Jardim; ajustes independentes do ambiente */
 html[data-study-theme="cafe"] { --study-bg:27 25% 90%; --study-surface:27 35% 97%; --study-text:27 25% 16%; --study-muted-text:27 20% 32%; --study-border:27 20% 43%; --study-accent:27 45% 28%; --study-on-accent:0 0% 100%; --study-muted:27 25% 86%; --study-bubble-student:27 25% 84%; --study-font-title:"Study Lora", Georgia,serif; --study-font-body:"Study Source Sans",system-ui,sans-serif; --study-texture:repeating-linear-gradient(0deg,transparent 0 30px,hsl(27 30% 35% / .07) 30px 31px); --study-art:none; --study-shadow:0 12px 32px #30251b1a; --study-scene-color:#674631; }
 html[data-study-theme="cafe"][data-study-appearance="dark"] { --study-bg:27 20% 10%; --study-surface:27 20% 16%; --study-text:27 35% 93%; --study-muted-text:27 25% 78%; --study-border:27 20% 56%; --study-accent:27 50% 75%; --study-on-accent:27 30% 12%; --study-muted:27 20% 23%; --study-bubble-student:27 20% 25%; }
 html[data-study-theme="cafe"] .study-sheet { border-radius:1rem; border-top:4px solid hsl(var(--study-accent)); }
@@ -1261,7 +1261,7 @@ html[data-study-text-size="grande"] { --study-reading-size:1.125rem; }
 html[data-study-text-size="extra"] { --study-reading-size:1.25rem; }
 .study-sheet .message-content, #chat-input { font-size:var(--study-reading-size,1rem); line-height:1.65; }
 
-/* 14. Cadernos e ferramentas de estudo */
+/* 24. Cadernos e ferramentas de estudo */
 [data-sidebar="sidebar"] { background:hsl(var(--study-surface)); background-image:repeating-linear-gradient(0deg,transparent 0 28px,hsl(var(--study-border) / .05) 28px 29px); }
 .study-notebook-title { font:600 1.1rem var(--study-font-title); padding:.75rem 1rem; }
 .study-notebook-link { border-left:4px solid hsl(var(--study-accent)); border-radius:.25rem .65rem .65rem .25rem; background:hsl(var(--study-muted) / .6); margin:.2rem 0; padding:.65rem; min-width:0; }
@@ -1269,14 +1269,19 @@ html[data-study-text-size="extra"] { --study-reading-size:1.25rem; }
 .study-sidebar-tools { display:grid; gap:.4rem; padding:.75rem; border-top:1px solid hsl(var(--study-border)); margin-top:auto; }
 .study-sidebar-tools .study-button { text-align:left; font-size:.85rem; }
 .study-focus-clock { display:block; text-align:center; font:600 clamp(3rem,12vw,5rem) var(--study-font-title); padding:1.5rem; color:hsl(var(--study-accent)); }
-.study-form-actions { flex-wrap:wrap; }
+.study-form-actions {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
 .study-inline-check { display:flex!important; align-items:center; gap:.5rem; }
 .study-inline-check input { width:1.25rem; height:1.25rem; min-height:0; }
 .study-discoveries { display:grid; gap:1rem; }
 .study-discovery { padding:1rem; background:hsl(var(--study-muted)); border-radius:.8rem; border-left:4px solid hsl(var(--study-accent)); white-space:pre-wrap; overflow-wrap:anywhere; }
 @media(max-width:600px) { .study-tools { gap:.15rem; } .study-tools .study-button { padding:.4rem .35rem; font-size:.72rem; } #readme-button { display:none; } }
 
-/* 15. Cartão de estudante e avatar pessoal */
+/* 25. Cartão de estudante e avatar pessoal */
 .study-user-avatar { display:inline-grid; place-items:center; width:2.25rem; height:2.25rem; flex:none; border-radius:50%; overflow:hidden; font-weight:600; font-size:.85rem; color:#fff; background:#73513d; border:1px solid hsl(var(--study-border)); }
 .study-user-avatar img, .study-user-avatar svg { display:block; width:100%; height:100%; object-fit:cover; }
 .study-user-avatar[data-avatar-color="verde"] { background:#365a46; }
@@ -1298,3 +1303,35 @@ html[data-study-text-size="extra"] { --study-reading-size:1.25rem; }
 .study-stats dt { font-size:.8rem; color:hsl(var(--study-muted-text)); }
 .study-stats dd { font:600 1.7rem var(--study-font-title); margin:0; }
 @media(max-width:400px) { .study-student-card { gap:.75rem; padding:.75rem; } .study-profile-portrait { width:3.5rem; height:3.5rem; } .study-student-card strong { font-size:1.1rem; } }
+
+/* 26. Acesso explícito aos cadernos no breakpoint móvel do Chainlit. */
+.study-mobile-notebooks { display:none; }
+@media(max-width:767px) { .study-mobile-notebooks { display:inline-flex; align-items:center; justify-content:center; width:2.25rem; padding:.25rem; } html[data-study-account="authenticated"] .study-tools > .study-button:nth-child(3) { display:none; } #header { gap:.2rem; } }
+
+.study-history-backdrop { position:fixed; inset:0; z-index:55; background:#17120d88; border:0; }
+.study-history-backdrop[hidden] { display:none; }
+@media(max-width:767px) {
+  .study-mobile-sidebar-shell { display:contents!important; }
+  .study-mobile-sidebar-shell > :first-child { display:none!important; }
+  .study-mobile-sidebar-fallback { display:flex!important; position:fixed!important; inset:0 auto 0 0!important; width:min(88vw,20rem)!important; z-index:60!important; }
+  .study-mobile-sidebar-fallback [data-sidebar="rail"], .study-mobile-sidebar-fallback .study-sidebar-handle { display:none!important; }
+  #header:has(.study-mobile-notebooks) > div:first-child > #sidebar-trigger-button,
+  #header:has(.study-mobile-notebooks) > div:first-child > #new-chat-button { display:none; }
+}
+
+/* 27. Pausa também o cálculo das animações, além de esconder os efeitos. */
+html[data-study-motion="paused"] .study-effects__actor,
+html[data-study-motion="paused"] .study-companion-card__art { animation-play-state:paused!important; }
+@media(prefers-reduced-motion:reduce) { .study-effects__actor, .study-companion-card__art { animation:none!important; } }
+
+/* 28. Impedir que o tamanho intrínseco de fieldsets e títulos alargue o caderno. */
+.study-welcome { grid-template-columns:minmax(0,1fr); }
+.study-cover, .study-recent, .study-recent__list, .study-recent__list > li,
+.study-topic-form, .study-topic-form > label, .study-markers { min-width:0; max-width:100%; }
+.study-markers { width:100%; }
+.study-topic-form textarea { min-width:0; width:100%; max-width:100%; box-sizing:border-box; }
+@media(max-width:600px) { .study-recent__item { flex-wrap:wrap; } .study-recent__name { white-space:normal; overflow-wrap:anywhere; } }
+
+@media(max-width:767px) { html[data-study-entry="topic"] #welcome-screen { margin-top:0!important; justify-content:flex-start; padding-block:.75rem; } }
+
+html[data-study-appearance="dark"] { color-scheme:dark; }

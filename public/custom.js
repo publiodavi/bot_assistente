@@ -656,7 +656,62 @@
       button("Não usar check-in", async () => { if (await request("study.checkin", { mood: null })) { choices.select(null); moodStatus.textContent = "Check-in removido."; } }), breathe, breathText);
   }
 
+  let fallbackHistory = null;
+  let historyReturnFocus = null;
+  const historyBackdrop = button("", closeFallbackHistory, "study-history-backdrop");
+  historyBackdrop.setAttribute("aria-label", "Fechar cadernos"); historyBackdrop.hidden = true;
+  document.body.append(historyBackdrop);
+  function closeFallbackHistory() {
+    root.dataset.studyMobileHistory = "closed"; historyBackdrop.hidden = true;
+    if (fallbackHistory) {
+      fallbackHistory.removeAttribute("role"); fallbackHistory.removeAttribute("aria-modal");
+      fallbackHistory.parentElement.classList.remove("study-mobile-sidebar-fallback");
+      fallbackHistory.parentElement.parentElement.classList.remove("study-mobile-sidebar-shell");
+    }
+    fallbackHistory = null;
+    historyReturnFocus?.focus();
+  }
+  function openFallbackHistory(sidebar) {
+    if (fallbackHistory) { closeFallbackHistory(); return; }
+    historyReturnFocus = document.activeElement;
+    fallbackHistory = sidebar;
+    root.dataset.studyMobileHistory = "open"; historyBackdrop.hidden = false;
+    sidebar.setAttribute("role", "dialog"); sidebar.setAttribute("aria-modal", "true"); sidebar.setAttribute("aria-label", "Meus cadernos");
+    sidebar.parentElement.classList.add("study-mobile-sidebar-fallback");
+    sidebar.parentElement.parentElement.classList.add("study-mobile-sidebar-shell");
+    sidebar.querySelector("button")?.focus();
+  }
+  document.addEventListener("keydown", event => {
+    if (!fallbackHistory || document.querySelector(".study-dialog[open]")) return;
+    if (event.key === "Escape") { event.preventDefault(); closeFallbackHistory(); }
+    if (event.key === "Tab") {
+      const nodes = [...fallbackHistory.querySelectorAll('button,a,input,[tabindex="0"]')].filter(e => e.getBoundingClientRect().width > 0 && !e.disabled);
+      if (!nodes.length) return;
+      if (event.shiftKey && document.activeElement === nodes[0]) { event.preventDefault(); nodes.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === nodes.at(-1)) { event.preventDefault(); nodes[0].focus(); }
+    }
+  });
+  document.addEventListener("click", event => {
+    if (fallbackHistory && event.target.closest('#sidebar-trigger-button') && fallbackHistory.contains(event.target)) {
+      event.preventDefault(); event.stopPropagation(); closeFallbackHistory();
+    }
+  }, true);
+  window.addEventListener("resize", () => { if (innerWidth >= 768 && fallbackHistory) closeFallbackHistory(); });
+
+  let mobileNotebookButton;
   function adaptNotebookPanel() {
+    const header = document.querySelector("#header > div:first-child");
+    if (header && account) {
+      if (!mobileNotebookButton) {
+        mobileNotebookButton = button("☰", () => {
+          const desktop = document.querySelector('[data-sidebar="sidebar"]:not([data-mobile])');
+          if (desktop) openFallbackHistory(desktop);
+          else window.dispatchEvent(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, bubbles: true }));
+        }, "study-button study-mobile-notebooks");
+        mobileNotebookButton.setAttribute("aria-label", "Abrir cadernos");
+      }
+      if (mobileNotebookButton.parentElement !== header) header.append(mobileNotebookButton);
+    } else mobileNotebookButton?.remove();
     const sidebar = document.querySelector('[data-sidebar="sidebar"]');
     if (!sidebar) return;
     const content = sidebar.querySelector('[data-sidebar="content"]') || sidebar;
@@ -874,6 +929,7 @@
     const rail = document.querySelector('[data-sidebar="rail"]');
     const wrapper = rail?.closest('.group\\/sidebar-wrapper');
     if (!rail || !wrapper) return;
+    if (rail.getAttribute("aria-label") !== "Alternar cadernos") rail.setAttribute("aria-label", "Alternar cadernos");
     if (!sidebarHandle || sidebarHandle.parentElement !== rail.parentElement) {
       sidebarHandle?.remove();
       sidebarHandle = element("button", "", "study-sidebar-handle");
@@ -953,8 +1009,9 @@
       ["search-chats-button", "Buscar cadernos"],
       ["new-chat-button", "Novo caderno"],
     ]) {
-      const button = document.getElementById(id);
-      if (button && button.getAttribute("aria-label") !== label) button.setAttribute("aria-label", label);
+      for (const control of document.querySelectorAll(`[id="${id}"]`)) {
+        if (control.getAttribute("aria-label") !== label) control.setAttribute("aria-label", label);
+      }
     }
     const applyLabel = document.querySelector("#confirm-sidebar > span")?.firstChild;
     if (applyLabel?.nodeType === Node.TEXT_NODE && applyLabel.data !== "Aplicar") {
@@ -1147,7 +1204,9 @@
         for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel]) dialog.close();
         lastAutoIntroAccount = null;
       }
+      closeFallbackHistory();
       account = data.account;
+      root.dataset.studyAccount = account ? "authenticated" : "demo";
       session = data.session_id;
       entryBypassed = false;
       adaptChainlit();

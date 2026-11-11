@@ -90,5 +90,23 @@ class ToolTests(unittest.TestCase):
         with self.assertRaises(ValueError): clean_text("x" * 121, 120)
 
 
+class AssetTests(unittest.TestCase):
+    def test_catalogo_completo_sem_ids_duplicados(self):
+        from pathlib import Path
+        import xml.etree.ElementTree as ET
+        base = Path(__file__).resolve().parents[1] / "public"
+        root = ET.parse(base / "characters/sprite.svg").getroot()
+        ids = [node.attrib["id"] for node in root.iter() if "id" in node.attrib]
+        self.assertEqual(len(ids), len(set(ids)))
+        for character in ("harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles", "coruja", "raposa", "robo"):
+            for expression in ("idle", "thinking", "encouraging", "celebrating", "unlocked"):
+                for pose in ("portrait", "full"):
+                    self.assertIn(f"{character}-{pose}-{expression}", ids)
+        for theme in ("vintage", "castelo", "aracnideo", "cyberpunk", "cafe", "jardim"):
+            for appearance in ("light", "dark"):
+                scene = ET.parse(base / f"themes/{theme}-scene-{appearance}.svg").getroot()
+                self.assertEqual(scene.attrib["viewBox"], "0 0 1440 900")
+
+
 if __name__ == "__main__":
     unittest.main()

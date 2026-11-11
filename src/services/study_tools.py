@@ -1,6 +1,5 @@
 """Validação pura das ferramentas de estudo e imagens de perfil."""
 import base64
-import re
 import struct
 import unicodedata
 from datetime import datetime, timedelta, timezone

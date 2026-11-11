@@ -18,7 +18,7 @@ A personalização visual e o companheiro de estudos complementam essa orientaç
 - **Ensine o companheiro:** quando o companheiro avalia que o estudante entendeu, convida-o a explicar o conceito; o companheiro faz o papel de aprendiz e devolve uma nota com o que ficou claro e o que faltou. O seletor "Quem conduz?" permite escolher esse modo para toda a conversa.
 - Entrada por assunto livre na capa de um caderno, com marcador opcional (entender, destravar ou praticar) e atalhos para continuar as conversas recentes.
 - Três níveis de apoio: menos dicas, dicas guiadas e mais apoio.
-- Seis ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo Cyberpunk, Café Lo-fi e Jardim / Estufa, todos com aparência clara e escura.
+- Seis ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo, Cyberpunk, Café Lo-fi e Jardim / Estufa, todos com aparência clara e escura.
 - Troca imediata de tema, aparência e companheiro, preservando a conversa, o rascunho e a posição de leitura.
 - Barra de estudo compacta acima do campo de mensagem, com companheiro, degrau atual (a escada completa abre sob demanda) e o seletor Guia/Aprende.
 - Companheiros com nome próprio (Lumi para a Coruja; os demais pelo nome do personagem) e apelido individual guardado no perfil, além da opção de ocultá-los. Cada resposta mantém o nome de quem a assinou.
@@ -211,3 +211,8 @@ git diff --check
 ```
 
 Os testes puros cobrem streaming da Escada com delimitador partido entre tokens, dados inválidos, migração e limite dos apelidos, autoria histórica, remoção do contexto após editar mensagens e validação de descobertas e avatares. Não exigem banco ou credenciais.
+
+
+### Revisão de ambientes, ferramentas e perfil
+
+A revisão ampliada e seus limites estão em [Relatório da interface](docs/REVISAO_INTERFACE.md). Foram medidos 288 pares de contraste nas 48 combinações de ambiente, aparência e destaque. A instância com conta fictícia e streaming simulado permitiu conferir histórico redimensionável, Fichário após reinício, três modalidades de avatar e layouts desktop/móvel. Os onze testes automatizados passaram. A segunda conta Google, leitor de tela real, zoom de 200% e uma nova rodada com DeepSeek real continuam pendentes.
