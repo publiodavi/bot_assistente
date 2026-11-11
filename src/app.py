@@ -1,5 +1,6 @@
 """Interface de conversa do assistente educacional."""
 import asyncio
+import json
 import logging
 import time
 import unicodedata
@@ -14,9 +15,13 @@ from chainlit.utils import wrap_user_function
 
 from src.pedagogy.study_trail import QUESTIONS
 from src.pedagogy.study_intro import BARRIERS, GOALS, intro_transition
-from src.prompts.pedagogical_prompt import SYSTEM_PROMPT, ZDP_INSTRUCTIONS
-from src.services.llm_client import stream_reply
-from src.study_accounts import advance_trail, configure_accounts, profile_data, trail_progress
+from src.prompts.companions import companion_voice
+from src.prompts.pedagogical_prompt import ESCADA_FORMAT, MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS
+from src.services.escada import EscadaStream, as_context, layers, parse_step, tidy_visible
+from src.services.llm_client import ConfigurationError, stream_reply
+from src.study_accounts import (
+    advance_trail, configure_accounts, profile_data, recent_notebooks, record_reveal, trail_progress,
+)
 
 
 THEMES = {
@@ -60,6 +65,12 @@ def study_session():
             "profile_lock": asyncio.Lock(),
             "profile_loaded": False,
             "starting": False,
+            # Escada de dicas e modo de condução da conversa atual.
+            "mode": "guia",
+            "teach_next": False,
+            "steps": {},
+            "elements": {},
+            "recent": [],
         }
         context.session.study_runtime = state
     return state
@@ -106,7 +117,19 @@ async def publish_state(state, request_id=None, error=None):
         "profile": state["profile"],
         "request_id": request_id, "error": error,
         "mascot": {"expression": expression, "remaining_ms": remaining_ms},
+        "mode": state["mode"],
+        "escada": escada_summary(state),
+        "recent": state["recent"],
     })
+
+
+def escada_summary(state):
+    """Degraus da conversa atual, na ordem das respostas, para o painel da mesa."""
+    return [
+        {"degrau": step["degrau"], "tipo": step["tipo"], "sozinho": step["subiu_sozinho"],
+         "reveladas": step["reveladas"]}
+        for *_, step, _ in state.get("history", []) if step
+    ][-12:]
 
 
 async def express(state, expression, seconds=None):
@@ -121,8 +144,17 @@ async def initialize_study():
     async with state["profile_lock"]:
         await load_profile(state)
         await settings_panel(state["prefs"]).send()
+    await load_recent(state)
     await publish_state(state)
 
+
+async def load_recent(state):
+    user = context.session.user
+    if DATA_LAYER and user:
+        try:
+            state["recent"] = await recent_notebooks(DATA_LAYER, user)
+        except Exception:
+            logger.exception("Erro ao carregar cadernos recentes")
 
 def display_name(value):
     if not isinstance(value, str):
@@ -192,11 +224,20 @@ async def synchronize_study(data):
     request_id = data.get("request_id")
     if (data.get("session_id") != state["id"] or not isinstance(request_id, str)
             or len(request_id) > 80 or kind not in (
-                "study.preferences", "study.profile", "study.intro", "study.start"
+                "study.preferences", "study.profile", "study.intro", "study.start", "study.mode"
             )):
         return
 
     error = None
+    if kind == "study.mode":
+        try:
+            await set_mode(state, data.get("mode"))
+        except Exception:
+            logger.exception("Erro ao trocar o modo da conversa")
+            error = "Não foi possível trocar quem conduz. Tente novamente."
+        await publish_state(state, request_id, error)
+        return
+
     try:
         async with state["profile_lock"]:
             await load_profile(state)
@@ -274,8 +315,20 @@ async def apply_study_settings(changes):
 config.code.on_settings_update = wrap_user_function(apply_study_settings, with_task=False)
 
 
+def stored_step(metadata):
+    """Revalida os dados da escada gravados no passo; formatos antigos viram None."""
+    saved = metadata.get("study_step")
+    if not isinstance(saved, dict):
+        return None
+    step = parse_step(json.dumps(saved))
+    if step:
+        revealed = saved.get("reveladas")
+        step["reveladas"] = revealed if type(revealed) is int and 0 <= revealed <= layers(step) else 0
+    return step
+
+
 def restore_history(steps):
-    """Pares concluídos (id da pergunta, pergunta, resposta) na ordem da conversa."""
+    """Turnos concluídos (id da pergunta, pergunta, resposta visível, escada, id da resposta)."""
     users = {step["id"]: step.get("output") for step in steps if step.get("type") == "user_message"}
     history = []
     for step in steps:
@@ -285,22 +338,42 @@ def restore_history(steps):
         question_id = metadata.get("study_reply_to")
         prompt = users.get(question_id)
         if prompt and step.get("output"):
-            history.append((question_id, prompt, step["output"]))
+            history.append((question_id, prompt, step["output"], stored_step(metadata), step["id"]))
     return history
 
 
 def conversation_context(history, message):
-    """Mantém apenas os pares cujas perguntas ainda estão na conversa.
+    """Mantém apenas os turnos cujas perguntas ainda estão na conversa.
 
     Ao editar uma mensagem, o Chainlit remove as mensagens seguintes da tela e do
-    banco e chama on_message novamente com o mesmo ID; os pares removidos e o par
-    antigo da pergunta editada não podem continuar no contexto do modelo.
+    banco e chama on_message novamente com o mesmo ID; os turnos removidos e o
+    turno antigo da pergunta editada não podem continuar no contexto do modelo.
+    A resposta volta ao modelo no mesmo formato pedido, com as camadas reveladas.
     """
     present = {item.id for item in chat_context.get()}
     history[:] = [turn for turn in history if turn[0] in present and turn[0] != message.id]
-    return [entry for _, prompt, answer in history for entry in (
-        {"role": "user", "content": prompt}, {"role": "assistant", "content": answer},
+    return [entry for _, prompt, answer, step, _ in history for entry in (
+        {"role": "user", "content": prompt}, {"role": "assistant", "content": as_context(answer, step)},
     )]
+
+
+def escada_element(state, reply_id, step):
+    props = {**step, "companheiro": state["prefs"]["mascot_name"], "message_id": reply_id}
+    element = cl.CustomElement(name="EscadaDicas", props=props, display="inline")
+    element.for_id = reply_id
+    state["steps"][reply_id] = step
+    state["elements"][reply_id] = element
+    return element
+
+
+async def set_mode(state, mode):
+    if mode not in MODE_INSTRUCTIONS:
+        raise ValueError("Modo inválido")
+    state["mode"] = mode
+    state["teach_next"] = False
+    thread_id = context.session.thread_id
+    if DATA_LAYER and context.session.user and context.session.has_first_interaction:
+        await DATA_LAYER.update_thread(thread_id, metadata={"study_mode": mode})
 
 
 @cl.on_chat_resume
@@ -311,12 +384,22 @@ async def resume_study(thread):
     state = study_session()
     state["trail_actions"].clear()
     state["history"] = restore_history(steps)
+    mode = (thread.get("metadata") or {}).get("study_mode")
+    state["mode"] = mode if mode in MODE_INSTRUCTIONS else "guia"
     stage = await trail_progress(DATA_LAYER, context.session.user, thread["id"])
     if type(stage) is int and 0 <= stage <= len(QUESTIONS):
         state["trail_stage"] = stage
     elif any(step.get("type") == "user_message" and step.get("output") == TRAIL_START for step in steps):
         state["trail_stage"] = 0
     await initialize_study()
+    # Elementos não são gravados sem armazenamento de arquivos. A escada é
+    # recomposta a partir dos metadados e entregue junto com a própria retomada,
+    # pois o frontend substitui a lista de elementos ao receber a conversa.
+    if not isinstance(thread.get("elements"), list):
+        thread["elements"] = []
+    for *_, step, reply_id in state["history"]:
+        if step:
+            thread["elements"].append(escada_element(state, reply_id, step).to_dict())
     if state["trail_stage"] is not None and state["trail_stage"] < len(QUESTIONS):
         question = next((
             step for step in reversed(steps)
@@ -431,6 +514,41 @@ async def respond_to_question(action):
             await send_question(state)
 
 
+@cl.action_callback("study_reveal")
+async def reveal_layer(action):
+    """Abre a próxima camada da escada; não permite pular nem retroceder."""
+    state = study_session()
+    payload = action.payload if isinstance(action.payload, dict) else {}
+    reply_id, level = payload.get("message_id"), payload.get("nivel")
+    step = state["steps"].get(reply_id) if isinstance(reply_id, str) else None
+    if not step or type(level) is not int or level != step["reveladas"] + 1 or level > layers(step):
+        return {"ok": False, "reveladas": step["reveladas"] if step else 0}
+    if DATA_LAYER and context.session.user and not await record_reveal(
+        DATA_LAYER, context.session.user, context.session.thread_id, reply_id, level
+    ):
+        return {"ok": False, "reveladas": step["reveladas"]}
+    step["reveladas"] = level
+    element = state["elements"].get(reply_id)
+    if element:
+        element.props["reveladas"] = level
+        await element.update()
+    await express(state, "encouraging", seconds=4)
+    return {"ok": True, "reveladas": level}
+
+
+@cl.action_callback("study_teach")
+async def teach_companion(action):
+    """Último degrau: o próximo turno coloca o companheiro no papel de aprendiz."""
+    state = study_session()
+    payload = action.payload if isinstance(action.payload, dict) else {}
+    step = state["steps"].get(payload.get("message_id"))
+    if not step or not step["pronto_para_ensinar"] or state["turn"]:
+        return {"ok": False}
+    state["teach_next"] = True
+    await express(state, "encouraging", seconds=4)
+    return {"ok": True}
+
+
 @cl.on_stop
 async def stop_study_turn():
     state = study_session()
@@ -455,31 +573,60 @@ async def on_message(message: cl.Message):
 
     async with state["profile_lock"]:
         await load_profile(state)
-        zdp = ZDP_INSTRUCTIONS[state["prefs"]["zdp"]]
-        goal = GOALS.get(state["profile"]["goal"], "não informado")
-        barrier = BARRIERS.get(state["profile"]["barrier"], "não informada")
+        prefs, profile = state["prefs"], state["profile"]
+        zdp = ZDP_INSTRUCTIONS[prefs["zdp"]]
+        goal = GOALS.get(profile["goal"], "não informado")
+        barrier = BARRIERS.get(profile["barrier"], "não informada")
+        companion = prefs["mascot_name"]
+        voice = companion_voice(prefs["mascot"], companion)
+    # O convite "Explique para o companheiro" vale apenas para o turno seguinte.
+    mode = "aprendiz" if state["teach_next"] else state["mode"]
+    state["teach_next"] = False
     turn = asyncio.current_task()
     state["turn"] = turn
     history = state.setdefault("history", [])
     messages = [{"role": "system", "content": (
-        f"{SYSTEM_PROMPT}\nNível de apoio escolhido: {zdp}\n"
-        f"Objetivo preferido: {goal}. Dificuldade mais comum: {barrier}."
+        f"{SYSTEM_PROMPT}\n{voice}\n{MODE_INSTRUCTIONS[mode]}\n"
+        f"Nível de apoio escolhido: {zdp}\n"
+        f"Nome do estudante: {profile.get('name') or 'Estudante'}. "
+        f"Objetivo preferido: {goal}. Dificuldade mais comum: {barrier}.\n{ESCADA_FORMAT}"
     )},
-                *conversation_context(history, message),
-                {"role": "user", "content": message.content}]
-    reply = cl.Message(content="")
+                *conversation_context(history, message)]
+    if mode == "aprendiz":
+        # Lembrete junto ao turno: instruções só no início perdem força em conversas longas.
+        messages.append({"role": "system", "content": (
+            f"Neste turno, o estudante está ensinando {companion}. Responda no modo aprendiz. "
+            "Somente no JSON depois do marcador, use o tipo ensino e inclua a nota com o que ficou "
+            "claro e o que faltou; o texto visível não cita esses campos."
+        )})
+    messages.append({"role": "user", "content": message.content})
+    reply = cl.Message(content="", author=companion)
     try:
         wants_hint = message.content.strip().casefold().rstrip(".!") == "preciso de uma dica"
         await express(state, "encouraging" if wants_hint else "thinking")
+        escada = EscadaStream()
         async for token in stream_reply(messages):
-            await reply.stream_token(token)
-        reply.metadata = {"study_reply_to": message.id}
+            await reply.stream_token(escada.feed(token))
+        rest, step = escada.finish()
+        await reply.stream_token(rest)
+        reply.content = tidy_visible(escada.visible.strip())
+        if not reply.content:
+            raise RuntimeError("Resposta sem texto visível")
+        reply.metadata = {"study_reply_to": message.id, **({"study_step": step} if step else {})}
+        if step:
+            reply.elements = [escada_element(state, reply.id, step)]
         await reply.send()
-        history.append((message.id, message.content, reply.content))
-    except ValueError as exc:
-        await cl.Message(content=str(exc)).send()
+        history.append((message.id, message.content, reply.content, step, reply.id))
+        if step and (step["tipo"] == "conquista" or (
+                step["tipo"] == "ensino" and step.get("nota") and not step["nota"]["faltou"])):
+            await express(state, "celebrating", seconds=4)
+        else:
+            await publish_state(state)
+    except ConfigurationError as exc:
+        await cl.Message(content=str(exc), author=companion).send()
     except Exception:
-        await cl.Message(content=("Não consegui obter uma resposta. Confira a conexão, "
+        logger.exception("Erro ao gerar a resposta")
+        await cl.Message(author=companion, content=("Não consegui obter uma resposta. Confira a conexão, "
                                   "a chave e a disponibilidade da API e tente novamente.")).send()
     finally:
         await finish_turn(state, turn)

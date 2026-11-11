@@ -12,11 +12,11 @@
   const mascots = new Set(["coruja", "raposa", "robo", "oculto", ...characterIds]);
   const levels = new Set(["menos", "guiadas", "mais"]);
   const statuses = {
-    idle: "Aqui para acompanhar seus estudos.",
-    thinking: "Preparando uma resposta…",
-    encouraging: "Vamos por partes.",
-    celebrating: "Você concluiu a atividade.",
-    unlocked: "Próxima etapa liberada.",
+    idle: "Na mesa com você.",
+    thinking: "Pensando no próximo degrau…",
+    encouraging: "Uma pista de cada vez.",
+    celebrating: "Degrau conquistado.",
+    unlocked: "Próximo degrau liberado.",
   };
 
   // Chainlit 2.12 reads localStorage while its bundle loads. If the browser
@@ -63,6 +63,8 @@
     theme: "vintage", appearance: "light", animations: "enabled",
     mascot: "coruja", mascot_name: "Lumi", zdp: "guiadas",
   };
+  // Escolhas ainda não confirmadas pelo servidor (prévia imediata).
+  let desiredPreferences = {};
   root.dataset.studyTheme = visible.theme;
 
   const preload = document.createElement("link");
@@ -299,15 +301,97 @@
   let account = null;
   let lastAutoIntroAccount = null;
   let entryBypassed = false;
+  let studyMode = "guia";
   const welcome = element("section", "", "study-welcome");
-  const welcomeTitle = element("h1", "O que você quer aprender hoje?");
-  const welcomeText = element("p", "Vamos entender o que você já sabe e avançar uma dica de cada vez.");
+  const cover = element("div", "", "study-cover");
+  const welcomeTitle = element("h1", "Sobre o que é o caderno de hoje?");
+  const welcomeText = element("p", "Escreva o assunto na etiqueta. Seu companheiro sobe com você, um degrau de cada vez.");
   const demoBanner = element("p", "", "study-demo-banner");
-  welcome.append(welcomeTitle, welcomeText, topicForm(), button("Abrir o chat", () => {
+  cover.append(welcomeTitle, welcomeText, topicForm(), button("Só abrir uma folha em branco", () => {
     entryBypassed = true;
     adaptChainlit();
     document.getElementById("chat-input")?.focus();
-  }));
+  }, "study-link-button"));
+  const recentSection = element("section", "", "study-recent");
+  const recentTitle = element("h2", "Continuar de onde parou");
+  const recentList = element("ul", "", "study-recent__list");
+  recentSection.append(recentTitle, recentList);
+  recentSection.hidden = true;
+  welcome.append(cover, recentSection);
+
+  function renderRecent(items) {
+    recentList.replaceChildren(...items.map((item) => {
+      const entry = element("li");
+      const link = element("a", "", "study-recent__item");
+      link.href = `/thread/${encodeURIComponent(item.id)}`;
+      link.append(element("span", item.name, "study-recent__name"),
+        element("span", item.degrau ? `Degrau ${item.degrau}` : "Ainda no começo", "study-recent__step"));
+      entry.append(link);
+      return entry;
+    }));
+    recentSection.hidden = items.length === 0;
+  }
+
+  // Mesa de estudos: objetos ao redor da folha (escada, condução e cadernos).
+  const desk = element("aside", "", "study-desk");
+  desk.setAttribute("aria-label", "Mesa de estudos");
+  const ladder = element("section", "", "study-ladder");
+  const ladderTitle = element("h2", "Escada");
+  const ladderCurrent = element("p", "", "study-ladder__current");
+  const ladderList = element("ol", "", "study-ladder__steps");
+  const ladderNote = element("p", "Os degraus aparecem quando a conversa começar.", "study-muted");
+  ladder.append(ladderTitle, ladderCurrent, ladderList, ladderNote);
+  const lead = element("section", "", "study-lead");
+  lead.append(element("h2", "Quem conduz?"));
+  const leadButtons = {};
+  const leadRow = element("div", "", "study-choice-row");
+  leadRow.setAttribute("role", "group");
+  leadRow.setAttribute("aria-label", "Quem conduz a conversa");
+  for (const id of ["guia", "aprendiz"]) {
+    const control = button("", async () => {
+      if (studyMode === id) return;
+      const previous = studyMode;
+      studyMode = id;
+      renderLead();
+      if (!(await request("study.mode", { mode: id }))) {
+        studyMode = previous;
+        renderLead();
+      }
+    });
+    leadButtons[id] = control;
+    leadRow.append(control);
+  }
+  const leadHint = element("p", "", "study-muted");
+  lead.append(leadRow, leadHint);
+  const shelf = button("Cadernos", () => document.getElementById("sidebar-trigger-button")?.click(), "study-button study-shelf");
+  desk.append(ladder, lead, shelf);
+
+  function renderLead() {
+    const companion = visible.mascot_name;
+    leadButtons.guia.textContent = `${companion} guia`;
+    leadButtons.aprendiz.textContent = `${companion} aprende`;
+    for (const [id, control] of Object.entries(leadButtons)) {
+      control.setAttribute("aria-pressed", String(id === studyMode));
+    }
+    leadHint.textContent = studyMode === "guia"
+      ? `${companion} dá pistas em degraus. Abra uma dica só quando precisar.`
+      : `Você explica e ${companion} tenta aprender, apontando o que ficou claro e o que faltou.`;
+  }
+
+  function renderLadder(steps) {
+    ladderList.replaceChildren(...steps.map((step) => {
+      const help = step.reveladas ? `com ${step.reveladas} ${step.reveladas === 1 ? "dica" : "dicas"}` : "sem dicas";
+      const item = element("li", "", "study-ladder__step");
+      if (step.sozinho) item.classList.add("study-ladder__step--solo");
+      if (step.tipo === "ensino") item.classList.add("study-ladder__step--teach");
+      item.append(element("strong", `Degrau ${step.degrau}`),
+        element("span", step.tipo === "ensino" ? "você ensinou" : step.sozinho ? "subiu sozinho" : help));
+      return item;
+    }));
+    const top = steps.reduce((highest, step) => Math.max(highest, step.degrau), 0);
+    ladderCurrent.textContent = top ? `Você está no degrau ${top}` : "";
+    ladderNote.hidden = steps.length > 0;
+  }
 
   function addField(form, label, field) {
     const wrapper = element("label", label);
@@ -367,11 +451,27 @@
     topic.required = true;
     topic.maxLength = 2000;
     topic.rows = 2;
-    topic.placeholder = "Escreva um assunto, uma pergunta ou um exercício";
-    addField(form, "Seu assunto", topic);
-    const goal = selectField(goals, "");
-    addField(form, "Como você quer estudar? (opcional)", goal);
-    const submit = element("button", "Começar", "study-button study-button--primary");
+    topic.placeholder = "fotossíntese, equações, um exercício…";
+    addField(form, "Caderno de", topic);
+    // Marcadores de página no lugar de uma lista suspensa; escolha opcional.
+    const markers = element("fieldset", "", "study-markers");
+    markers.append(element("legend", "Marcador (opcional)"));
+    for (const [id, label] of Object.entries(goals)) {
+      const option = element("label", "", "study-marker");
+      const input = element("input");
+      input.type = "radio";
+      input.name = "goal";
+      input.value = id;
+      input.addEventListener("click", () => {
+        // Clicar de novo no marcador escolhido o remove.
+        if (input.dataset.checked === "true") input.checked = false;
+        for (const other of markers.querySelectorAll("input")) other.dataset.checked = String(other.checked);
+      });
+      option.append(input, element("span", label));
+      markers.append(option);
+    }
+    form.append(markers);
+    const submit = element("button", "Abrir o caderno", "study-button study-button--primary");
     submit.type = "submit";
     submit.disabled = true;
     form.append(submit);
@@ -379,7 +479,8 @@
       event.preventDefault();
       if (!topic.value.trim()) return;
       submit.disabled = true;
-      const saved = await request("study.start", { topic: topic.value.trim(), goal: goal.value });
+      const goal = markers.querySelector("input:checked")?.value || "";
+      const saved = await request("study.start", { topic: topic.value.trim(), goal });
       submit.disabled = false;
       if (saved) {
         introPanel.dialog.close();
@@ -404,6 +505,7 @@
   function adaptChainlit() {
     const composer = document.getElementById("message-composer");
     if (composer && widget.nextElementSibling !== composer) composer.before(widget);
+    placeDesk(composer);
     const header = document.getElementById("header")?.lastElementChild;
     if (header && tools.parentElement !== header) header.prepend(tools);
     const headerRoot = document.getElementById("header");
@@ -425,6 +527,79 @@
     if (applyLabel?.nodeType === Node.TEXT_NODE && applyLabel.data !== "Aplicar") {
       applyLabel.data = "Aplicar";
     }
+
+    // A coluna de mensagens vira a folha sobre a mesa.
+    const firstStep = document.querySelector(".step");
+    const sheet = firstStep?.parentElement;
+    if (sheet && !sheet.classList.contains("study-sheet")) {
+      document.querySelector(".study-sheet")?.classList.remove("study-sheet");
+      sheet.classList.add("study-sheet");
+    }
+    for (const message of document.querySelectorAll('[data-step-type="assistant_message"] .ai-message:not([data-study-stamp])')) {
+      message.dataset.studyStamp = "true";
+      message.querySelector(".message-content")?.before(stamp());
+    }
+    // Copiar e avaliar com polegares são convenções de chat de IA; ações com texto permanecem.
+    for (const row of document.querySelectorAll('.ai-message .-ml-1\\.5:not([data-study-row])')) {
+      row.dataset.studyRow = "true";
+    }
+    for (const row of document.querySelectorAll(".ai-message [data-study-row]")) {
+      for (const child of row.children) {
+        child.classList.toggle("study-hidden", !child.textContent.trim());
+      }
+    }
+  }
+
+  // A coluna de cartões só aparece quando cabe ao lado da folha sem sobrepor o histórico.
+  // Larga: coluna fixa no body (ancestrais do Chainlit recortam elementos fixos).
+  // Estreita: faixa compacta logo acima do companheiro e do campo de mensagem.
+  function placeDesk(composer = document.getElementById("message-composer")) {
+    const sidebarOpen = Boolean(document.querySelector('.peer[data-side][data-state="expanded"]'));
+    const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
+    const wide = Boolean(composer) && window.innerWidth >= (sidebarOpen ? 95 : 80) * rem;
+    const value = String(wide);
+    if (desk.dataset.wide !== value) desk.dataset.wide = value;
+    const layout = wide ? "wide" : "compact";
+    if (root.dataset.studyDesk !== layout) root.dataset.studyDesk = layout;
+    if (wide && desk.parentElement !== document.body) document.body.append(desk);
+    if (!wide && composer && desk.nextElementSibling !== widget) widget.before(desk);
+    if (!composer && desk.isConnected) desk.remove();
+    const left = sidebarOpen ? "17rem" : "1rem";
+    if (desk.style.getPropertyValue("--study-desk-left") !== left) desk.style.setProperty("--study-desk-left", left);
+  }
+  window.addEventListener("resize", () => placeDesk());
+  // Abrir ou recolher o histórico muda apenas atributos, que o observador principal não acompanha.
+  new MutationObserver(() => placeDesk()).observe(document.body, {
+    subtree: true, attributes: true, attributeFilter: ["data-state"],
+  });
+
+  function stamp() {
+    const node = element("div", "", "study-stamp");
+    node.setAttribute("aria-hidden", "true");
+    node.append(element("span", "", "study-stamp__face"), element("span", "", "study-stamp__name"));
+    paintStamp(node);
+    return node;
+  }
+
+  function paintStamp(node) {
+    const mascot = desiredPreferences.mascot || visible.mascot;
+    const face = node.firstElementChild;
+    const label = node.lastElementChild;
+    if (label.textContent !== visible.mascot_name) label.textContent = visible.mascot_name;
+    if (face.dataset.mascot === mascot) return;
+    face.dataset.mascot = mascot;
+    if (characterIds.has(mascot)) {
+      face.replaceChildren(characterArt(mascot));
+    } else if (mascot === "oculto") {
+      face.replaceChildren();
+    } else {
+      const img = document.createElement("img");
+      img.alt = "";
+      img.width = 28;
+      img.height = 28;
+      img.src = new URL(`mascots/${mascot}-idle.webp`, assets).href;
+      face.replaceChildren(img);
+    }
   }
   const appRoot = document.getElementById("root");
   if (appRoot) {
@@ -441,7 +616,6 @@
   const retired = new Set();
   const pending = new Map();
   let sequence = 0;
-  let desiredPreferences = {};
   let savingPreferences = false;
 
   function send(data) {
@@ -492,6 +666,8 @@
     motionButton.setAttribute("aria-pressed", String(selected.animations === "enabled"));
     updateMotion();
     render(currentExpression);
+    for (const node of document.querySelectorAll(".study-stamp")) paintStamp(node);
+    renderLead();
   }
 
   let wizardVisit = 0;
@@ -543,6 +719,10 @@
     if (newSession) {
       if (session) {
         for (const field of welcome.querySelectorAll("textarea, select")) field.value = "";
+        for (const marker of welcome.querySelectorAll('input[type="radio"]')) {
+          marker.checked = false;
+          marker.dataset.checked = "false";
+        }
       }
       if (session) retired.add(session);
       desiredPreferences = {};
@@ -583,6 +763,16 @@
 
     visible = !data.confirmed && confirmed ? confirmed : data.preferences;
     profile = data.profile;
+    if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;
+    if (Array.isArray(data.escada)) {
+      renderLadder(data.escada.filter((step) => step && Number.isSafeInteger(step.degrau)
+        && Number.isSafeInteger(step.reveladas) && typeof step.tipo === "string").slice(-12));
+    }
+    if (Array.isArray(data.recent)) {
+      renderRecent(data.recent.filter((item) => item && typeof item.id === "string"
+        && /^[0-9a-f-]{36}$/.test(item.id) && typeof item.name === "string"
+        && (item.degrau === null || Number.isSafeInteger(item.degrau))).slice(0, 3));
+    }
     tools.hidden = !data.confirmed;
     demoBanner.textContent = account ? "" : "Modo demonstração · o histórico por conta fica disponível após configurar o login Google.";
     for (const submit of welcome.querySelectorAll('[type="submit"]')) {

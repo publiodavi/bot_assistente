@@ -58,7 +58,7 @@
   },
   "chat": {
     "input": {
-      "placeholder": "Digite sua mensagem...",
+      "placeholder": "Escreva sua tentativa ou dúvida…",
       "actions": {
         "send": "Enviar mensagem",
         "stop": "Parar resposta",
@@ -132,7 +132,7 @@
       "title": "Configurações do chat",
       "customize": "Escolha como quer estudar nesta conversa"
     },
-    "watermark": "Modelos de linguagem podem cometer erros. Confira as informações importantes."
+    "watermark": "Seu companheiro também erra. Confira fontes importantes."
   },
   "threadHistory": {
     "sidebar": {
@@ -198,7 +198,7 @@
   "navigation": {
     "header": {
       "chat": "Chat",
-      "readme": "Leia-me",
+      "readme": "Sobre",
       "theme": {
         "light": "Tema claro",
         "dark": "Tema escuro",

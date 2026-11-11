@@ -208,23 +208,42 @@ html:root body {
 
 [data-step-type="user_message"] .relative.bg-accent.rounded-3xl,
 [data-step-type="assistant_message"] .message-content {
-  border: 1px solid hsl(var(--study-border));
-  border-radius: var(--study-bubble-radius);
   color: hsl(var(--study-text));
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
+/* Sem balões: a pessoa escreve anotações na margem da folha. */
 [data-step-type="user_message"] .relative.bg-accent.rounded-3xl {
-  background: hsl(var(--study-bubble-student));
+  background: hsl(var(--study-bubble-student) / .55);
+  border: 0;
+  border-left: 3px solid hsl(var(--study-accent));
+  border-radius: 0 calc(var(--study-bubble-radius) / 2) calc(var(--study-bubble-radius) / 2) 0;
+  padding: .5rem .875rem .625rem;
+  font-style: italic;
+  max-width: min(85%, 34rem);
+}
+[data-step-type="user_message"] .relative.bg-accent.rounded-3xl::before {
+  content: "Sua anotação";
+  display: block;
+  margin-bottom: .125rem;
+  font: 600 .7rem / 1.4 var(--study-font-body);
+  font-style: normal;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: hsl(var(--study-muted-text));
 }
 
+/* As respostas do companheiro são o próprio texto da folha. */
 [data-step-type="assistant_message"] .message-content {
-  background: hsl(var(--study-bubble-assistant));
-  padding: .75rem 1rem;
+  background: transparent;
+  border: 0;
+  padding: 0;
   min-width: 0;
   overflow-wrap: anywhere;
 }
+[data-step-type="assistant_message"] .ai-message > span.inline-block,
+.study-hidden { display: none !important; }
 
 .message-content :where(h1, h2, h3), #chat-settings-sidebar-title,
 .study-mascot__name {
@@ -297,14 +316,27 @@ body :focus-visible {
   }
 }
 
-@media (min-width: 90rem) {
-  body:not(:has(#chat-settings-sidebar-content)) .study-mascot {
+/* Com espaço ao lado da folha, o companheiro senta na mesa (custom.js define data-study-desk). */
+@media (min-width: 0) {
+  html[data-study-desk="wide"] body:not(:has(#chat-settings-sidebar-content)) .study-mascot {
     position: fixed;
     z-index: 10;
     right: 1rem;
     bottom: 2rem;
-    width: 12.5rem;
+    width: 13.5rem;
     margin: 0;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem .75rem .75rem;
+  }
+  html[data-study-desk="wide"] body:not(:has(#chat-settings-sidebar-content)) .study-mascot .study-mascot__image { width: 6rem; height: 6rem; }
+  html[data-study-desk="wide"] body:not(:has(#chat-settings-sidebar-content)) .study-mascot .study-mascot__toggle {
+    position: absolute;
+    top: .25rem;
+    right: .25rem;
+    width: 2rem;
+    height: 2rem;
   }
 }
 
@@ -875,4 +907,371 @@ html[data-study-motion="paused"] .study-mascot .study-mascot__image { animation:
   .study-welcome { background-position: center, 65% center; }
   .study-tools .study-button { min-height: 2.75rem; padding-inline: .4rem; }
   #header { gap: .125rem; padding-inline: .25rem; }
+}
+
+/* ===================================================================
+   Mesa de estudos: a conversa é uma folha sobre a mesa de cada ambiente.
+   =================================================================== */
+
+/* Folha central. Cada ambiente reinterpreta o papel. */
+.study-sheet {
+  position: relative;
+  box-sizing: border-box;
+  margin-block: 1rem 1.5rem;
+  padding: 1.75rem 2rem 1.25rem;
+  background: hsl(var(--study-surface));
+  border: 1px solid hsl(var(--study-border) / .55);
+  border-radius: calc(var(--study-bubble-radius) / 2);
+  box-shadow: var(--study-shadow), 0 1px 0 hsl(var(--study-border) / .4);
+}
+html[data-study-theme="vintage"] .study-sheet {
+  padding-left: 4rem;
+  background:
+    linear-gradient(90deg, transparent 2.75rem, hsl(356 62% 52% / .5) 2.75rem calc(2.75rem + 1.5px), transparent 0),
+    repeating-linear-gradient(transparent 0 1.85rem, hsl(212 45% 55% / .16) 1.85rem calc(1.85rem + 1px)),
+    hsl(var(--study-surface));
+  background-position: 0 0, 0 1.1rem, 0 0;
+}
+html[data-study-theme="castelo"] .study-sheet {
+  background:
+    radial-gradient(ellipse at 50% 40%, transparent 55%, hsl(var(--study-accent) / .1) 100%),
+    hsl(var(--study-surface));
+  border: 1px solid hsl(var(--study-accent) / .55);
+  outline: 3px double hsl(var(--study-accent) / .45);
+  outline-offset: 5px;
+}
+html[data-study-theme="aracnideo"] .study-sheet {
+  border: 3px solid hsl(var(--study-text));
+  border-radius: .25rem;
+  box-shadow: 7px 7px 0 hsl(var(--study-accent));
+  background:
+    radial-gradient(hsl(var(--study-accent) / .11) 1.1px, transparent 1.6px) 0 0 / 11px 11px,
+    hsl(var(--study-surface));
+}
+html[data-study-theme="cyberpunk"] .study-sheet {
+  border: 1px solid hsl(var(--study-accent) / .7);
+  border-radius: 0;
+  clip-path: polygon(1.1rem 0, 100% 0, 100% calc(100% - 1.1rem), calc(100% - 1.1rem) 100%, 0 100%, 0 1.1rem);
+  background:
+    linear-gradient(hsl(var(--study-accent) / .07) 1px, transparent 1px) 0 0 / 100% 2rem,
+    hsl(var(--study-surface));
+  box-shadow: none;
+}
+
+/* Selo do companheiro no alto de cada resposta. */
+.study-stamp {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .25rem;
+  color: hsl(var(--study-accent));
+  font: var(--study-title-weight) .9rem / 1.2 var(--study-font-title);
+  letter-spacing: .02em;
+}
+.study-stamp__face {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  overflow: hidden;
+  border: 1.5px solid hsl(var(--study-accent));
+  border-radius: 50%;
+  background: hsl(var(--study-muted));
+  flex: none;
+}
+.study-stamp__face:empty { display: none; }
+.study-stamp__face img { width: 100%; height: 100%; object-fit: cover; }
+.study-stamp__face .study-character {
+  position: absolute;
+  top: -.1rem;
+  left: -.1rem;
+  transform: scale(.25);
+  transform-origin: top left;
+}
+
+/* Escada de dicas dentro da resposta. Os degraus avançam para a direita. */
+.escada {
+  margin-top: .875rem;
+  padding-top: .75rem;
+  border-top: 1px dashed hsl(var(--study-border) / .8);
+  display: grid;
+  gap: .625rem;
+  font-family: var(--study-font-body);
+}
+.escada__topo {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: hsl(var(--study-muted-text));
+  font-size: .8rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.escada__degrau { font-weight: 600; }
+.escada__selo {
+  padding: .1rem .5rem;
+  border-radius: 999px;
+  background: hsl(var(--study-accent));
+  color: hsl(var(--study-on-accent));
+  font-size: .7rem;
+  letter-spacing: .04em;
+}
+.escada__camadas { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.escada__camada:nth-child(2) { margin-left: 1.25rem; }
+.escada__camada:nth-child(3) { margin-left: 2.5rem; }
+.escada__camada:nth-child(4) { margin-left: 3.75rem; }
+.escada__camada--aberta {
+  padding: .5rem .75rem;
+  border-left: 3px solid hsl(var(--study-accent));
+  background: hsl(var(--study-muted) / .7);
+  border-radius: 0 .375rem .375rem 0;
+}
+.escada__camada--aberta p { margin: .125rem 0 0; white-space: pre-wrap; }
+.escada__rotulo {
+  color: hsl(var(--study-accent));
+  font: var(--study-title-weight) .78rem / 1.3 var(--study-font-title);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.escada__camada--fechada {
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  width: fit-content;
+  padding: .35rem .75rem;
+  border: 1px dashed hsl(var(--study-border));
+  border-radius: .375rem;
+  color: hsl(var(--study-muted-text));
+  font-size: .85rem;
+}
+.escada__botao {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 2.5rem;
+  padding: .4rem .9rem;
+  border: 1.5px solid hsl(var(--study-accent));
+  border-radius: .375rem;
+  background: transparent;
+  color: hsl(var(--study-text));
+  font-weight: 600;
+  font-size: .9rem;
+  cursor: pointer;
+}
+.escada__botao:hover { background: hsl(var(--study-accent) / .12); }
+.escada__botao:disabled { opacity: .6; cursor: progress; }
+.escada__botao--ensinar { background: hsl(var(--study-accent)); color: hsl(var(--study-on-accent)); }
+.escada__botao--ensinar:hover { background: hsl(var(--study-accent)); filter: brightness(.92); }
+.escada__ensinar p { margin: 0; color: hsl(var(--study-muted-text)); font-size: .9rem; }
+/* O convite para ensinar vale só na resposta mais recente. */
+.step:has(~ .step[data-step-type="user_message"]) .escada__ensinar { display: none; }
+.escada__nota {
+  display: grid;
+  gap: .375rem;
+  padding: .75rem .875rem;
+  border: 1.5px solid hsl(var(--study-accent) / .7);
+  border-radius: .375rem;
+  background: hsl(var(--study-muted) / .5);
+}
+.escada__nota strong { font-family: var(--study-font-title); }
+.escada__nota ul { margin: .125rem 0 0 1.1rem; padding: 0; }
+.escada__nota-titulo {
+  font-size: .78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: hsl(var(--study-muted-text));
+}
+
+/* Objetos da mesa. Em telas estreitas, uma faixa compacta acima do campo. */
+.study-desk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .75rem;
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto .375rem;
+  font-size: .875rem;
+}
+html[data-study-entry="topic"] .study-desk { display: none; }
+.study-desk h2 { font: var(--study-title-weight) .95rem / 1.3 var(--study-font-title); }
+.study-desk .study-ladder, .study-desk .study-lead { display: flex; align-items: center; gap: .5rem; }
+.study-desk .study-ladder h2, .study-desk .study-ladder__steps, .study-desk .study-muted,
+.study-desk .study-lead h2, .study-desk .study-shelf { display: none; }
+.study-ladder__current { margin: 0; font-weight: 600; color: hsl(var(--study-accent)); }
+.study-ladder__current:empty { display: none; }
+.study-lead .study-choice-row .study-button { min-height: 2.25rem; padding: .25rem .625rem; font-size: .8rem; }
+.study-ladder__steps {
+  flex-direction: column-reverse;
+  gap: .3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.study-ladder__step {
+  display: flex;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .3rem .5rem;
+  border-left: 3px solid hsl(var(--study-border));
+  background: hsl(var(--study-muted) / .6);
+  font-size: .8rem;
+}
+.study-ladder__step span { color: hsl(var(--study-muted-text)); }
+.study-ladder__step--solo { border-left-color: hsl(var(--study-accent)); }
+.study-ladder__step--teach { border-left: 4px double hsl(var(--study-accent)); }
+/* Degraus mais recentes ficam mais à direita, formando a escada. */
+.study-ladder__step:nth-last-child(2) { margin-right: .4rem; }
+.study-ladder__step:nth-last-child(3) { margin-right: .8rem; }
+.study-ladder__step:nth-last-child(n+4) { margin-right: 1.2rem; }
+
+/* Com espaço livre ao lado da folha, a mesa vira uma coluna de cartões.
+   O custom.js marca data-wide e calcula a margem conforme o painel lateral. */
+.study-desk[data-wide="true"] {
+  position: fixed;
+  z-index: 5;
+  top: 5rem;
+  left: var(--study-desk-left, 1rem);
+  display: grid;
+  width: 13.5rem;
+  max-width: none;
+  gap: 1rem;
+  margin: 0;
+}
+html[data-study-entry="topic"] .study-desk[data-wide="true"] { display: none; }
+.study-desk[data-wide="true"] > * {
+  display: grid;
+  gap: .5rem;
+  padding: .875rem 1rem;
+  border: 1px solid hsl(var(--study-border) / .7);
+  border-radius: calc(var(--study-bubble-radius) / 1.5);
+  background: hsl(var(--study-surface));
+  box-shadow: var(--study-shadow);
+}
+.study-desk[data-wide="true"] :is(h2, .study-muted, .study-shelf) { display: revert; }
+.study-desk[data-wide="true"] .study-ladder__steps { display: flex; }
+.study-desk[data-wide="true"] .study-muted[hidden] { display: none; }
+html[data-study-theme="vintage"] .study-desk[data-wide="true"] > .study-ladder { rotate: -1.2deg; }
+html[data-study-theme="vintage"] .study-desk[data-wide="true"] > .study-lead { rotate: .8deg; }
+html[data-study-theme="aracnideo"] .study-desk[data-wide="true"] > * { border-width: 2px; box-shadow: 4px 4px 0 hsl(var(--study-accent)); }
+html[data-study-theme="cyberpunk"] .study-desk[data-wide="true"] > * {
+  border-radius: 0;
+  clip-path: polygon(.6rem 0, 100% 0, 100% calc(100% - .6rem), calc(100% - .6rem) 100%, 0 100%, 0 .6rem);
+}
+html[data-study-theme="castelo"] .study-desk[data-wide="true"] > * { outline: 2px double hsl(var(--study-accent) / .4); outline-offset: 3px; }
+
+/* Tela inicial: um caderno fechado sobre a mesa do ambiente. */
+.study-welcome {
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(1rem, 4vw, 2.25rem);
+  background: linear-gradient(180deg, #0000 40%, #0006), var(--study-scene) center / cover no-repeat, var(--study-scene-color);
+}
+.study-cover {
+  position: relative;
+  max-width: 34rem;
+  padding: 1.5rem 1.5rem 1.25rem 3rem;
+  border-radius: .35rem .75rem .75rem .35rem;
+  color: #fff8eb;
+  background:
+    linear-gradient(90deg, #0007 0 1.4rem, #fff2 1.4rem calc(1.4rem + 1px), #0002 calc(1.4rem + 1px) 1.8rem, transparent 1.8rem),
+    repeating-linear-gradient(45deg, #ffffff06 0 2px, transparent 2px 5px),
+    var(--study-scene-color);
+  box-shadow: 0 1.25rem 2.5rem #0008, inset 0 0 0 1px #fff2;
+}
+html[data-study-theme="aracnideo"] .study-cover { border: 3px solid #0b1020; box-shadow: 8px 8px 0 #e8536a; }
+html[data-study-theme="cyberpunk"] .study-cover {
+  border-radius: 0;
+  clip-path: polygon(1rem 0, 100% 0, 100% calc(100% - 1rem), calc(100% - 1rem) 100%, 0 100%, 0 1rem);
+  box-shadow: inset 0 0 0 1px #6dfbda88;
+}
+html[data-study-theme="castelo"] .study-cover { box-shadow: 0 1.25rem 2.5rem #0008, inset 0 0 0 3px #d9b45a66; }
+.study-cover h1 { font: var(--study-title-weight) clamp(1.5rem, 3.5vw, 2.1rem) / 1.15 var(--study-font-title); margin: 0; }
+.study-cover > p { margin: .5rem 0 1rem; max-width: 26rem; opacity: .92; }
+.study-cover .study-topic-form > label:first-child {
+  padding: .75rem .875rem .5rem;
+  border-radius: .3rem;
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-muted-text));
+  font: 600 .72rem / 1.2 var(--study-font-body);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 0 #0003;
+}
+.study-cover .study-topic-form textarea {
+  min-height: 3.5rem;
+  padding: .25rem 0 .125rem;
+  border: 0;
+  border-bottom: 1.5px dashed hsl(var(--study-border));
+  border-radius: 0;
+  background: transparent;
+  color: hsl(var(--study-text));
+  font: 600 1.2rem / 1.4 var(--study-font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  resize: none;
+}
+.study-cover .study-topic-form textarea::placeholder { font-weight: 400; font-style: italic; }
+.study-markers { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; border: 0; }
+.study-markers legend { margin-bottom: .375rem; font-size: .8rem; opacity: .85; }
+.study-marker { position: relative; display: inline-flex; cursor: pointer; }
+.study-marker input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+.study-marker span {
+  padding: .45rem 1.3rem .45rem .75rem;
+  background: #fff2;
+  color: inherit;
+  font-size: .85rem;
+  clip-path: polygon(0 0, 100% 0, calc(100% - .55rem) 50%, 100% 100%, 0 100%);
+}
+.study-marker input:checked + span { background: hsl(var(--study-accent)); color: hsl(var(--study-on-accent)); font-weight: 600; }
+.study-marker input:focus-visible + span { outline: 2px solid currentColor; outline-offset: 2px; }
+.study-dialog .study-marker span { background: hsl(var(--study-muted)); }
+.study-link-button {
+  margin-top: .75rem;
+  padding: .25rem 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: .875rem;
+  opacity: .85;
+  cursor: pointer;
+}
+.study-recent { max-width: 34rem; color: #fff8eb; }
+.study-recent[hidden] { display: none; }
+.study-recent h2 { margin: 0 0 .5rem; font: var(--study-title-weight) 1rem / 1.3 var(--study-font-title); }
+.study-recent__list { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.study-recent__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  min-height: 2.75rem;
+  padding: .5rem .875rem .5rem 1.1rem;
+  border-left: .45rem solid hsl(var(--study-accent));
+  border-radius: .2rem .4rem .4rem .2rem;
+  background: hsl(var(--study-surface));
+  color: hsl(var(--study-text));
+  text-decoration: none;
+  box-shadow: 0 3px 8px #0005;
+}
+.study-recent__item:hover { filter: brightness(1.04); }
+.study-recent__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--study-font-title);
+  font-weight: var(--study-title-weight);
+}
+.study-recent__step { flex: none; color: hsl(var(--study-muted-text)); font-size: .8rem; }
+
+@media (max-width: 36rem) {
+  .study-sheet { padding: 1.25rem 1rem 1rem; margin-block: .5rem 1rem; }
+  html[data-study-theme="vintage"] .study-sheet { padding-left: 2.25rem; background-position: -1.25rem 0, 0 1.1rem, 0 0; }
+  .study-cover { padding: 1.25rem 1rem 1rem 2.25rem; }
+  .escada__camada:nth-child(n+2) { margin-left: .75rem; }
 }

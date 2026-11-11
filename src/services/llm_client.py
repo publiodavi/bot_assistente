@@ -7,10 +7,14 @@ from openai import AsyncOpenAI
 load_dotenv()
 
 
+class ConfigurationError(ValueError):
+    """Configuração ausente, com mensagem que pode ser exibida ao estudante."""
+
+
 def create_client():
     key = os.getenv("DEEPSEEK_API_KEY", "").strip()
     if not key or key == "sua_chave_aqui":
-        raise ValueError("Configure DEEPSEEK_API_KEY no arquivo .env antes de iniciar uma conversa.")
+        raise ConfigurationError("Configure DEEPSEEK_API_KEY no arquivo .env antes de iniciar uma conversa.")
     return AsyncOpenAI(api_key=key, base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
 
 

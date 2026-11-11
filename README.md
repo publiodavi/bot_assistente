@@ -12,8 +12,11 @@ A personalização visual e o companheiro de estudos complementam essa orientaç
 
 ## Recursos implementados
 
-- Conversa com respostas em streaming pela API DeepSeek.
-- Entrada por assunto livre e objetivo opcional: entender um conceito, destravar uma dúvida ou praticar.
+- Conversa com respostas em streaming pela API DeepSeek, na voz do companheiro escolhido.
+- **Mesa de estudos:** a conversa é uma folha sobre a mesa de cada ambiente (folha pautada, pergaminho, página de HQ ou painel), com as mensagens do estudante como anotações e, em telas largas, cartões com a escada, a condução e os cadernos.
+- **Escada de dicas:** cada resposta traz até três pistas graduais e um exemplo parcial, abertos um de cada vez pelo estudante. A escada registra os degraus e quantas dicas foram usadas em cada um.
+- **Ensine o companheiro:** quando o companheiro avalia que o estudante entendeu, convida-o a explicar o conceito; o companheiro faz o papel de aprendiz e devolve uma nota com o que ficou claro e o que faltou. O seletor "Quem conduz?" permite escolher esse modo para toda a conversa.
+- Entrada por assunto livre na capa de um caderno, com marcador opcional (entender, destravar ou praticar) e atalhos para continuar as conversas recentes.
 - Três níveis de apoio: menos dicas, dicas guiadas e mais apoio.
 - Quatro ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo e Cyberpunk, todos com aparência clara e escura.
 - Troca imediata de tema, aparência e companheiro, preservando a conversa e o rascunho.
@@ -140,7 +143,8 @@ migrations/
     001_study.sql               Estrutura de persistência
 public/
     custom.css                  Tokens, temas e componentes visuais
-    custom.js                   Galerias, eventos e sincronização
+    custom.js                   Galerias, mesa de estudos, eventos e sincronização
+    elements/EscadaDicas.jsx    Escada de dicas e nota do companheiro
     fonts/                      Fontes locais e licenças
     mascots/                    Imagens dos companheiros
     themes/                     Ilustrações dos ambientes
@@ -148,8 +152,9 @@ src/
     app.py                      Ciclo de vida e interação do chat
     study_accounts.py           Autenticação e dados por conta
     pedagogy/                   Introdução e trilha legada
-    prompts/                    Orientação pedagógica
+    prompts/                    Orientação pedagógica e vozes dos companheiros
     services/llm_client.py       Integração com DeepSeek
+    services/escada.py          Separação do texto visível e das dicas em camadas
     rag/indexer.py              Estrutura inicial de RAG
 .env.example                    Variáveis necessárias, sem credenciais
 start.ps1                       Inicialização local no Windows
@@ -161,6 +166,8 @@ ESCOPO_E_ARQUITETURA.md          Escopo e decisões do projeto
 Foram exercitados os oito ambientes visuais, a entrada por diferentes assuntos, a troca de preferências durante streaming simulado, o cancelamento e o layout de 320 px. Os tokens de texto e controles foram verificados quanto ao contraste. A persistência em PostgreSQL foi testada com usuários fictícios, incluindo isolamento de perfis, recuperação de mensagens, renomeação e exclusão.
 
 Em 11/11/2026, o fluxo com uma conta Google real e a API DeepSeek foi verificado no navegador: login e criação do perfil, duas conversas de assuntos diferentes, renomeação, retomada pelo histórico, reinício do servidor com o contexto correto em cada conversa, edição de mensagem sem resíduos no contexto e restauração das preferências visuais a partir do banco, sem depender do cache do navegador. O isolamento visual entre duas contas Google ainda precisa ser conferido com uma segunda conta. Esses testes manuais não substituem um estudo de usabilidade com estudantes.
+
+Na mesma data, a Mesa de estudos, a Escada de dicas e o modo de ensino foram exercitados com a API real: abertura de dicas em sequência com gravação no banco, recomposição da escada após reiniciar o servidor, troca de "Quem conduz?" persistida por conversa, convite para ensinar e nota do companheiro. Os campos "degrau", "subiu sozinho" e "pronto para ensinar" são avaliações do modelo de linguagem, não correções automáticas, e podem variar entre respostas.
 
 ### Roteiro de demonstração
 

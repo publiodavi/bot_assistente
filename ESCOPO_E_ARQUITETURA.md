@@ -84,6 +84,16 @@ O painel nativo do Chainlit envia nome do companheiro e nível de dicas para `sr
 - **Carga cognitiva.** Os controles mantêm a mesma posição em todos os temas. Textura e movimento são contidos e o apoio pedagógico é entregue em passos. A avaliação pode investigar a facilidade para localizar ações e acompanhar as dicas. [Harp e Mayer, 1998](https://doi.org/10.1037/0022-0663.90.3.414)
 - **Gamificação e autonomia.** A escolha do ambiente dá ao estudante controle sobre a apresentação, enquanto o feedback e o desbloqueio tornam visível o progresso da atividade. A avaliação pode investigar autonomia e clareza de progresso percebidas. [Sailer et al., 2017](https://doi.org/10.1016/j.chb.2016.12.033), [van Roy e Zaman, 2019](https://www.sciencedirect.com/science/article/pii/S1071581918301927)
 
+### Mesa de estudos, Escada de dicas e ensino ao companheiro
+
+A interface abandona as convenções de chat genérico (balões, ícone de assistente, botões de copiar e avaliar) e organiza a conversa como uma folha sobre a mesa de estudos de cada ambiente. O companheiro escolhido assina as respostas e fala com um temperamento próprio, definido em `src/prompts/companions.py`.
+
+Cada resposta é dividida pelo modelo em duas partes: o texto que o estudante lê e um bloco estruturado com o tipo do passo, o degrau, até três pistas graduais e um exemplo parcial (`src/services/escada.py`). As pistas ficam ocultas e são abertas uma de cada vez, o que torna visível a retirada progressiva do apoio prevista no andaimento. O servidor valida a sequência, grava as camadas abertas nos metadados da mensagem e informa ao modelo, no turno seguinte, o que já foi visto.
+
+Quando o modelo avalia que o estudante compreendeu o passo, é oferecido o convite para explicar o conceito ao companheiro. Nesse modo, o companheiro faz perguntas de aprendiz e devolve uma nota com o que ficou claro e o que faltou, inspirado no efeito protégé e na técnica de explicar com as próprias palavras. O seletor "Quem conduz?" permite manter esse modo na conversa inteira.
+
+Os indicadores de degrau, de avanço sem dicas e de prontidão para ensinar são julgamentos do modelo de linguagem, apresentados como tal na interface. Não equivalem a correção automática nem a medida validada de aprendizagem; a avaliação desses indicadores é parte do piloto de usabilidade.
+
 ### Piloto de usabilidade proposto
 
 Aplicar duas tarefas equivalentes a estudantes universitários, alternando a ordem entre a interface padrão e a personalizada. Registrar conclusão, tempo para localizar as configurações e erros de navegação. Após cada tarefa, coletar respostas em escala de cinco pontos sobre autonomia, acolhimento, clareza do progresso e distração. Interpretar os resultados como dados exploratórios de usabilidade e aceitação.

@@ -93,6 +93,42 @@ async def advance_trail(layer, user, thread_id, stage):
         return result.rowcount == 1
 
 
+async def record_reveal(layer, user, thread_id, step_id, level):
+    """Registra a camada aberta somente na sequência e em conversa do próprio usuário."""
+    from sqlalchemy import text
+
+    async with layer.engine.begin() as connection:
+        result = await connection.execute(text("""
+            UPDATE steps SET metadata = jsonb_set(metadata, '{study_step,reveladas}', to_jsonb(CAST(:level AS int)))
+            WHERE id = :step AND "threadId" = :thread
+              AND "threadId" IN (SELECT id FROM threads WHERE "userId" = :owner)
+              AND metadata ? 'study_step'
+              AND COALESCE((metadata->'study_step'->>'reveladas')::int, 0) = CAST(:level AS int) - 1
+        """), {"step": UUID(step_id), "thread": UUID(thread_id), "owner": UUID(user.id), "level": level})
+        return result.rowcount == 1
+
+
+async def recent_notebooks(layer, user, limit=3):
+    """Últimas conversas da conta, com o maior degrau alcançado em cada uma."""
+    from sqlalchemy import text
+
+    async with layer.engine.connect() as connection:
+        rows = await connection.execute(text("""
+            SELECT t.id, t.name, MAX(s."createdAt") AS updated,
+                   MAX(CASE WHEN s.metadata->'study_step'->>'degrau' ~ '^[0-9]{1,3}$'
+                            THEN (s.metadata->'study_step'->>'degrau')::int END) AS degrau
+            FROM threads t LEFT JOIN steps s ON s."threadId" = t.id
+            WHERE t."userId" = :owner AND t.name IS NOT NULL
+            GROUP BY t.id, t.name
+            ORDER BY updated DESC NULLS LAST
+            LIMIT :limit
+        """), {"owner": UUID(user.id), "limit": limit})
+        return [
+            {"id": str(row.id), "name": str(row.name)[:80], "degrau": row.degrau}
+            for row in rows
+        ]
+
+
 async def trail_progress(layer, user, thread_id):
     from sqlalchemy import text
 
