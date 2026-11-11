@@ -19,8 +19,10 @@ A personalização visual e o companheiro de estudos complementam essa orientaç
 - Entrada por assunto livre na capa de um caderno, com marcador opcional (entender, destravar ou praticar) e atalhos para continuar as conversas recentes.
 - Três níveis de apoio: menos dicas, dicas guiadas e mais apoio.
 - Quatro ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo e Cyberpunk, todos com aparência clara e escura.
-- Troca imediata de tema, aparência e companheiro, preservando a conversa e o rascunho.
-- Companheiros com estados visuais de atenção, incentivo e progresso, incluindo a opção de ocultá-los.
+- Troca imediata de tema, aparência e companheiro, preservando a conversa, o rascunho e a posição de leitura.
+- Barra de estudo compacta acima do campo de mensagem, com companheiro, degrau atual (a escada completa abre sob demanda) e o seletor Guia/Aprende.
+- Companheiros com nome próprio (Lumi para a Coruja; os demais pelo nome do personagem) e apelido individual guardado no perfil, além da opção de ocultá-los. Cada resposta mantém o nome de quem a assinou.
+- Painéis de Temas, Companheiros e Perfil com a mesma estrutura; o nível de apoio fica no Perfil e o apelido no painel Companheiros.
 - Animações de ambiente com pausa manual e respeito à preferência de movimento reduzido do sistema.
 - Autenticação Google, perfil por conta e persistência de conversas em PostgreSQL, quando configurados.
 - Histórico lateral com busca, retomada, renomeação e exclusão de conversas pelo Chainlit.

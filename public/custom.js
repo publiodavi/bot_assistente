@@ -105,65 +105,67 @@
   document.addEventListener("visibilitychange", updateMotion);
   reducedMotion.addEventListener("change", updateMotion);
 
-  const widget = document.createElement("aside");
-  widget.className = "study-mascot";
-  widget.setAttribute("aria-label", "Companheiro de estudos");
-  const image = document.createElement("img");
-  image.alt = "";
-  image.width = 48;
-  image.height = 48;
-  image.className = "study-mascot__image";
-  const character = element("span", "", "study-mascot__character");
-  character.hidden = true;
-  const details = document.createElement("div");
-  details.id = "study-mascot-details";
-  details.className = "study-mascot__details";
-  const name = document.createElement("strong");
-  name.className = "study-mascot__name";
-  const status = document.createElement("div");
-  status.className = "study-mascot__status";
-  status.setAttribute("role", "status");
-  status.setAttribute("aria-atomic", "true");
-  const toggle = document.createElement("button");
-  toggle.className = "study-mascot__toggle";
-  toggle.type = "button";
-  toggle.setAttribute("aria-controls", details.id);
-  details.append(name, status);
-  widget.append(image, character, details, toggle);
+  // Nomes resolvidos pelo servidor: apelido do personagem ou nome padrão.
+  const defaultNames = {
+    coruja: "Lumi", raposa: "Raposa", robo: "Robô", harry: "Harry", hermione: "Hermione",
+    dumbledore: "Dumbledore", voldemort: "Voldemort", spiderman: "Homem-Aranha",
+    miles: "Miles Morales", oculto: "Companheiro",
+  };
+  const kinds = {
+    coruja: "Coruja", raposa: "Raposa", robo: "Robô", harry: "Harry", hermione: "Hermione",
+    dumbledore: "Dumbledore", voldemort: "Voldemort", spiderman: "Homem-Aranha",
+    miles: "Miles Morales", oculto: "Oculto",
+  };
+  let companionNames = { ...defaultNames };
+  let authors = {};
+  const selectedMascot = () => desiredPreferences.mascot || visible.mascot;
+  const companionName = () => companionNames[selectedMascot()] || visible.mascot_name;
 
-  let collapsed = false;
-  let currentExpression = "idle";
-  function render(expression) {
-    currentExpression = expression;
-    const mascot = desiredPreferences.mascot || visible.mascot;
-    widget.hidden = mascot === "oculto";
-    if (widget.hidden) return;
-    widget.dataset.expression = expression;
-    if (name.textContent !== visible.mascot_name) name.textContent = visible.mascot_name;
-    if (status.textContent !== statuses[expression]) status.textContent = statuses[expression];
-    const isCharacter = characterIds.has(mascot);
-    image.hidden = isCharacter;
-    character.hidden = !isCharacter;
-    if (isCharacter && character.firstElementChild?.dataset.character !== mascot) {
-      character.replaceChildren(characterArt(mascot));
-    } else if (!isCharacter) {
+  // Miniatura contida: imagem do companheiro ou rosto do personagem desenhado.
+  function paintAvatar(node, mascot, expression = "idle") {
+    if (node.dataset.mascot === mascot && node.dataset.expression === expression) return;
+    node.dataset.mascot = mascot || "";
+    node.dataset.expression = expression;
+    if (characterIds.has(mascot)) {
+      if (node.firstElementChild?.dataset.character !== mascot) node.replaceChildren(characterArt(mascot));
+    } else if (mascots.has(mascot) && mascot !== "oculto") {
+      const img = node.querySelector("img") || document.createElement("img");
+      img.alt = "";
+      img.width = 48;
+      img.height = 48;
       const src = new URL(`mascots/${mascot}-${expression}.webp`, assets).href;
-      if (image.src !== src) image.src = src;
+      if (img.src !== src) img.src = src;
+      if (img.parentElement !== node) node.replaceChildren(img);
+    } else {
+      node.replaceChildren();
     }
   }
 
-  function renderToggle() {
-    details.hidden = collapsed;
-    toggle.textContent = collapsed ? "+" : "−";
-    toggle.setAttribute("aria-expanded", String(!collapsed));
-    toggle.setAttribute("aria-label", collapsed ? "Expandir companheiro" : "Recolher companheiro");
-  }
+  // Barra de estudo: companheiro, degrau atual e quem conduz, logo acima do campo.
+  const bar = element("section", "", "study-bar");
+  bar.setAttribute("aria-label", "Seu estudo agora");
+  const who = element("div", "", "study-bar__who");
+  const avatar = element("span", "", "study-avatar study-avatar--bar");
+  avatar.setAttribute("aria-hidden", "true");
+  const identity = element("div", "", "study-bar__identity");
+  const name = element("strong", "", "study-bar__name");
+  const status = element("span", "", "study-bar__status");
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-atomic", "true");
+  identity.append(name, status);
+  who.append(avatar, identity);
 
-  toggle.addEventListener("click", () => {
-    collapsed = !collapsed;
-    renderToggle();
-  });
-  renderToggle();
+  let currentExpression = "idle";
+  function render(expression) {
+    currentExpression = expression;
+    const mascot = selectedMascot();
+    bar.dataset.expression = expression;
+    bar.dataset.mascot = mascot;
+    paintAvatar(avatar, mascot, expression);
+    const label = companionName();
+    if (name.textContent !== label) name.textContent = label;
+    if (status.textContent !== statuses[expression]) status.textContent = statuses[expression];
+  }
 
   function element(tag, text, className) {
     const node = document.createElement(tag);
@@ -204,11 +206,38 @@
     heading.id = "study-dialog-" + document.querySelectorAll(".study-dialog").length;
     dialog.setAttribute("aria-labelledby", heading.id);
     const header = element("div", "", "study-dialog__header");
-    header.append(heading, button("Fechar", () => dialog.close()));
+    const close = button("×", () => dialog.close(), "study-dialog__close");
+    close.setAttribute("aria-label", "Fechar");
+    header.append(heading, close);
     const body = element("div", "", "study-dialog__body");
     dialog.append(header, body);
+    // Clique no fundo escurecido fecha o painel, sem perder o rascunho do campo de mensagem.
+    dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
     document.body.append(dialog);
     return { dialog, body };
+  }
+
+  function section(title, ...children) {
+    const node = element("section", "", "study-section");
+    node.append(element("h3", title, "study-section__title"), ...children);
+    return node;
+  }
+
+  // Grupo de escolha compacta (botões com aria-pressed), usado em temas, perfil e barra.
+  function choiceGroup(label, options, onChoose, className = "study-segmented") {
+    const group = element("div", "", className);
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", label);
+    const buttons = {};
+    for (const [id, text] of Object.entries(options)) {
+      const control = button(text, () => onChoose(id), "study-chip");
+      control.dataset.value = id;
+      buttons[id] = control;
+      group.append(control);
+    }
+    return { group, buttons, select(value) {
+      for (const [id, control] of Object.entries(buttons)) control.setAttribute("aria-pressed", String(id === value));
+    } };
   }
 
   const catalog = {
@@ -237,61 +266,110 @@
   for (const [id, [title, description]] of Object.entries(catalog)) {
     const card = button("", () => choosePreferences({ theme: id }), "study-theme-card");
     card.dataset.preview = id;
-    card.append(element("span", "", "study-theme-card__art"), element("strong", title),
-      element("span", description));
+    const text = element("span", "", "study-theme-card__text");
+    text.append(element("strong", title), element("span", description));
+    card.append(element("span", "", "study-theme-card__art"), text);
     themeCards[id] = card;
     themeGrid.append(card);
   }
-  const appearanceControls = element("div", "", "study-choice-row");
-  appearanceControls.setAttribute("role", "group");
-  appearanceControls.setAttribute("aria-label", "Aparência");
-  const appearanceButtons = {};
-  for (const [id, label] of [["light", "Claro"], ["dark", "Escuro"]]) {
-    const control = button(label, () => choosePreferences({ appearance: id }));
-    appearanceButtons[id] = control;
-    appearanceControls.append(control);
-  }
-  const motionButton = button("Animações ativadas", () => choosePreferences({
-    animations: (desiredPreferences.animations || visible.animations) === "enabled" ? "paused" : "enabled",
-  }));
+  const appearance = choiceGroup("Aparência", { light: "Claro", dark: "Escuro" },
+    (id) => choosePreferences({ appearance: id }));
+  const motion = choiceGroup("Animações", { enabled: "Ativadas", paused: "Pausadas" },
+    (id) => choosePreferences({ animations: id }));
   const motionStatus = element("p", "", "study-muted");
   motionStatus.setAttribute("role", "status");
-  gallery.body.append(themeGrid, appearanceControls, motionButton, motionStatus);
+  const visualOptions = element("div", "", "study-option-row");
+  visualOptions.append(section("Aparência", appearance.group), section("Animações", motion.group, motionStatus));
+  gallery.body.append(section("Ambiente", themeGrid), visualOptions);
 
-  const companionPanel = panel("Companheiro");
-  companionPanel.body.classList.add("study-companion-grid");
+  const companionPanel = panel("Companheiros");
+  const companionGrid = element("div", "", "study-companion-grid");
   const companionCards = {};
-  for (const [id, title] of Object.entries({
-    coruja: "Coruja", raposa: "Raposa", robo: "Robô",
-    harry: "Harry", hermione: "Hermione", dumbledore: "Dumbledore", voldemort: "Voldemort",
-    spiderman: "Homem-Aranha", miles: "Miles Morales", oculto: "Oculto",
-  })) {
+  for (const id of Object.keys(kinds)) {
     const card = button("", () => choosePreferences({ mascot: id }), "study-companion-card");
-    if (characterIds.has(id)) {
-      card.append(characterArt(id));
-    } else if (id !== "oculto") {
-      const preview = element("span", "", "study-companion-preview");
-      for (const expression of ["idle", "thinking"]) {
-        const img = document.createElement("img");
-        img.src = new URL(`mascots/${id}-${expression}.webp`, assets);
-        img.alt = "";
-        img.width = 96;
-        img.height = 96;
-        preview.append(img);
-      }
-      card.append(preview);
-    } else card.append(element("span", "Sem companheiro na tela", "study-muted"));
-    card.append(element("strong", title));
+    card.dataset.mascot = id;
+    const art = element("span", "", "study-companion-card__art");
+    art.setAttribute("aria-hidden", "true");
+    if (characterIds.has(id)) art.append(characterArt(id));
+    else if (id !== "oculto") paintAvatar(art, id);
+    else art.append(element("span", "Sem companheiro na tela", "study-muted"));
+    card.append(art, element("strong", "", "study-companion-card__name"),
+      element("span", "", "study-companion-card__kind"));
     companionCards[id] = card;
-    companionPanel.body.append(card);
+    companionGrid.append(card);
   }
+  // Apelido individual do companheiro atual; vazio restaura o nome padrão.
+  const nicknameForm = element("form", "", "study-form study-nickname");
+  const nicknameAvatar = element("span", "", "study-avatar study-avatar--large");
+  nicknameAvatar.setAttribute("aria-hidden", "true");
+  const nicknameInput = element("input");
+  nicknameInput.id = "study-nickname-input";
+  nicknameInput.maxLength = 24;
+  nicknameInput.autocomplete = "off";
+  const nicknameLabel = element("label", "Apelido");
+  nicknameLabel.htmlFor = nicknameInput.id;
+  const nicknameHint = element("p", "", "study-muted");
+  const nicknameSave = element("button", "Salvar apelido", "study-button study-button--primary");
+  nicknameSave.type = "submit";
+  const nicknameReset = button("Usar nome padrão", () => saveNickname(""), "study-link-button");
+  const nicknameStatus = element("p", "", "study-form-status");
+  nicknameStatus.setAttribute("role", "status");
+  const nicknameFields = element("div", "", "study-nickname__fields");
+  const nicknameRow = element("div", "", "study-nickname__row");
+  nicknameRow.append(nicknameInput, nicknameSave);
+  nicknameFields.append(nicknameLabel, nicknameRow, nicknameHint, nicknameReset, nicknameStatus);
+  nicknameForm.append(nicknameAvatar, nicknameFields);
+  nicknameForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveNickname(nicknameInput.value);
+  });
+  async function saveNickname(value) {
+    const mascot = selectedMascot();
+    nicknameSave.disabled = true;
+    nicknameStatus.textContent = "Salvando…";
+    const saved = await request("study.nickname", { mascot, name: value });
+    nicknameSave.disabled = false;
+    nicknameStatus.textContent = saved ? "Apelido salvo." : "Não foi possível salvar o apelido.";
+    nicknameStatus.dataset.state = saved ? "ok" : "error";
+    renderCompanions(true);
+  }
+  let nicknameFor = null;
+  function renderCompanions(refreshInput = false) {
+    const mascot = selectedMascot();
+    if (nicknameFor !== mascot) {
+      // Outro personagem: o campo e a mensagem de status passam a ser os dele.
+      nicknameFor = mascot;
+      refreshInput = true;
+      nicknameStatus.textContent = "";
+    }
+    for (const [id, card] of Object.entries(companionCards)) {
+      card.setAttribute("aria-pressed", String(id === mascot));
+      const label = card.querySelector(".study-companion-card__name");
+      const kind = card.querySelector(".study-companion-card__kind");
+      const display = companionNames[id] || defaultNames[id];
+      if (label.textContent !== display) label.textContent = display;
+      const kindText = display === kinds[id] ? "" : kinds[id];
+      if (kind.textContent !== kindText) kind.textContent = kindText;
+    }
+    paintAvatar(nicknameAvatar, mascot);
+    nicknameForm.hidden = mascot === "oculto";
+    nicknameHint.textContent = `Nome padrão: ${defaultNames[mascot]}. Cada companheiro guarda o próprio apelido.`;
+    if (refreshInput || document.activeElement !== nicknameInput) {
+      nicknameInput.value = companionNames[mascot] || defaultNames[mascot];
+    }
+  }
+  companionPanel.body.append(section("Seu companheiro", nicknameForm), section("Escolher companheiro", companionGrid));
 
   const profilePanel = panel("Meu perfil");
   const introPanel = panel("Primeiros passos");
   const tools = element("div", "", "study-tools");
   tools.hidden = true;
   tools.append(button("Temas", () => gallery.dialog.showModal()),
-    button("Companheiro", () => companionPanel.dialog.showModal()),
+    button("Companheiros", () => {
+      nicknameStatus.textContent = "";
+      renderCompanions(true);
+      companionPanel.dialog.showModal();
+    }),
     button("Perfil", () => {
       buildProfile();
       profilePanel.dialog.showModal();
@@ -332,50 +410,48 @@
     recentSection.hidden = items.length === 0;
   }
 
-  // Mesa de estudos: objetos ao redor da folha (escada, condução e cadernos).
-  const desk = element("aside", "", "study-desk");
-  desk.setAttribute("aria-label", "Mesa de estudos");
-  const ladder = element("section", "", "study-ladder");
-  const ladderTitle = element("h2", "Escada");
-  const ladderCurrent = element("p", "", "study-ladder__current");
+  // Escada sob demanda: o botão da barra abre a lista de degraus num painel suspenso.
+  const ladderButton = button("", () => setLadderOpen(ladderPanel.hidden), "study-bar__step");
+  const ladderPanel = element("div", "", "study-bar__ladder");
+  ladderPanel.id = "study-ladder-panel";
+  ladderPanel.hidden = true;
+  ladderButton.setAttribute("aria-controls", ladderPanel.id);
+  ladderButton.setAttribute("aria-expanded", "false");
   const ladderList = element("ol", "", "study-ladder__steps");
   const ladderNote = element("p", "Os degraus aparecem quando a conversa começar.", "study-muted");
-  ladder.append(ladderTitle, ladderCurrent, ladderList, ladderNote);
-  const lead = element("section", "", "study-lead");
-  lead.append(element("h2", "Quem conduz?"));
-  const leadButtons = {};
-  const leadRow = element("div", "", "study-choice-row");
-  leadRow.setAttribute("role", "group");
-  leadRow.setAttribute("aria-label", "Quem conduz a conversa");
-  for (const id of ["guia", "aprendiz"]) {
-    const control = button("", async () => {
-      if (studyMode === id) return;
-      const previous = studyMode;
-      studyMode = id;
-      renderLead();
-      if (!(await request("study.mode", { mode: id }))) {
-        studyMode = previous;
-        renderLead();
-      }
-    });
-    leadButtons[id] = control;
-    leadRow.append(control);
+  const ladderCaption = element("p", "Degrau e “subiu sozinho” são avaliações do companheiro.", "study-muted");
+  ladderPanel.append(element("h3", "Escada desta conversa", "study-section__title"), ladderList, ladderNote, ladderCaption);
+  function setLadderOpen(open) {
+    ladderPanel.hidden = !open;
+    ladderButton.setAttribute("aria-expanded", String(open));
   }
-  const leadHint = element("p", "", "study-muted");
-  lead.append(leadRow, leadHint);
-  const shelf = button("Cadernos", () => document.getElementById("sidebar-trigger-button")?.click(), "study-button study-shelf");
-  desk.append(ladder, lead, shelf);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !ladderPanel.hidden) {
+      setLadderOpen(false);
+      ladderButton.focus();
+    }
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!ladderPanel.hidden && !bar.contains(event.target)) setLadderOpen(false);
+  });
+
+  const lead = choiceGroup("Quem conduz a conversa", { guia: "Guia", aprendiz: "Aprende" }, async (id) => {
+    if (studyMode === id) return;
+    const previous = studyMode;
+    studyMode = id;
+    renderLead();
+    if (!(await request("study.mode", { mode: id }))) {
+      studyMode = previous;
+      renderLead();
+    }
+  }, "study-segmented study-bar__lead");
+  bar.append(who, ladderButton, lead.group, ladderPanel);
 
   function renderLead() {
-    const companion = visible.mascot_name;
-    leadButtons.guia.textContent = `${companion} guia`;
-    leadButtons.aprendiz.textContent = `${companion} aprende`;
-    for (const [id, control] of Object.entries(leadButtons)) {
-      control.setAttribute("aria-pressed", String(id === studyMode));
-    }
-    leadHint.textContent = studyMode === "guia"
-      ? `${companion} dá pistas em degraus. Abra uma dica só quando precisar.`
-      : `Você explica e ${companion} tenta aprender, apontando o que ficou claro e o que faltou.`;
+    const companion = companionName();
+    lead.select(studyMode);
+    lead.buttons.guia.title = `${companion} dá pistas em degraus; abra uma dica só quando precisar.`;
+    lead.buttons.aprendiz.title = `Você explica e ${companion} tenta aprender, apontando o que ficou claro e o que faltou.`;
   }
 
   function renderLadder(steps) {
@@ -389,9 +465,11 @@
       return item;
     }));
     const top = steps.reduce((highest, step) => Math.max(highest, step.degrau), 0);
-    ladderCurrent.textContent = top ? `Você está no degrau ${top}` : "";
+    ladderButton.textContent = top ? `Degrau ${top}` : "Escada";
+    ladderButton.setAttribute("aria-label", top ? `Degrau ${top}. Ver a escada desta conversa` : "Ver a escada desta conversa");
     ladderNote.hidden = steps.length > 0;
   }
+  renderLadder([]);
 
   function addField(form, label, field) {
     const wrapper = element("label", label);
@@ -399,50 +477,71 @@
     form.append(wrapper);
   }
 
-  function selectField(options, value) {
-    const input = element("select");
-    input.append(new Option("Escolha uma opção", ""));
-    for (const [id, label] of Object.entries(options)) input.append(new Option(label, id));
-    input.value = value;
-    return input;
+  // Opções em pílulas que funcionam como rádio: um clique escolhe, outro desmarca.
+  function radioChips(name, legend, options, value) {
+    const fieldset = element("fieldset", "", "study-chip-field");
+    fieldset.append(element("legend", legend));
+    const row = element("div", "", "study-chip-row");
+    for (const [id, label] of Object.entries(options)) {
+      const option = element("label", "", "study-chip-option");
+      const input = element("input");
+      input.type = "radio";
+      input.name = name;
+      input.value = id;
+      input.checked = id === value;
+      input.dataset.checked = String(input.checked);
+      input.addEventListener("click", () => {
+        if (input.dataset.checked === "true") input.checked = false;
+        for (const other of row.querySelectorAll("input")) other.dataset.checked = String(other.checked);
+      });
+      option.append(input, element("span", label));
+      row.append(option);
+    }
+    fieldset.append(row);
+    return { fieldset, value: () => row.querySelector("input:checked")?.value || "" };
   }
 
+  const levelLabels = { menos: "Menos dicas", guiadas: "Dicas guiadas", mais: "Mais apoio" };
+  const support = choiceGroup("Nível de apoio", levelLabels, (id) => choosePreferences({ zdp: id }));
+
   function buildProfile() {
-    const form = element("form", "", "study-form");
+    const form = element("form", "", "study-form study-profile");
     const nameInput = element("input");
+    nameInput.id = "study-profile-name";
     nameInput.value = profile.name;
     nameInput.required = true;
     nameInput.maxLength = 60;
     nameInput.autocomplete = "nickname";
-    const goal = selectField(goals, profile.goal);
-    const barrier = selectField(barriers, profile.barrier);
-    addField(form, "Nome de exibição", nameInput);
-    addField(form, "Objetivo de estudo", goal);
-    addField(form, "Dificuldade mais comum", barrier);
+    const nameLabel = element("label", "Nome de exibição");
+    nameLabel.htmlFor = nameInput.id;
+    const nameHint = element("p", "É assim que o companheiro chama você.", "study-muted");
+    const goal = radioChips("profile-goal", "Objetivo de estudo", goals, profile.goal);
+    const barrier = radioChips("profile-barrier", "Dificuldade mais comum", barriers, profile.barrier);
     const submit = element("button", "Salvar perfil", "study-button study-button--primary");
     submit.type = "submit";
-    form.append(submit);
+    const formStatus = element("p", "", "study-form-status");
+    formStatus.setAttribute("role", "status");
+    const actions = element("div", "", "study-form-actions");
+    actions.append(submit, formStatus);
+    const supportHint = element("p", "Vale a partir da próxima resposta.", "study-muted");
+    form.append(
+      section("Sobre você", nameLabel, nameInput, nameHint),
+      section("Como você estuda", goal.fieldset, barrier.fieldset,
+        element("p", "Nível de apoio", "study-field-label"), support.group, supportHint),
+      actions,
+    );
+    support.select(desiredPreferences.zdp || visible.zdp);
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       submit.disabled = true;
-      if (await request("study.profile", { name: nameInput.value, goal: goal.value, barrier: barrier.value })) {
-        profilePanel.dialog.close();
-      }
+      formStatus.dataset.state = "";
+      formStatus.textContent = "Salvando…";
+      const saved = await request("study.profile", { name: nameInput.value, goal: goal.value(), barrier: barrier.value() });
+      formStatus.dataset.state = saved ? "ok" : "error";
+      formStatus.textContent = saved ? "Perfil salvo." : "Não foi possível salvar o perfil.";
       submit.disabled = false;
     });
-    const companion = button("Nome do companheiro e dicas", () => {
-      profilePanel.dialog.close();
-      document.getElementById("chat-settings-header-button")?.click();
-    });
-    const themesButton = button("Preferências visuais", () => {
-      profilePanel.dialog.close();
-      gallery.dialog.showModal();
-    });
-    const introButton = button("Escolher um assunto", () => {
-      profilePanel.dialog.close();
-      openIntro();
-    });
-    profilePanel.body.replaceChildren(form, companion, themesButton, introButton);
+    profilePanel.body.replaceChildren(form);
   }
 
   function topicForm() {
@@ -504,8 +603,7 @@
 
   function adaptChainlit() {
     const composer = document.getElementById("message-composer");
-    if (composer && widget.nextElementSibling !== composer) composer.before(widget);
-    placeDesk(composer);
+    if (composer && bar.nextElementSibling !== composer) composer.before(bar);
     const header = document.getElementById("header")?.lastElementChild;
     if (header && tools.parentElement !== header) header.prepend(tools);
     const headerRoot = document.getElementById("header");
@@ -537,7 +635,9 @@
     }
     for (const message of document.querySelectorAll('[data-step-type="assistant_message"] .ai-message:not([data-study-stamp])')) {
       message.dataset.studyStamp = "true";
-      message.querySelector(".message-content")?.before(stamp());
+      const node = stamp();
+      message.querySelector(".message-content")?.before(node);
+      paintStamp(node);
     }
     // Copiar e avaliar com polegares são convenções de chat de IA; ações com texto permanecem.
     for (const row of document.querySelectorAll('.ai-message .-ml-1\\.5:not([data-study-row])')) {
@@ -550,56 +650,30 @@
     }
   }
 
-  // A coluna de cartões só aparece quando cabe ao lado da folha sem sobrepor o histórico.
-  // Larga: coluna fixa no body (ancestrais do Chainlit recortam elementos fixos).
-  // Estreita: faixa compacta logo acima do companheiro e do campo de mensagem.
-  function placeDesk(composer = document.getElementById("message-composer")) {
-    const sidebarOpen = Boolean(document.querySelector('.peer[data-side][data-state="expanded"]'));
-    const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
-    const wide = Boolean(composer) && window.innerWidth >= (sidebarOpen ? 95 : 80) * rem;
-    const value = String(wide);
-    if (desk.dataset.wide !== value) desk.dataset.wide = value;
-    const layout = wide ? "wide" : "compact";
-    if (root.dataset.studyDesk !== layout) root.dataset.studyDesk = layout;
-    if (wide && desk.parentElement !== document.body) document.body.append(desk);
-    if (!wide && composer && desk.nextElementSibling !== widget) widget.before(desk);
-    if (!composer && desk.isConnected) desk.remove();
-    const left = sidebarOpen ? "17rem" : "1rem";
-    if (desk.style.getPropertyValue("--study-desk-left") !== left) desk.style.setProperty("--study-desk-left", left);
-  }
-  window.addEventListener("resize", () => placeDesk());
-  // Abrir ou recolher o histórico muda apenas atributos, que o observador principal não acompanha.
-  new MutationObserver(() => placeDesk()).observe(document.body, {
-    subtree: true, attributes: true, attributeFilter: ["data-state"],
-  });
-
   function stamp() {
     const node = element("div", "", "study-stamp");
     node.setAttribute("aria-hidden", "true");
-    node.append(element("span", "", "study-stamp__face"), element("span", "", "study-stamp__name"));
-    paintStamp(node);
+    node.append(element("span", "", "study-avatar study-avatar--stamp"), element("span", "", "study-stamp__name"));
     return node;
   }
 
+  // O selo mostra quem assinou cada resposta: nome gravado como autor da mensagem
+  // e personagem informado pelo servidor. Trocar de companheiro não altera respostas antigas.
   function paintStamp(node) {
-    const mascot = desiredPreferences.mascot || visible.mascot;
+    const message = node.closest(".ai-message");
+    const stepId = message?.closest('[id^="step-"]')?.id.slice(5);
+    const entry = authors[stepId];
+    // O nome vem do autor gravado na mensagem; o avatar do Chainlit é só um recurso
+    // de reserva, pois não é renderizado em todas as larguras de tela.
+    const author = entry?.name || message?.querySelector('img[alt^="Avatar for "]')?.alt.slice("Avatar for ".length);
+    // Sem registro do personagem (respostas antigas), não se deduz o desenho pelo nome.
+    const mascot = entry?.mascot || "";
+    const label = author || (mascot ? companionNames[mascot] : "Companheiro");
+    const nameNode = node.lastElementChild;
+    if (nameNode.textContent !== label) nameNode.textContent = label;
     const face = node.firstElementChild;
-    const label = node.lastElementChild;
-    if (label.textContent !== visible.mascot_name) label.textContent = visible.mascot_name;
-    if (face.dataset.mascot === mascot) return;
-    face.dataset.mascot = mascot;
-    if (characterIds.has(mascot)) {
-      face.replaceChildren(characterArt(mascot));
-    } else if (mascot === "oculto") {
-      face.replaceChildren();
-    } else {
-      const img = document.createElement("img");
-      img.alt = "";
-      img.width = 28;
-      img.height = 28;
-      img.src = new URL(`mascots/${mascot}-idle.webp`, assets).href;
-      face.replaceChildren(img);
-    }
+    face.dataset.initial = label.slice(0, 1).toUpperCase();
+    paintAvatar(face, mascot || "", "idle");
   }
   const appRoot = document.getElementById("root");
   if (appRoot) {
@@ -656,17 +730,13 @@
     for (const [id, card] of Object.entries(themeCards)) {
       card.setAttribute("aria-pressed", String(id === selected.theme));
     }
-    for (const [id, card] of Object.entries(companionCards)) {
-      card.setAttribute("aria-pressed", String(id === selected.mascot));
-    }
-    for (const [id, control] of Object.entries(appearanceButtons)) {
-      control.setAttribute("aria-pressed", String(id === selected.appearance));
-    }
-    motionButton.textContent = selected.animations === "enabled" ? "Animações ativadas" : "Animações pausadas";
-    motionButton.setAttribute("aria-pressed", String(selected.animations === "enabled"));
+    appearance.select(selected.appearance);
+    motion.select(selected.animations);
+    support.select(selected.zdp);
     updateMotion();
     render(currentExpression);
     for (const node of document.querySelectorAll(".study-stamp")) paintStamp(node);
+    renderCompanions();
     renderLead();
   }
 
@@ -764,6 +834,20 @@
     visible = !data.confirmed && confirmed ? confirmed : data.preferences;
     profile = data.profile;
     if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;
+    if (data.companions && typeof data.companions === "object") {
+      const names = { ...defaultNames };
+      for (const id of Object.keys(defaultNames)) {
+        const value = data.companions[id];
+        if (typeof value === "string" && value.trim() && Array.from(value).length <= 24) names[id] = value;
+      }
+      companionNames = names;
+    }
+    if (data.authors && typeof data.authors === "object") {
+      authors = Object.fromEntries(Object.entries(data.authors)
+        .filter(([id, entry]) => /^[0-9a-f-]{36}$/.test(id) && entry && typeof entry.name === "string"
+          && (entry.mascot === null || mascots.has(entry.mascot)))
+        .map(([id, entry]) => [id, { name: entry.name.slice(0, 40), mascot: entry.mascot }]));
+    }
     if (Array.isArray(data.escada)) {
       renderLadder(data.escada.filter((step) => step && Number.isSafeInteger(step.degrau)
         && Number.isSafeInteger(step.reveladas) && typeof step.tipo === "string").slice(-12));

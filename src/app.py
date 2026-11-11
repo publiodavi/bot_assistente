@@ -8,14 +8,13 @@ from uuid import uuid4
 
 import chainlit as cl
 from chainlit.chat_context import chat_context
-from chainlit.config import config
 from chainlit.context import context
-from chainlit.input_widget import Select, TextInput
-from chainlit.utils import wrap_user_function
 
 from src.pedagogy.study_trail import QUESTIONS
 from src.pedagogy.study_intro import BARRIERS, GOALS, intro_transition
-from src.prompts.companions import companion_voice
+from src.prompts.companions import (
+    DEFAULT_NAMES, clean_nickname, companion_names, companion_voice, stored_nicknames,
+)
 from src.prompts.pedagogical_prompt import ESCADA_FORMAT, MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS
 from src.services.escada import EscadaStream, as_context, layers, parse_step, tidy_visible
 from src.services.llm_client import ConfigurationError, stream_reply
@@ -71,6 +70,9 @@ def study_session():
             "steps": {},
             "elements": {},
             "recent": [],
+            # Apelidos por personagem e autoria das respostas exibidas.
+            "nicknames": {},
+            "authors": {},
         }
         context.session.study_runtime = state
     return state
@@ -86,19 +88,25 @@ def normalize_preferences(current, changes):
         value = changes.get(key)
         if isinstance(value, str) and value in options:
             prefs[key] = value
-    name = changes.get("mascot_name")
-    if isinstance(name, str):
-        name = "".join(char for char in name if not unicodedata.category(char).startswith("C"))
-        prefs["mascot_name"] = name.strip()[:24].rstrip() or DEFAULTS["mascot_name"]
     return prefs
 
 
-def settings_panel(prefs):
-    return cl.ChatSettings([
-        TextInput(id="mascot_name", label="Nome do companheiro", initial=prefs["mascot_name"],
-                  placeholder=DEFAULTS["mascot_name"]),
-        Select(id="zdp", label="Nível de dicas", items=ZDP_LEVELS, initial_value=prefs["zdp"]),
-    ])
+def resolve_companion(state):
+    """Fonte única do nome exibido: apelido do personagem atual ou seu nome padrão."""
+    mascot = state["prefs"]["mascot"]
+    state["prefs"]["mascot_name"] = state["nicknames"].get(mascot) or DEFAULT_NAMES[mascot]
+    return state["prefs"]["mascot_name"]
+
+
+def author_of(step):
+    """Personagem que assinou uma resposta gravada.
+
+    Antes dos apelidos individuais, todos os companheiros se chamavam "Lumi"; por
+    isso o nome sozinho não identifica o personagem. Sem o registro, o selo mostra
+    apenas o nome gravado como autor.
+    """
+    saved = (step.get("metadata") or {}).get("study_companion")
+    return saved if saved in DEFAULT_NAMES else None
 
 
 async def publish_state(state, request_id=None, error=None):
@@ -120,6 +128,8 @@ async def publish_state(state, request_id=None, error=None):
         "mode": state["mode"],
         "escada": escada_summary(state),
         "recent": state["recent"],
+        "companions": companion_names(state["nicknames"]),
+        "authors": dict(list(state["authors"].items())[-80:]),
     })
 
 
@@ -143,7 +153,6 @@ async def initialize_study():
     state = study_session()
     async with state["profile_lock"]:
         await load_profile(state)
-        await settings_panel(state["prefs"]).send()
     await load_recent(state)
     await publish_state(state)
 
@@ -170,6 +179,8 @@ def install_profile(state, stored):
         **{key: stored[key] for key in (*PROFILE_DEFAULTS, "name") if key in stored},
     }
     state["prefs"] = normalize_preferences(DEFAULTS, stored)
+    state["nicknames"] = stored_nicknames(stored)
+    resolve_companion(state)
     if state["profile"]["intro"] not in ("new", "done", "skipped"):
         state["profile"]["intro"] = "topic"
 
@@ -194,7 +205,7 @@ async def update_profile(state, transform):
     if DATA_LAYER and user:
         updated = await profile_data(DATA_LAYER, user, merge)
     else:
-        updated = merge({**state["profile"], **state["prefs"]})
+        updated = merge({**state["profile"], **state["prefs"], "nicknames": dict(state["nicknames"])})
     install_profile(state, updated)
 
 
@@ -216,15 +227,16 @@ async def synchronize_study(data):
                 cached = data.get("preferences")
                 if isinstance(cached, dict):
                     state["prefs"] = normalize_preferences(state["prefs"], cached)
+                    resolve_companion(state)
                 state["confirmed"] = True
-                await settings_panel(state["prefs"]).send()
         await publish_state(state)
         return
 
     request_id = data.get("request_id")
     if (data.get("session_id") != state["id"] or not isinstance(request_id, str)
             or len(request_id) > 80 or kind not in (
-                "study.preferences", "study.profile", "study.intro", "study.start", "study.mode"
+                "study.preferences", "study.profile", "study.intro", "study.start", "study.mode",
+                "study.nickname",
             )):
         return
 
@@ -244,7 +256,7 @@ async def synchronize_study(data):
             if kind == "study.preferences":
                 changes = data.get("preferences")
                 if not isinstance(changes, dict) or any(
-                    key not in ("theme", "mascot", "appearance", "animations") for key in changes
+                    key not in ("theme", "mascot", "appearance", "animations", "zdp") for key in changes
                 ):
                     raise ValueError("Preferência inválida")
                 normalized = normalize_preferences(DEFAULTS, changes)
@@ -263,12 +275,25 @@ async def synchronize_study(data):
                     raise ValueError("Preferência inválida")
                 await update_profile(state, lambda stored: {"name": name, "goal": goal, "barrier": barrier})
             elif kind == "study.intro":
-                previous = state["prefs"]["zdp"]
                 await update_profile(state, lambda stored: intro_transition(
                     stored, data.get("command"), data.get("value")
                 ))
-                if state["prefs"]["zdp"] != previous:
-                    await settings_panel(state["prefs"]).send()
+            elif kind == "study.nickname":
+                mascot, raw = data.get("mascot"), data.get("name")
+                if mascot not in DEFAULT_NAMES or not isinstance(raw, str) or len(raw) > 200:
+                    raise ValueError("Apelido inválido")
+                name = clean_nickname(raw)
+
+                def rename(stored):
+                    nicknames = stored_nicknames(stored)
+                    if name and name != DEFAULT_NAMES[mascot]:
+                        nicknames[mascot] = name
+                    else:
+                        nicknames.pop(mascot, None)
+                    # O nome único antigo deixa de valer depois da primeira gravação por personagem.
+                    return {"nicknames": nicknames, "mascot_name": None}
+
+                await update_profile(state, rename)
             else:
                 topic, goal = data.get("topic"), data.get("goal")
                 if not isinstance(topic, str) or not 1 <= len(topic.strip()) <= 2000:
@@ -291,28 +316,9 @@ async def synchronize_study(data):
     await publish_state(state, request_id, error)
 
 
-async def apply_study_settings(changes):
-    state = study_session()
-    async with state["profile_lock"]:
-        await load_profile(state)
-        changes = {key: changes[key] for key in ("mascot_name", "zdp") if key in changes}
-        try:
-            await update_profile(state, lambda stored: {
-                key: value for key, value in normalize_preferences(
-                    normalize_preferences(DEFAULTS, stored), changes
-                ).items() if key in changes
-            })
-            state["confirmed"] = True
-        except Exception:
-            logger.exception("Erro ao salvar configurações")
-            await cl.Message(content="Não foi possível salvar suas configurações.").send()
-        await settings_panel(state["prefs"]).send()
-    await publish_state(state)
-
-
-# Chainlit 2.12's decorator emits task_end for every settings update.
-# Register the same socket callback without touching the active stream's task state.
-config.code.on_settings_update = wrap_user_function(apply_study_settings, with_task=False)
+# O painel nativo de configurações do Chainlit foi retirado: nível de dicas e apelido
+# do companheiro são editados nos painéis Perfil e Companheiros, pela mesma ponte
+# de mensagens das demais preferências.
 
 
 def stored_step(metadata):
@@ -357,8 +363,9 @@ def conversation_context(history, message):
     )]
 
 
-def escada_element(state, reply_id, step):
-    props = {**step, "companheiro": state["prefs"]["mascot_name"], "message_id": reply_id}
+def escada_element(state, reply_id, step, companion):
+    """Elemento da escada; o nome é o do companheiro que assinou aquela resposta."""
+    props = {**step, "companheiro": companion, "message_id": reply_id}
     element = cl.CustomElement(name="EscadaDicas", props=props, display="inline")
     element.for_id = reply_id
     state["steps"][reply_id] = step
@@ -397,9 +404,16 @@ async def resume_study(thread):
     # pois o frontend substitui a lista de elementos ao receber a conversa.
     if not isinstance(thread.get("elements"), list):
         thread["elements"] = []
+    # Cada resposta mantém o companheiro que a assinou, mesmo após trocas posteriores.
+    names = {step["id"]: step.get("name") for step in steps if step.get("type") == "assistant_message"}
+    for step in steps:
+        if step.get("type") == "assistant_message":
+            state["authors"][step["id"]] = {"mascot": author_of(step), "name": str(step.get("name") or "")[:40]}
     for *_, step, reply_id in state["history"]:
         if step:
-            thread["elements"].append(escada_element(state, reply_id, step).to_dict())
+            companion = names.get(reply_id) or state["prefs"]["mascot_name"]
+            thread["elements"].append(escada_element(state, reply_id, step, companion).to_dict())
+    await publish_state(state)
     if state["trail_stage"] is not None and state["trail_stage"] < len(QUESTIONS):
         question = next((
             step for step in reversed(steps)
@@ -577,8 +591,9 @@ async def on_message(message: cl.Message):
         zdp = ZDP_INSTRUCTIONS[prefs["zdp"]]
         goal = GOALS.get(profile["goal"], "não informado")
         barrier = BARRIERS.get(profile["barrier"], "não informada")
-        companion = prefs["mascot_name"]
-        voice = companion_voice(prefs["mascot"], companion)
+        mascot = prefs["mascot"]
+        companion = resolve_companion(state)
+        voice = companion_voice(mascot, companion)
     # O convite "Explique para o companheiro" vale apenas para o turno seguinte.
     mode = "aprendiz" if state["teach_next"] else state["mode"]
     state["teach_next"] = False
@@ -601,6 +616,8 @@ async def on_message(message: cl.Message):
         )})
     messages.append({"role": "user", "content": message.content})
     reply = cl.Message(content="", author=companion)
+    # A autoria é registrada antes do streaming para o selo aparecer já na primeira palavra.
+    state["authors"][reply.id] = {"mascot": mascot, "name": companion}
     try:
         wants_hint = message.content.strip().casefold().rstrip(".!") == "preciso de uma dica"
         await express(state, "encouraging" if wants_hint else "thinking")
@@ -612,9 +629,12 @@ async def on_message(message: cl.Message):
         reply.content = tidy_visible(escada.visible.strip())
         if not reply.content:
             raise RuntimeError("Resposta sem texto visível")
-        reply.metadata = {"study_reply_to": message.id, **({"study_step": step} if step else {})}
+        reply.metadata = {
+            "study_reply_to": message.id, "study_companion": mascot,
+            **({"study_step": step} if step else {}),
+        }
         if step:
-            reply.elements = [escada_element(state, reply.id, step)]
+            reply.elements = [escada_element(state, reply.id, step, companion)]
         await reply.send()
         history.append((message.id, message.content, reply.content, step, reply.id))
         if step and (step["tipo"] == "conquista" or (
