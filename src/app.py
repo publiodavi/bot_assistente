@@ -6,6 +6,7 @@ import unicodedata
 from uuid import uuid4
 
 import chainlit as cl
+from chainlit.chat_context import chat_context
 from chainlit.config import config
 from chainlit.context import context
 from chainlit.input_widget import Select, TextInput
@@ -274,17 +275,32 @@ config.code.on_settings_update = wrap_user_function(apply_study_settings, with_t
 
 
 def restore_history(steps):
+    """Pares concluídos (id da pergunta, pergunta, resposta) na ordem da conversa."""
     users = {step["id"]: step.get("output") for step in steps if step.get("type") == "user_message"}
     history = []
     for step in steps:
         metadata = step.get("metadata") or {}
         if step.get("type") != "assistant_message" or step.get("streaming") or step.get("isError"):
             continue
-        prompt = users.get(metadata.get("study_reply_to"))
+        question_id = metadata.get("study_reply_to")
+        prompt = users.get(question_id)
         if prompt and step.get("output"):
-            history.extend([{"role": "user", "content": prompt},
-                            {"role": "assistant", "content": step["output"]}])
+            history.append((question_id, prompt, step["output"]))
     return history
+
+
+def conversation_context(history, message):
+    """Mantém apenas os pares cujas perguntas ainda estão na conversa.
+
+    Ao editar uma mensagem, o Chainlit remove as mensagens seguintes da tela e do
+    banco e chama on_message novamente com o mesmo ID; os pares removidos e o par
+    antigo da pergunta editada não podem continuar no contexto do modelo.
+    """
+    present = {item.id for item in chat_context.get()}
+    history[:] = [turn for turn in history if turn[0] in present and turn[0] != message.id]
+    return [entry for _, prompt, answer in history for entry in (
+        {"role": "user", "content": prompt}, {"role": "assistant", "content": answer},
+    )]
 
 
 @cl.on_chat_resume
@@ -449,7 +465,7 @@ async def on_message(message: cl.Message):
         f"{SYSTEM_PROMPT}\nNível de apoio escolhido: {zdp}\n"
         f"Objetivo preferido: {goal}. Dificuldade mais comum: {barrier}."
     )},
-                *history,
+                *conversation_context(history, message),
                 {"role": "user", "content": message.content}]
     reply = cl.Message(content="")
     try:
@@ -459,10 +475,7 @@ async def on_message(message: cl.Message):
             await reply.stream_token(token)
         reply.metadata = {"study_reply_to": message.id}
         await reply.send()
-        history.extend([
-            {"role": "user", "content": message.content},
-            {"role": "assistant", "content": reply.content},
-        ])
+        history.append((message.id, message.content, reply.content))
     except ValueError as exc:
         await cl.Message(content=str(exc)).send()
     except Exception:

@@ -209,7 +209,7 @@
       "button": "Novo chat",
       "dialog": {
         "title": "Criar novo chat",
-        "description": "Você vai iniciar uma nova conversa e perder o histórico deste chat. Quer continuar?",
+        "description": "Você vai iniciar uma nova conversa. Com a conta conectada, esta conversa continua disponível no histórico. Quer continuar?",
         "tooltip": "Novo chat"
       }
     },

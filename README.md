@@ -94,11 +94,14 @@ No Linux e no macOS, utilize `.venv/bin/python` e `cp .env.example .env` nos com
 
 ### Conta Google e histórico persistente
 
-1. Crie um banco PostgreSQL e aplique a migração a partir da raiz do repositório:
+1. Crie um banco PostgreSQL e aplique as migrações, em ordem, a partir da raiz do repositório:
 
    ```shell
    psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/001_study.sql
+   psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/002_chainlit_2_12_columns.sql
    ```
+
+   A segunda migração acrescenta a coluna `autoCollapse`, exigida pelo Chainlit 2.12.0. Sem ela, as respostas enviadas pelo campo de mensagem não reaparecem quando a conversa é retomada. As duas migrações podem ser executadas novamente sem apagar dados.
 
 2. No Google Cloud, configure a tela de consentimento e crie um cliente OAuth do tipo **Aplicativo da Web**. Cadastre o retorno exato:
 
@@ -157,7 +160,7 @@ ESCOPO_E_ARQUITETURA.md          Escopo e decisões do projeto
 
 Foram exercitados os oito ambientes visuais, a entrada por diferentes assuntos, a troca de preferências durante streaming simulado, o cancelamento e o layout de 320 px. Os tokens de texto e controles foram verificados quanto ao contraste. A persistência em PostgreSQL foi testada com usuários fictícios, incluindo isolamento de perfis, recuperação de mensagens, renomeação e exclusão.
 
-O cliente OAuth local foi criado e a tela de entrada Google foi verificada. O primeiro login real e o teste com duas contas Google ainda precisam ser concluídos. Os resultados com respostas simuladas não substituem a validação da API real nem um estudo de usabilidade com estudantes.
+Em 11/11/2026, o fluxo com uma conta Google real e a API DeepSeek foi verificado no navegador: login e criação do perfil, duas conversas de assuntos diferentes, renomeação, retomada pelo histórico, reinício do servidor com o contexto correto em cada conversa, edição de mensagem sem resíduos no contexto e restauração das preferências visuais a partir do banco, sem depender do cache do navegador. O isolamento visual entre duas contas Google ainda precisa ser conferido com uma segunda conta. Esses testes manuais não substituem um estudo de usabilidade com estudantes.
 
 ### Roteiro de demonstração
 

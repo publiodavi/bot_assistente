@@ -20,13 +20,20 @@ def configure_accounts():
         raise RuntimeError("Configure as variáveis de conta e histórico: " + ", ".join(missing))
 
     from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
+    from chainlit.utils import utc_now
+
+    class StudyDataLayer(SQLAlchemyDataLayer):
+        # No Chainlit 2.12.0, usuários e conversas recebem a hora local com o
+        # sufixo "Z". Fora de UTC, o histórico mostrava datas deslocadas.
+        async def get_current_timestamp(self):
+            return utc_now()
 
     url = values["DATABASE_URL"]
     if url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if not url.startswith("postgresql+asyncpg://"):
         raise RuntimeError("DATABASE_URL deve apontar para PostgreSQL.")
-    layer = SQLAlchemyDataLayer(conninfo=url)
+    layer = StudyDataLayer(conninfo=url)
     cl.data_layer(lambda: layer)
     cl.oauth_callback(google_user)
     return layer
