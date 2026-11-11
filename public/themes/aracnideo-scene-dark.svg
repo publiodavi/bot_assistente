@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900"><defs>
+  <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#131f39"/><stop offset="1" stop-color="#34445f"/></linearGradient>
+  <radialGradient id="light"><stop stop-color="#ff8c77" stop-opacity=".4"/><stop offset="1" stop-color="#ff8c77" stop-opacity="0"/></radialGradient>
+  <linearGradient id="desk" x2="0" y2="1"><stop stop-color="#34445f"/><stop offset="1" stop-color="#201b1a"/></linearGradient>
+  <pattern id="grain" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M0 27h54M27 0v54" stroke="#fff" stroke-opacity=".025"/></pattern></defs>
+  <path fill="url(#wall)" d="M0 0h1440v900H0Z"/><path d="M810 60h550v565H810Z" fill="#182a47" stroke="#806c62" stroke-width="14"/>
+   <g fill="#0e172e"><path d="M820 625V340h110V230h95v395M1045 625V310h95v-90h60v405M1220 625V280h130v345"/></g>
+   <path d="M885 380v180m40-180v160m175-180v220m170-250v210" stroke="#ff8c77" stroke-dasharray="12 22" stroke-width="9" opacity=".65"/>
+   <path d="M800 60q130 40 160 180M800 60q30 120 160 180M800 100q80 20 95 90M840 65q15 80 95 90" fill="none" stroke="#e8f1f7" opacity=".4" stroke-width="2"/>
+   <path d="M775 80l25 545M1370 80l-20 545" stroke="#ae374c" stroke-width="9"/>
+  <path d="M0 710l210-90h1230v280H0Z" fill="url(#desk)"/><path d="M0 727h1440M0 790h1440M0 855h1440" stroke="#d8ad7a" opacity=".16" stroke-width="2"/>
+  <ellipse cx="1090" cy="735" rx="340" ry="100" fill="#000" opacity=".16"/>
+  <path d="M1010 640l-110 90 190 70 120-100Z" fill="#f1dbad" stroke="#b49770" stroke-width="4"/><path d="M1030 670l110 40m-140-15 110 40m-140-15 110 40" stroke="#a68b67" stroke-width="3"/>
+  <ellipse cx="1210" cy="758" rx="80" ry="15" fill="#000" opacity=".2"/><path d="M1170 660h75v70q-38 40-75 0Z" fill="#ff8c77" stroke="#634d42" stroke-width="5"/><path d="M1245 672q65 0 25 48h-25" fill="none" stroke="#ff8c77" stroke-width="12"/>
+  <path d="M1200 640q-20-30 0-55m25 60q20-35 0-65" fill="none" stroke="#fff5df" stroke-width="4" opacity=".45"/>
+  <g stroke="#36583f" stroke-width="7" fill="#638558"><path d="M1320 680V420"/><path d="M1320 570q-110-80-85-140 100 10 85 140M1320 510q100-100 120-35-10 60-120 35M1320 620q-100-30-110-90 90-25 110 90"/></g><path d="M1250 620h140l-20 100h-98Z" fill="#ac7354" stroke="#654d40" stroke-width="5"/><circle cx="790" cy="500" r="250" fill="url(#light)"/>
+  <path d="M760 700h140m-70 0-20-330" stroke="#806c62" stroke-width="13" stroke-linecap="round"/><path d="M745 360h130l48 100H700Z" fill="#ff8c77" stroke="#a58559" stroke-width="4"/>
+  <path d="M710 470l-110 260h400L910 470Z" fill="url(#light)"/>
+  <path fill="url(#grain)" d="M0 0h1440v900H0Z"/></svg>
