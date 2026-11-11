@@ -1698,3 +1698,37 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
   .study-recent__step { grid-column: 2; grid-row: 2; }
   .study-review__action { grid-column: 3; grid-row: 2; }
 }
+
+/* 40. Flash cards: lista de baralhos e cartão de estudo com a fonte de leitura. */
+.study-dialog--cards { width: min(36rem, calc(100vw - 1.5rem)); }
+.study-decks { display: grid; }
+.study-deck { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 0; }
+.study-deck + .study-deck { border-top: 1px solid hsl(var(--study-border) / .3); }
+.study-deck__text { display: grid; gap: .125rem; min-width: 0; }
+.study-deck__text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9375rem; font-weight: 600; }
+.study-deck__text span { color: hsl(var(--study-muted-text)); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.study-deck > .study-button { flex: none; }
+.study-flash__head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.study-flash__head .study-link-button { padding: 0; }
+.study-flash__progress { color: hsl(var(--study-muted-text)); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.study-flash { display: grid; gap: .75rem; min-height: 9rem; align-content: start; padding: 1.25rem; border-radius: var(--study-radius-card); background: hsl(var(--study-muted)); overflow-wrap: anywhere; }
+.study-flash__deck { color: hsl(var(--study-muted-text)); font-size: .75rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.study-flash__front { margin: 0; font: 600 1.1875rem / 1.45 var(--study-font-body); }
+.study-flash__back { margin: 0; padding-top: .75rem; border-top: 1px solid hsl(var(--study-border) / .45); font: 1.0625rem / 1.55 var(--study-font-body); outline: none; }
+.study-flash__echo { margin: 0; color: hsl(var(--study-muted-text)); font-size: .8125rem; }
+.study-flash__attempt {
+  width: 100%; box-sizing: border-box; min-height: 3.25rem; resize: vertical; padding: .625rem .75rem;
+  border: 1px solid hsl(var(--study-border) / .7); border-radius: var(--study-radius-control);
+  background: hsl(var(--study-bg)); color: hsl(var(--study-text)); font: .9375rem / 1.45 var(--study-font-body);
+}
+.study-dialog--cards .study-dialog__body > .study-button { justify-self: start; }
+.study-flash__rate { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.study-flash__rate .study-button { flex-direction: column; gap: .125rem; min-height: 3.25rem; }
+.study-flash__when { font-size: .75rem; font-weight: 500; opacity: .8; }
+.study-flash__keys { margin: 0; font-size: .75rem; }
+.study-flash__summary { margin: 0; font-size: 1.125rem; font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) {
+  html[data-study-motion="enabled"] .study-flash__back { animation: study-flash-in .2s ease-out; }
+  @keyframes study-flash-in { from { opacity: 0; } }
+}
+@media (hover: none) { .study-flash__keys { display: none; } }

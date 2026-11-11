@@ -174,3 +174,44 @@ async def study_statistics(layer, user):
         records = list(rows)
         return {"cadernos": len(records), "degraus": sum(row.degraus or 0 for row in records),
                 "sozinho": sum(row.sozinho for row in records), "ensino": sum(row.ensino for row in records)}
+
+
+async def deck_data(layer, user, thread_id, transform=None):
+    """Baralho de um caderno do próprio usuário; o transform grava com bloqueio de linha."""
+    from sqlalchemy import text
+
+    owner, thread = UUID(user.id), UUID(thread_id)
+    async with layer.engine.begin() as connection:
+        owned = (await connection.execute(text(
+            'SELECT 1 FROM threads WHERE id = :thread AND "userId" = :owner'
+        ), {"thread": thread, "owner": owner})).scalar_one_or_none()
+        if not owned:
+            raise ValueError("Conversa indisponível.")
+        row = (await connection.execute(text(
+            "SELECT data FROM study_card_decks WHERE thread_id = :thread AND user_id = :owner"
+            + (" FOR UPDATE" if transform else "")
+        ), {"thread": thread, "owner": owner})).scalar_one_or_none()
+        data = json.loads(row) if isinstance(row, str) else (row or {})
+        if transform:
+            data = transform(data)
+            await connection.execute(text("""
+                INSERT INTO study_card_decks (thread_id, user_id, data, updated_at)
+                VALUES (:thread, :owner, CAST(:data AS jsonb), now())
+                ON CONFLICT (thread_id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()
+                WHERE study_card_decks.user_id = :owner
+            """), {"thread": thread, "owner": owner, "data": json.dumps(data)})
+        return data
+
+
+async def all_decks(layer, user):
+    """Baralhos da conta, do mais recente ao mais antigo, como pares (thread_id, dados)."""
+    from sqlalchemy import text
+
+    async with layer.engine.connect() as connection:
+        rows = await connection.execute(text("""
+            SELECT d.thread_id, d.data FROM study_card_decks d JOIN threads t ON t.id = d.thread_id
+            WHERE d.user_id = :owner AND t."userId" = :owner
+            ORDER BY d.updated_at DESC LIMIT 50
+        """), {"owner": UUID(user.id)})
+        return [(str(row.thread_id), json.loads(row.data) if isinstance(row.data, str) else (row.data or {}))
+                for row in rows]

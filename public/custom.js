@@ -194,6 +194,8 @@
     close: "M6 6l12 12M18 6 6 18",
     check: "m5 12.5 4.5 4.5L19 7.5",
     alert: "M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7.5v5.5M12 16.5h.01",
+    cards: "M8 4h11a1 1 0 0 1 1 1v11M5 7h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1ZM8 12h5M8 15h3",
+    book: "M5 4.5A1.5 1.5 0 0 1 6.5 3H19v14H6.5A1.5 1.5 0 0 0 5 18.5v-14ZM5 18.5A1.5 1.5 0 0 0 6.5 20H19M9 7h6",
   };
   function icon(name) {
     const ns = "http://www.w3.org/2000/svg";
@@ -513,17 +515,28 @@
   const reviewList = element("ul", "", "study-recent__list");
   const reviewMore = button("", () => { buildNotes(); notesPanel.dialog.showModal(); }, "study-link-button");
   reviewSection.append(element("h2", "Revisão do dia"),
-    element("p", "Tente lembrar antes de reler sua anotação.", "study-review__lead"), reviewList, reviewMore);
+    element("p", "Tente lembrar antes de conferir a resposta.", "study-review__lead"), reviewList, reviewMore);
   reviewSection.hidden = true;
   welcome.append(cover, reviewSection, recentSection);
 
   const reviewKey = "fatec-study.review.v1";
   const reviewMeters = [];
   const reviewLinks = [];
+  const cardMeters = [];
+  const cardLinks = [];
+  let decks = [];
+  let cardsJob = null;
   function endOfToday() {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
     return end;
+  }
+  // Baralhos com cartões vencidos até o fim do dia local.
+  function dueDecks() {
+    if (!account) return [];
+    const end = endOfToday();
+    return decks.map((deck) => ({ deck, due: deck.dues.filter((date) => new Date(date) <= end).length }))
+      .filter((item) => item.due > 0);
   }
   function reviewIsDue(item) {
     return typeof item?.review_at === "string" && new Date(item.review_at) <= endOfToday();
@@ -586,16 +599,32 @@
       open.setAttribute("aria-label", `Revisar ${name}, ${order}`);
       entry.append(open);
       return entry;
+    }), ...dueDecks().slice(0, 3).map(({ deck, due: cardsDue }) => {
+      // Baralhos com cartões vencidos abrem o painel direto, sem trocar de página.
+      const entry = element("li");
+      const name = notebookName(deck.thread_id);
+      const count = `${cardsDue} ${cardsDue === 1 ? "cartão" : "cartões"}`;
+      const open = button("", () => openCards(deck.thread_id), "study-recent__item study-review__item");
+      open.append(element("span", `Flash cards · ${name}`, "study-recent__name"),
+        element("span", count, "study-recent__step"), element("span", "Estudar", "study-review__action"));
+      open.setAttribute("aria-label", `Estudar flash cards de ${name}, ${count} para hoje`);
+      entry.append(open);
+      return entry;
     }));
     reviewMore.hidden = due.length <= 3;
     reviewMore.textContent = `Ver as ${due.length} revisões no Fichário`;
-    reviewSection.hidden = due.length === 0;
+    reviewSection.hidden = due.length === 0 && dueDecks().length === 0;
     const count = due.length ? String(due.length) : "";
     const label = due.length
       ? `Fichário de descobertas, ${due.length} ${due.length === 1 ? "revisão" : "revisões"} para hoje`
       : "Fichário de descobertas";
     for (const meter of reviewMeters) if (meter.textContent !== count) meter.textContent = count;
     for (const link of reviewLinks) if (link.getAttribute("aria-label") !== label) link.setAttribute("aria-label", label);
+    const cardsDue = dueDecks().reduce((sum, item) => sum + item.due, 0);
+    const cardsCount = cardsDue ? String(cardsDue) : "";
+    const cardsLabel = cardsDue ? `Flash cards, ${cardsDue} ${cardsDue === 1 ? "cartão" : "cartões"} para hoje` : "Flash cards";
+    for (const meter of cardMeters) if (meter.textContent !== cardsCount) meter.textContent = cardsCount;
+    for (const link of cardLinks) if (link.getAttribute("aria-label") !== cardsLabel) link.setAttribute("aria-label", cardsLabel);
   }
 
   function renderRecent(items) {
@@ -706,6 +735,8 @@
   const focusPanel = panel("Sessão de foco", "Um bloco de estudo seguido de pausa. O tempo continua mesmo com o painel fechado.");
   const notesPanel = panel("Fichário de descobertas", "Registre com suas palavras o que passou a fazer sentido.");
   const moodPanel = panel("Como você chega hoje?", "Opcional. Orienta só a próxima resposta e não fica salvo no perfil.");
+  const cardsPanel = panel("Flash cards", "Tente responder de memória antes de virar o cartão.");
+  cardsPanel.dialog.classList.add("study-dialog--cards");
   // A linha do Foco mostra o tempo restante enquanto a sessão corre.
   const focusMeters = [];
   function toolLinks() {
@@ -719,7 +750,12 @@
     notesLink.append(reviewMeter);
     reviewMeters.push(reviewMeter);
     reviewLinks.push(notesLink);
-    return section("Ferramentas", focusLink, notesLink,
+    const cardsLink = navButton("Flash cards", "cards", () => openCards());
+    const cardMeter = element("span", "", "study-nav__meta");
+    cardsLink.append(cardMeter);
+    cardMeters.push(cardMeter);
+    cardLinks.push(cardsLink);
+    return section("Ferramentas", focusLink, notesLink, cardsLink,
       navButton("Check-in de ânimo", "heart", () => { buildMood(); moodPanel.dialog.showModal(); }));
   }
   toolsPanel.body.append(toolLinks());
@@ -879,6 +915,210 @@
     moodPanel.body.replaceChildren(section("Hoje estou", choices.group, moodStatus, clear),
       section("Pausa curta", breathText, breathe));
   }
+
+  // Flash cards: um baralho por caderno, gerado da conversa e revisado em caixas.
+  let cardView = { mode: "home" };
+  let openDeck = null;
+  let rebuildArmed = null;
+  let rating = false;
+  let lastDeckSignature = "";
+  const goodDays = [7, 14, 30];
+  function nextLabel(card, choice) {
+    if (choice === "again") return "amanhã";
+    if (choice === "hard") return "em 3 dias";
+    const box = Math.min((Number.isSafeInteger(card.caixa) ? card.caixa : 0) + 1, goodDays.length);
+    return `em ${goodDays[box - 1]} dias`;
+  }
+  function openCards(threadId = null) {
+    cardView = { mode: "home" };
+    renderCards();
+    if (!cardsPanel.dialog.open) cardsPanel.dialog.showModal();
+    if (threadId) startDeck(threadId);
+  }
+  async function startDeck(threadId) {
+    cardView = { mode: "loading", threadId };
+    renderCards();
+    if (!(await request("study.deck", { thread_id: threadId })) && cardView.mode === "loading") {
+      cardView = { mode: "home" };
+      renderCards();
+    }
+  }
+  // Os cartões chegam numa mensagem própria; a fila da sessão só é montada ao abrir o baralho.
+  function receiveDeck(threadId, cards) {
+    openDeck = { threadId, cards };
+    if (cardView.mode !== "loading" || cardView.threadId !== threadId) return;
+    const end = endOfToday();
+    const due = cards.filter((card) => new Date(card.due) <= end);
+    const queue = (due.length ? due : cards).map((card) => card.id);
+    cardView = { mode: "study", threadId, queue, index: 0, revealed: false, attempt: "",
+      total: queue.length, good: new Set(), retry: new Set() };
+    renderCards();
+    cardsPanel.body.querySelector('[data-card-action="reveal"]')?.focus();
+  }
+  function renderCards() {
+    if (!account) {
+      cardsPanel.body.replaceChildren(element("p", "Entre na sua conta para criar flash cards dos seus cadernos.", "study-muted"));
+    } else if (cardView.mode === "loading") {
+      cardsPanel.body.replaceChildren(element("p", "Abrindo o baralho…", "study-muted"));
+    } else if (cardView.mode === "study") renderStudy();
+    else if (cardView.mode === "done") renderDone();
+    else renderCardsHome();
+  }
+  function renderCardsHome() {
+    const parts = [];
+    if (currentThread) {
+      const own = decks.find((deck) => deck.thread_id === currentThread);
+      const job = cardsJob?.thread_id === currentThread ? cardsJob : null;
+      const generating = job?.status === "generating";
+      const status = element("p", "", "study-form-status");
+      status.setAttribute("role", "status");
+      if (generating) setStatus(status, "", "Preparando cartões a partir desta conversa…");
+      else if (job?.status === "error") setStatus(status, "error", job.message || "Não foi possível gerar os cartões.");
+      else if (job?.status === "ready") setStatus(status, "ok", "Cartões prontos.");
+      const actions = element("div", "", "study-form-actions");
+      if (own) {
+        const study = button("Estudar", () => startDeck(currentThread), "study-button study-button--primary");
+        // Refazer substitui o baralho: o segundo clique confirma.
+        const rebuild = button(rebuildArmed === currentThread ? "Confirmar: substituir os cartões" : "Refazer cartões", () => {
+          if (rebuildArmed !== currentThread) {
+            rebuildArmed = currentThread;
+            renderCards();
+            cardsPanel.body.querySelector('[data-card-action="rebuild"]')?.focus();
+            setTimeout(() => { if (rebuildArmed) { rebuildArmed = null; if (cardView.mode === "home") renderCards(); } }, 6000);
+            return;
+          }
+          rebuildArmed = null;
+          createDeck();
+        });
+        rebuild.dataset.cardAction = "rebuild";
+        study.disabled = rebuild.disabled = generating;
+        actions.append(study, rebuild);
+      } else {
+        const create = button("Criar cartões deste caderno", createDeck, "study-button study-button--primary");
+        create.disabled = generating;
+        actions.append(create);
+      }
+      parts.push(section("Este caderno", element("p", own
+        ? `${own.total} cartões feitos a partir desta conversa.`
+        : "Os cartões saem só do que vocês conversaram aqui e da sua descoberta no Fichário, se houver.", "study-muted"),
+      actions, status));
+    }
+    const list = element("div", "", "study-decks");
+    const end = endOfToday();
+    for (const deck of decks) {
+      const due = deck.dues.filter((date) => new Date(date) <= end).length;
+      const row = element("div", "", "study-deck");
+      const text = element("div", "", "study-deck__text");
+      text.append(element("strong", notebookName(deck.thread_id)),
+        element("span", `${deck.total} cartões${due ? ` · ${due} para hoje` : ""}`));
+      const study = button("Estudar", () => startDeck(deck.thread_id), due ? "study-button study-button--primary" : "study-button");
+      study.setAttribute("aria-label", `Estudar ${notebookName(deck.thread_id)}`);
+      row.append(text, study);
+      list.append(row);
+    }
+    if (!decks.length) list.append(element("p", "Nenhum baralho ainda. Abra um caderno e crie os primeiros cartões.", "study-muted"));
+    parts.push(section("Seus baralhos", list));
+    cardsPanel.body.replaceChildren(...parts);
+  }
+  async function createDeck() {
+    const threadId = currentThread;
+    cardsJob = { thread_id: threadId, status: "generating" };
+    renderCards();
+    if (!(await request("study.cards", { thread_id: threadId }))) {
+      cardsJob = null;
+      renderCards();
+    }
+  }
+  function currentCard() {
+    return openDeck?.threadId === cardView.threadId ? openDeck.cards.find((card) => card.id === cardView.queue[cardView.index]) : null;
+  }
+  function renderStudy() {
+    const card = currentCard();
+    if (!card) {
+      cardView = { ...cardView, mode: "done" };
+      renderDone();
+      return;
+    }
+    const head = element("div", "", "study-flash__head");
+    head.append(button("Voltar aos baralhos", () => { cardView = { mode: "home" }; renderCards(); }, "study-link-button"),
+      element("span", `${cardView.index + 1} de ${cardView.queue.length}`, "study-flash__progress"));
+    const sheet = element("article", "", "study-flash");
+    sheet.append(element("span", notebookName(cardView.threadId), "study-flash__deck"),
+      element("p", card.frente, "study-flash__front"));
+    const parts = [head, sheet];
+    if (!cardView.revealed) {
+      const attempt = element("textarea", "", "study-flash__attempt");
+      attempt.rows = 2;
+      attempt.maxLength = 500;
+      attempt.placeholder = "Sua tentativa (opcional, fica só aqui)";
+      attempt.setAttribute("aria-label", "Sua tentativa, opcional e não enviada");
+      attempt.value = cardView.attempt;
+      attempt.addEventListener("input", () => { cardView.attempt = attempt.value; });
+      const reveal = button("Mostrar resposta", () => {
+        cardView.revealed = true;
+        renderCards();
+        cardsPanel.body.querySelector(".study-flash__back")?.focus();
+      }, "study-button study-button--primary");
+      reveal.dataset.cardAction = "reveal";
+      parts.push(attempt, reveal);
+    } else {
+      const back = element("p", card.verso, "study-flash__back");
+      back.tabIndex = -1;
+      sheet.append(back);
+      if (cardView.attempt.trim()) sheet.append(element("p", `Sua tentativa: ${cardView.attempt.trim()}`, "study-flash__echo"));
+      const rate = element("div", "", "study-flash__rate");
+      rate.setAttribute("role", "group");
+      rate.setAttribute("aria-label", "Quanto você lembrou?");
+      for (const [id, label, className] of [["again", "Não lembrei", "study-button"], ["hard", "Quase", "study-button"],
+        ["good", "Lembrei", "study-button study-button--primary"]]) {
+        const option = button("", () => rateCurrent(id), className);
+        option.append(element("span", label), element("span", nextLabel(card, id), "study-flash__when"));
+        option.dataset.rating = id;
+        rate.append(option);
+      }
+      parts.push(rate, element("p", "Atalhos: 1, 2 ou 3.", "study-muted study-flash__keys"));
+    }
+    cardsPanel.body.replaceChildren(...parts);
+  }
+  async function rateCurrent(choice) {
+    const card = currentCard();
+    if (!card || rating) return;
+    rating = true;
+    for (const option of cardsPanel.body.querySelectorAll("[data-rating]")) option.disabled = true;
+    const saved = await request("study.card", { thread_id: cardView.threadId, card_id: card.id, rating: choice });
+    rating = false;
+    if (!saved) { renderCards(); return; }
+    if (choice === "good") cardView.good.add(card.id);
+    // "Não lembrei" volta uma vez no fim da sessão, para uma nova tentativa ainda hoje.
+    if (choice === "again" && !cardView.retry.has(card.id)) {
+      cardView.retry.add(card.id);
+      cardView.queue.push(card.id);
+    }
+    cardView.index += 1;
+    cardView.revealed = false;
+    cardView.attempt = "";
+    renderCards();
+    cardsPanel.body.querySelector('[data-card-action="reveal"], .study-dialog--cards .study-button--primary')?.focus();
+  }
+  function renderDone() {
+    const total = cardView.total || 0;
+    const back = button("Voltar aos baralhos", () => { cardView = { mode: "home" }; renderCards(); }, "study-button study-button--primary");
+    const actions = element("div", "", "study-form-actions");
+    actions.append(back);
+    cardsPanel.body.replaceChildren(section("Sessão concluída",
+      element("p", `Você lembrou ${cardView.good?.size || 0} de ${total} ${total === 1 ? "cartão" : "cartões"}.`, "study-flash__summary"),
+      element("p", "Cada cartão volta na Revisão do dia conforme o quanto você lembrou.", "study-muted"), actions));
+  }
+  document.addEventListener("keydown", (event) => {
+    if (!cardsPanel.dialog.open || cardView.mode !== "study" || event.target.closest?.("textarea, input")) return;
+    if (!cardView.revealed && event.key === " " && !event.target.closest?.("button")) {
+      event.preventDefault();
+      cardsPanel.body.querySelector('[data-card-action="reveal"]')?.click();
+    } else if (cardView.revealed && ["1", "2", "3"].includes(event.key)) {
+      event.preventDefault();
+      rateCurrent(["again", "hard", "good"][Number(event.key) - 1]);
+    }
+  });
 
   let fallbackHistory = null;
   let historyReturnFocus = null;
@@ -1435,6 +1675,13 @@
   window.addEventListener("message", (event) => {
     if (event.source !== window || event.origin !== window.location.origin) return;
     const data = event.data;
+    if (data?.channel === channel && data.version === 1 && data.direction === "server" && data.type === "study.deck") {
+      if (data.session_id === session && /^[0-9a-f-]{36}$/.test(data.thread_id) && Array.isArray(data.cards)) {
+        receiveDeck(data.thread_id, data.cards.filter((card) => card && typeof card.id === "string"
+          && typeof card.frente === "string" && typeof card.verso === "string" && typeof card.due === "string"));
+      }
+      return;
+    }
     if (!data || data.channel !== channel || data.version !== 1
       || data.direction !== "server" || data.type !== "study.state"
       || typeof data.session_id !== "string" || !Number.isSafeInteger(data.revision)
@@ -1464,7 +1711,7 @@
       pending.clear();
       if (account !== data.account) {
         confirmed = null;
-        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel]) dialog.close();
+        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel, cardsPanel]) dialog.close();
         lastAutoIntroAccount = null;
       }
       closeFallbackHistory();
@@ -1503,6 +1750,14 @@
     mood = data.mood || null;
     adaptNotebookPanel();
     adaptUserAvatar();
+    // Resumos dos baralhos (datas de cada cartão) e geração em andamento.
+    const deckSignature = JSON.stringify([data.decks, data.cards_job, currentThread]);
+    decks = Array.isArray(data.decks) ? data.decks.filter((deck) => deck && /^[0-9a-f-]{36}$/.test(deck.thread_id)
+      && Number.isSafeInteger(deck.total) && Array.isArray(deck.dues))
+      .map((deck) => ({ thread_id: deck.thread_id, total: deck.total, dues: deck.dues.filter((date) => typeof date === "string") })) : [];
+    cardsJob = data.cards_job && typeof data.cards_job.thread_id === "string" && typeof data.cards_job.status === "string" ? data.cards_job : null;
+    if (cardsPanel.dialog.open && cardView.mode === "home" && deckSignature !== lastDeckSignature) renderCards();
+    lastDeckSignature = deckSignature;
     renderReviews();
     resumePendingReview();
     if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;

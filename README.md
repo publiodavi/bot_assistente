@@ -104,9 +104,10 @@ No Linux e no macOS, utilize `.venv/bin/python` e `cp .env.example .env` nos com
    ```shell
    psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/001_study.sql
    psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/002_chainlit_2_12_columns.sql
+   psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/003_cards_materials.sql
    ```
 
-   A segunda migração acrescenta a coluna `autoCollapse`, exigida pelo Chainlit 2.12.0. Sem ela, as respostas enviadas pelo campo de mensagem não reaparecem quando a conversa é retomada. As duas migrações podem ser executadas novamente sem apagar dados.
+   A segunda migração acrescenta a coluna `autoCollapse`, exigida pelo Chainlit 2.12.0. Sem ela, as respostas enviadas pelo campo de mensagem não reaparecem quando a conversa é retomada. A terceira cria as tabelas dos flash cards e dos materiais enviados. Todas podem ser executadas novamente sem apagar dados.
 
 2. No Google Cloud, configure a tela de consentimento e crie um cliente OAuth do tipo **Aplicativo da Web**. Cadastre o retorno exato:
 

@@ -3,7 +3,8 @@ import asyncio
 import logging
 import time
 import unicodedata
-from uuid import uuid4
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
 import chainlit as cl
 from chainlit.chat_context import chat_context
@@ -15,14 +16,17 @@ from src.prompts.companions import (
     DEFAULT_NAMES, clean_nickname, companion_names, companion_voice, stored_nicknames,
 )
 from src.prompts.pedagogical_prompt import (
-    ESCADA_FORMAT, MODE_INSTRUCTIONS, REVIEW_REQUEST, SYSTEM_PROMPT, ZDP_INSTRUCTIONS, review_instruction,
+    ESCADA_FORMAT, MODE_INSTRUCTIONS, REVIEW_REQUEST, SYSTEM_PROMPT, ZDP_INSTRUCTIONS, cards_messages,
+    review_instruction,
 )
+from src.services.cards import RATINGS, deck_summary, parse_deck, rate_card, transcript
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
-from src.services.llm_client import ConfigurationError, stream_reply
+from src.services.llm_client import ConfigurationError, complete_json, stream_reply
 from src.services.study_tools import MOODS, clean_text, note_update, review_done, review_note, validate_avatar
 from src.study_accounts import (
-    advance_trail, configure_accounts, profile_data, recent_notebooks, record_reveal, trail_progress, owned_thread_ids, study_statistics,
+    advance_trail, all_decks, configure_accounts, deck_data, profile_data, recent_notebooks, record_reveal,
+    trail_progress, owned_thread_ids, study_statistics,
 )
 
 
@@ -83,6 +87,8 @@ def study_session():
             "mood": None, "notebooks": [], "statistics": {}, "note_links": set(),
             # Revisão do dia em andamento: {"thread_id", "text", "stage": "ask" | "check"}.
             "review": None,
+            # Flash cards: resumos dos baralhos e geração em andamento.
+            "decks": [], "cards_job": None, "cards_task": None,
         }
         context.session.study_runtime = state
     return state
@@ -136,6 +142,7 @@ async def publish_state(state, request_id=None, error=None):
         "thread_id": context.session.thread_id if context.session.has_first_interaction else None,
         "notebooks": state["notebooks"], "statistics": state["statistics"], "mood": state["mood"],
         "note_links": sorted(state["note_links"]),
+        "decks": state["decks"], "cards_job": state["cards_job"],
     })
 
 
@@ -174,6 +181,94 @@ async def load_recent(state):
             state["note_links"] = await owned_thread_ids(DATA_LAYER, user, ids)
         except Exception:
             logger.exception("Erro ao carregar cadernos recentes")
+        await load_decks(state)
+
+
+async def load_decks(state):
+    """Resumos dos baralhos; falhar aqui não pode esconder os cadernos."""
+    user = context.session.user
+    if DATA_LAYER and user:
+        try:
+            state["decks"] = [deck_summary(thread_id, deck) for thread_id, deck in await all_decks(DATA_LAYER, user)]
+        except Exception:
+            logger.exception("Erro ao carregar os flash cards")
+
+
+def valid_thread_id(value):
+    try:
+        return isinstance(value, str) and str(UUID(value)) == value.lower()
+    except ValueError:
+        return False
+
+
+async def send_deck(state, thread_id, deck):
+    """Cartões de um baralho numa mensagem própria, para não pesar no estado enviado a cada mudança."""
+    cards = [
+        {key: card[key] for key in ("id", "frente", "verso", "caixa", "due")}
+        for card in (deck.get("cards") if isinstance(deck.get("cards"), list) else [])
+        if isinstance(card, dict) and all(key in card for key in ("id", "frente", "verso", "caixa", "due"))
+    ]
+    await cl.send_window_message({
+        "channel": CHANNEL, "version": 1, "direction": "server", "type": "study.deck",
+        "session_id": state["id"], "thread_id": thread_id, "cards": cards,
+    })
+
+
+async def card_request(state, kind, data):
+    """Gerar, abrir ou avaliar flash cards de um caderno da própria conta."""
+    user = context.session.user
+    thread_id = data.get("thread_id")
+    if not DATA_LAYER or not user:
+        raise ValueError("Entre na sua conta para usar os flash cards.")
+    if not valid_thread_id(thread_id):
+        raise ValueError("Caderno inválido.")
+    if kind == "study.cards":
+        if not context.session.has_first_interaction or thread_id != context.session.thread_id:
+            raise ValueError("Abra o caderno para criar os cartões.")
+        if not state.get("history"):
+            raise ValueError("Converse um pouco neste caderno antes de criar os cartões.")
+        if (state["cards_job"] or {}).get("status") == "generating":
+            raise ValueError("Os cartões ainda estão sendo preparados.")
+        await deck_data(DATA_LAYER, user, thread_id)
+        discovery = next((note["text"] for note in state["profile"].get("fichario", [])
+                          if isinstance(note, dict) and note.get("thread_id") == thread_id
+                          and isinstance(note.get("text"), str)), None)
+        state["cards_job"] = {"thread_id": thread_id, "status": "generating"}
+        state["cards_task"] = asyncio.create_task(
+            generate_deck(state, user, thread_id, transcript(state["history"]), discovery))
+    elif kind == "study.deck":
+        await send_deck(state, thread_id, await deck_data(DATA_LAYER, user, thread_id))
+    else:
+        card_id, rating = data.get("card_id"), data.get("rating")
+        if not isinstance(card_id, str) or rating not in RATINGS:
+            raise ValueError("Avaliação inválida.")
+
+        def rate(stored):
+            cards = stored.get("cards") if isinstance(stored.get("cards"), list) else []
+            if not any(isinstance(card, dict) and card.get("id") == card_id for card in cards):
+                raise ValueError("Cartão indisponível.")
+            return {**stored, "cards": [rate_card(card, rating) if isinstance(card, dict) and card.get("id") == card_id
+                                        else card for card in cards]}
+
+        await send_deck(state, thread_id, await deck_data(DATA_LAYER, user, thread_id, rate))
+        await load_decks(state)
+
+
+async def generate_deck(state, user, thread_id, conversation, discovery):
+    try:
+        cards = parse_deck(await complete_json(cards_messages(conversation, discovery)))
+        created = datetime.now(timezone.utc).isoformat()
+        await deck_data(DATA_LAYER, user, thread_id, lambda stored: {"cards": cards, "created": created})
+        state["cards_job"] = {"thread_id": thread_id, "status": "ready"}
+        await load_decks(state)
+    except ValueError as exc:
+        state["cards_job"] = {"thread_id": thread_id, "status": "error", "message": str(exc)}
+    except Exception:
+        logger.exception("Erro ao gerar os flash cards")
+        state["cards_job"] = {"thread_id": thread_id, "status": "error",
+                              "message": "Não foi possível gerar os cartões. Tente novamente."}
+    await publish_state(state)
+
 
 def display_name(value):
     if not isinstance(value, str):
@@ -247,10 +342,21 @@ async def synchronize_study(data):
             or len(request_id) > 80 or kind not in (
                 "study.preferences", "study.profile", "study.intro", "study.start", "study.mode",
                 "study.nickname", "study.note", "study.checkin", "study.review",
+                "study.cards", "study.deck", "study.card",
             )):
         return
 
     error = None
+    if kind in ("study.cards", "study.deck", "study.card"):
+        try:
+            await card_request(state, kind, data)
+        except ValueError as exc:
+            error = str(exc)
+        except Exception:
+            logger.exception("Erro nos flash cards")
+            error = "Não foi possível concluir. Tente novamente."
+        await publish_state(state, request_id, error)
+        return
     if kind == "study.checkin":
         mood = data.get("mood")
         if mood is not None and (not isinstance(mood, str) or mood not in MOODS):
