@@ -380,7 +380,7 @@
   galleryFooter.append(preferenceStatus);
   gallery.dialog.append(galleryFooter);
 
-  const companionPanel = panel("Companheiros");
+  const companionPanel = panel("Companheiros", "Quem acompanha você na folha de estudo.");
   const companionGrid = element("div", "", "study-companion-grid");
   const companionCards = {};
   for (const id of Object.keys(kinds)) {
@@ -423,11 +423,10 @@
   async function saveNickname(value) {
     const mascot = selectedMascot();
     nicknameSave.disabled = true;
-    nicknameStatus.textContent = "Salvando…";
+    setStatus(nicknameStatus, "", "Salvando…");
     const saved = await request("study.nickname", { mascot, name: value });
     nicknameSave.disabled = false;
-    nicknameStatus.textContent = saved ? "Apelido salvo." : "Não foi possível salvar o apelido.";
-    nicknameStatus.dataset.state = saved ? "ok" : "error";
+    setStatus(nicknameStatus, saved ? "ok" : "error", saved ? "Apelido salvo." : "Não foi possível salvar o apelido.");
     renderCompanions(true);
   }
   let nicknameFor = null;
@@ -457,9 +456,10 @@
   }
   companionPanel.body.append(section("Seu companheiro", nicknameForm), section("Escolher companheiro", companionGrid));
 
-  const profilePanel = panel("Meu perfil");
-  const introPanel = panel("Primeiros passos");
-  const toolsPanel = panel("Ferramentas");
+  const profilePanel = panel("Meu perfil", "Como você aparece e como prefere receber ajuda.");
+  const introPanel = panel("Primeiros passos", "O que você quer aprender hoje?");
+  const toolsPanel = panel("Ferramentas", "Apoios para a sessão de hoje.");
+  toolsPanel.dialog.classList.add("study-dialog--tools");
   const tools = element("div", "", "study-tools");
   tools.hidden = true;
   const openProfile = () => {
@@ -615,9 +615,9 @@
   }
 
   // Ferramentas locais e registros escritos pelo estudante.
-  const focusPanel = panel("Uma sessão de foco");
-  const notesPanel = panel("Fichário de descobertas");
-  const moodPanel = panel("Como você chega hoje?");
+  const focusPanel = panel("Sessão de foco", "Um bloco de estudo seguido de pausa. O tempo continua mesmo com o painel fechado.");
+  const notesPanel = panel("Fichário de descobertas", "Registre com suas palavras o que passou a fazer sentido.");
+  const moodPanel = panel("Como você chega hoje?", "Opcional. Orienta só a próxima resposta e não fica salvo no perfil.");
   // A linha do Foco mostra o tempo restante enquanto a sessão corre.
   const focusMeters = [];
   function toolLinks() {
@@ -671,7 +671,7 @@
       focusTimer.end = Date.now() + focusTimer.remaining;
     }
     saveFocus(); tickFocus();
-  });
+  }, "study-button study-button--primary");
   const focusPause = button("Pausar", () => {
     if (!focusTimer.end) return;
     focusTimer.remaining = Math.max(0, focusTimer.end - Date.now()); focusTimer.end = null;
@@ -711,8 +711,8 @@
   setInterval(tickFocus, 1000); document.addEventListener("visibilitychange", tickFocus); tickFocus();
 
   function buildNotes() {
-    notesPanel.body.replaceChildren(element("p", "Registre com suas palavras o que passou a fazer sentido.", "study-muted"));
-    if (!account) { notesPanel.body.append(element("p", "Entre na sua conta para guardar descobertas entre conversas.")); return; }
+    notesPanel.body.replaceChildren();
+    if (!account) { notesPanel.body.append(element("p", "Entre na sua conta para guardar descobertas entre conversas.", "study-muted")); return; }
     const entries = Array.isArray(profile.fichario) ? profile.fichario : [];
     if (currentThread) {
       const form = element("form", "", "study-form");
@@ -724,26 +724,31 @@
       const reviewLabel = element("label", "", "study-inline-check"); reviewLabel.append(review, document.createTextNode("Revisar em 3 dias"));
       const submit = element("button", "Guardar descoberta", "study-button study-button--primary"); submit.type = "submit";
       const savedStatus = element("p", "", "study-form-status"); savedStatus.setAttribute("role", "status");
-      form.append(reviewLabel, submit, savedStatus);
+      const actions = element("div", "", "study-form-actions");
+      actions.append(reviewLabel, submit);
+      form.append(actions, savedStatus);
       form.addEventListener("submit", async event => {
         event.preventDefault(); submit.disabled = true;
         const saved = await request("study.note", { thread_id: currentThread, text: text.value, review: review.checked });
         submit.disabled = false;
-        savedStatus.textContent = saved ? "Descoberta guardada." : "Não foi possível guardar. Confira o limite de 100 notas e tente novamente.";
+        setStatus(savedStatus, saved ? "ok" : "error", saved ? "Descoberta guardada." : "Não foi possível guardar. Confira o limite de 100 notas e tente novamente.");
         if (saved) { buildNotes(); notify("Descoberta guardada."); }
       });
       notesPanel.body.append(form);
-    } else notesPanel.body.append(element("p", "Comece uma conversa para registrar sua primeira descoberta."));
+    } else notesPanel.body.append(element("p", "Comece uma conversa para registrar sua primeira descoberta.", "study-muted"));
     const list = element("div", "", "study-discoveries");
     for (const item of entries.slice(0, 100)) {
       const card = element("article", "", "study-discovery");
-      card.append(element("p", item.text));
+      card.append(element("p", item.text, "study-discovery__text"));
+      // Data, revisão e origem numa linha de metadados discreta.
+      const meta = element("div", "", "study-discovery__meta");
       const date = new Date(item.date);
-      if (!Number.isNaN(date.getTime())) card.append(element("time", date.toLocaleDateString("pt-BR"), "study-muted"));
-      if (item.review_at) card.append(element("p", `Revisar em ${new Date(item.review_at).toLocaleDateString("pt-BR")}`, "study-muted"));
+      if (!Number.isNaN(date.getTime())) meta.append(element("time", date.toLocaleDateString("pt-BR")));
+      if (item.review_at) meta.append(element("span", `Revisar em ${new Date(item.review_at).toLocaleDateString("pt-BR")}`));
       if (noteLinks.has(item.thread_id)) {
-        const link = element("a", "Abrir caderno"); link.href = `/thread/${encodeURIComponent(item.thread_id)}`; card.append(link);
-      } else card.append(element("p", "O caderno de origem não está disponível.", "study-muted"));
+        const link = element("a", "Abrir caderno", "study-discovery__link"); link.href = `/thread/${encodeURIComponent(item.thread_id)}`; meta.append(link);
+      } else meta.append(element("span", "Caderno de origem indisponível"));
+      card.append(meta);
       list.append(card);
     }
     notesPanel.body.append(section("Suas descobertas", list));
@@ -753,7 +758,6 @@
   moodPanel.dialog.addEventListener("close", () => clearInterval(breathingInterval));
   function buildMood() {
     clearInterval(breathingInterval);
-    const hint = element("p", "Opcional. Essa escolha orienta apenas a próxima resposta e não é salva no perfil.", "study-muted");
     const moodStatus = element("p", mood ? "Check-in pronto para a próxima resposta." : "Escolha como você está chegando.", "study-form-status");
     moodStatus.setAttribute("role", "status");
     const choices = choiceGroup("Como você está", { curioso: "Curioso", cansado: "Cansado", travado: "Travado", ansioso: "Ansioso" }, async id => {
@@ -770,8 +774,9 @@
         if (!remaining) clearInterval(breathingInterval);
       }, 1000);
     });
-    moodPanel.body.replaceChildren(hint, choices.group, moodStatus,
-      button("Não usar check-in", async () => { if (await request("study.checkin", { mood: null })) { choices.select(null); moodStatus.textContent = "Check-in removido."; } }), breathe, breathText);
+    const clear = button("Não usar check-in", async () => { if (await request("study.checkin", { mood: null })) { choices.select(null); moodStatus.textContent = "Check-in removido."; } }, "study-link-button");
+    moodPanel.body.replaceChildren(section("Hoje estou", choices.group, moodStatus, clear),
+      section("Pausa curta", breathText, breathe));
   }
 
   let fallbackHistory = null;
@@ -912,7 +917,7 @@
     const cardText = element("div");
     const cardName = element("strong", profile.name);
     const cardLine = element("p", profile.tagline || "Um passo de cada vez.", "study-muted");
-    cardText.append(element("span", "CARTÃO DE ESTUDANTE", "study-eyebrow"), cardName, cardLine);
+    cardText.append(element("span", "Cartão de estudante", "study-eyebrow"), cardName, cardLine);
     profileCard.append(portrait, cardText);
     const updatePortrait = () => {
       paintUserAvatar(portrait, selectedAvatar, nameInput.value);
@@ -980,6 +985,9 @@
     const formStatus = element("p", "", "study-form-status"); formStatus.setAttribute("role", "status");
     const fields = element("div", "", "study-form");
     addField(fields, "Nome de exibição", nameInput); addField(fields, "Sua frase (opcional)", tagline);
+    // Ações fixas no rodapé do formulário: status à esquerda, salvar como ação principal.
+    const profileActions = element("div", "", "study-form-actions study-sticky-actions");
+    profileActions.append(formStatus, button("Rever introdução", openIntro), submit);
     const stats = element("dl", "", "study-stats");
     for (const [key, label] of Object.entries({ cadernos: "Cadernos", degraus: "Degraus alcançados", sozinho: "Subiu sozinho", ensino: "Ensinou o companheiro" })) {
       const item = element("div"); item.append(element("dt", label), element("dd", String(Number.isSafeInteger(statistics[key]) ? statistics[key] : 0))); stats.append(item);
@@ -988,14 +996,13 @@
       section("Como você estuda", goal.fieldset, barrier.fieldset, element("p", "Nível de apoio", "study-field-label"), support.group,
         element("p", "Vale a partir da próxima resposta.", "study-muted")),
       section("Sua caminhada", stats, element("p", account ? "Degraus e autonomia são avaliações do companheiro sobre respostas existentes, não uma medida comprovada de aprendizagem." : "Entre na conta para acompanhar os registros dos seus cadernos.", "study-muted")),
-      button("Rever introdução", openIntro), submit, formStatus);
+      profileActions);
     support.select(desiredPreferences.zdp || visible.zdp);
     form.addEventListener("submit", async event => {
       event.preventDefault(); if (uploadPending) return;
-      submit.disabled = true; formStatus.dataset.state = ""; formStatus.textContent = "Salvando…";
+      submit.disabled = true; setStatus(formStatus, "", "Salvando…");
       const saved = await request("study.profile", { name: nameInput.value, tagline: tagline.value, avatar: selectedAvatar, goal: goal.value(), barrier: barrier.value() });
-      formStatus.dataset.state = saved ? "ok" : "error";
-      formStatus.textContent = saved ? "Perfil salvo." : "Não foi possível salvar o perfil.";
+      setStatus(formStatus, saved ? "ok" : "error", saved ? "Perfil salvo." : "Não foi possível salvar o perfil.");
       submit.disabled = false;
     });
     profilePanel.body.replaceChildren(form); showAvatarOptions(selectedAvatar.kind); updatePortrait();
@@ -1048,11 +1055,10 @@
 
   function openIntro() {
     introPanel.body.replaceChildren(
-      element("p", "O que você quer aprender hoje?"),
       topicForm(),
       button("Pular por agora", async () => {
         if (await request("study.intro", { command: "skip" })) introPanel.dialog.close();
-      }),
+      }, "study-link-button"),
     );
     for (const submit of introPanel.body.querySelectorAll('[type="submit"]')) submit.disabled = false;
     if (!introPanel.dialog.open) introPanel.dialog.showModal();
