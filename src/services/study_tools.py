@@ -18,18 +18,58 @@ def clean_text(value, limit):
     return "".join(c for c in value if not unicodedata.category(c).startswith("C") or c == "\n").strip()
 
 
+# Revisão espaçada: a primeira em 3 dias; cada revisão feita adia a próxima; depois da última, encerra.
+REVIEW_INTERVALS = (3, 7, 14, 30)
+
+
+def review_count(note):
+    count = note.get("reviews")
+    return count if type(count) is int and 0 <= count <= len(REVIEW_INTERVALS) else 0
+
+
 def note_update(notes, thread_id, text, review=False, now=None):
-    """Uma descoberta por conversa; datas UTC e revisão opcional em três dias."""
+    """Uma descoberta por conversa; datas UTC e revisão opcional em três dias.
+
+    Reescrever a descoberta mantém a revisão já agendada e a contagem de revisões feitas."""
     text = clean_text(text, 1000)
     if not text or type(review) is not bool:
         raise ValueError("Escreva sua descoberta.")
     now = now or datetime.now(timezone.utc)
+    previous = next((n for n in notes if isinstance(n, dict) and n.get("thread_id") == thread_id), {})
     entries = [dict(n) for n in notes if isinstance(n, dict) and n.get("thread_id") != thread_id]
     if len(entries) >= 100:
         raise ValueError("O fichário aceita até 100 descobertas.")
+    scheduled = previous.get("review_at") if isinstance(previous.get("review_at"), str) else None
+    review_at = (scheduled or (now + timedelta(days=REVIEW_INTERVALS[0])).isoformat()) if review else None
     entries.insert(0, {"thread_id": thread_id, "text": text, "date": now.isoformat(),
-                       "review_at": (now + timedelta(days=3)).isoformat() if review else None})
+                       "review_at": review_at, "reviews": review_count(previous)})
     return entries
+
+
+def review_note(notes, thread_id):
+    """Texto da descoberta com revisão agendada nesta conversa, ou None."""
+    for note in notes:
+        if (isinstance(note, dict) and note.get("thread_id") == thread_id
+                and isinstance(note.get("review_at"), str) and isinstance(note.get("text"), str)):
+            return note["text"]
+    return None
+
+
+def review_done(notes, thread_id, now=None):
+    """Registra uma revisão feita e agenda a próxima no intervalo seguinte."""
+    now = now or datetime.now(timezone.utc)
+    result, found = [], False
+    for note in notes:
+        if (isinstance(note, dict) and note.get("thread_id") == thread_id
+                and isinstance(note.get("review_at"), str)):
+            count = min(review_count(note) + 1, len(REVIEW_INTERVALS))
+            following = (now + timedelta(days=REVIEW_INTERVALS[count])).isoformat() if count < len(REVIEW_INTERVALS) else None
+            note = {**note, "reviews": count, "review_at": following, "reviewed_at": now.isoformat()}
+            found = True
+        result.append(note)
+    if not found:
+        raise ValueError("Não há revisão marcada para este caderno.")
+    return result
 
 
 def validate_avatar(value):

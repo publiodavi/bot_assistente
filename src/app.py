@@ -14,11 +14,13 @@ from src.pedagogy.study_intro import BARRIERS, GOALS, intro_transition
 from src.prompts.companions import (
     DEFAULT_NAMES, clean_nickname, companion_names, companion_voice, stored_nicknames,
 )
-from src.prompts.pedagogical_prompt import ESCADA_FORMAT, MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS
+from src.prompts.pedagogical_prompt import (
+    ESCADA_FORMAT, MODE_INSTRUCTIONS, REVIEW_REQUEST, SYSTEM_PROMPT, ZDP_INSTRUCTIONS, review_instruction,
+)
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
 from src.services.llm_client import ConfigurationError, stream_reply
-from src.services.study_tools import MOODS, clean_text, note_update, validate_avatar
+from src.services.study_tools import MOODS, clean_text, note_update, review_done, review_note, validate_avatar
 from src.study_accounts import (
     advance_trail, configure_accounts, profile_data, recent_notebooks, record_reveal, trail_progress, owned_thread_ids, study_statistics,
 )
@@ -79,6 +81,8 @@ def study_session():
             "nicknames": {},
             "authors": {},
             "mood": None, "notebooks": [], "statistics": {}, "note_links": set(),
+            # Revisão do dia em andamento: {"thread_id", "text", "stage": "ask" | "check"}.
+            "review": None,
         }
         context.session.study_runtime = state
     return state
@@ -242,7 +246,7 @@ async def synchronize_study(data):
     if (data.get("session_id") != state["id"] or not isinstance(request_id, str)
             or len(request_id) > 80 or kind not in (
                 "study.preferences", "study.profile", "study.intro", "study.start", "study.mode",
-                "study.nickname", "study.note", "study.checkin",
+                "study.nickname", "study.note", "study.checkin", "study.review",
             )):
         return
 
@@ -291,6 +295,26 @@ async def synchronize_study(data):
                 await update_profile(state, lambda stored: {"fichario": note_update(
                     stored.get("fichario", []), thread_id, data.get("text"), data.get("review", False))})
                 await load_recent(state)
+            elif kind == "study.review":
+                thread_id = data.get("thread_id")
+                user = context.session.user
+                if not DATA_LAYER or not user or not isinstance(thread_id, str):
+                    raise ValueError("Entre na sua conta para revisar.")
+                if not context.session.has_first_interaction or thread_id != context.session.thread_id:
+                    raise ValueError("Abra o caderno para começar a revisão.")
+                if thread_id not in await owned_thread_ids(DATA_LAYER, user, [thread_id]):
+                    raise ValueError("Conversa indisponível.")
+                text = review_note(state["profile"].get("fichario", []), thread_id)
+                if not text:
+                    raise ValueError("Não há revisão marcada para este caderno.")
+                if state["turn"] or state["starting"]:
+                    raise ValueError("Espere a resposta atual terminar.")
+                state["review"] = {"thread_id": thread_id, "text": text, "stage": "ask"}
+                state["starting"] = True
+                await context.emitter.task_start()
+                task = asyncio.create_task(send_as_student(
+                    state, REVIEW_REQUEST, "Não foi possível começar a revisão. Tente novamente."))
+                context.session.current_task = task
             elif kind == "study.profile":
                 name, goal, barrier = display_name(data.get("name")), data.get("goal"), data.get("barrier")
                 if not name or not isinstance(goal, str) or not isinstance(barrier, str):
@@ -334,9 +358,15 @@ async def synchronize_study(data):
                 })
                 state["starting"] = True
                 await context.emitter.task_start()
-                task = asyncio.create_task(start_topic(state, topic.strip(), goal))
+                content = f"{GOALS[goal]}: {topic.strip()}" if goal else topic.strip()
+                task = asyncio.create_task(send_as_student(
+                    state, content, "Não foi possível iniciar a conversa. Tente novamente."))
                 context.session.current_task = task
             state["confirmed"] = True
+    except ValueError as exc:
+        logger.exception("Erro ao atualizar a experiência de estudo")
+        # Na revisão, o motivo ajuda a pessoa a agir; nos demais casos, a mensagem segue genérica.
+        error = str(exc) if kind == "study.review" else "Não foi possível concluir a alteração. Tente novamente."
     except Exception:
         logger.exception("Erro ao atualizar a experiência de estudo")
         error = "Não foi possível concluir a alteração. Tente novamente."
@@ -377,6 +407,7 @@ async def resume_study(thread):
     (thread.get("metadata") or {}).pop("chat_settings", None)
     state = study_session()
     state["trail_actions"].clear()
+    state["review"] = None
     state["history"] = restore_history(steps)
     mode = (thread.get("metadata") or {}).get("study_mode")
     state["mode"] = mode if mode in MODE_INSTRUCTIONS else "guia"
@@ -428,9 +459,9 @@ async def study_starters():
     ]
 
 
-async def start_topic(state, topic, goal):
+async def send_as_student(state, content, failure):
+    """Publica o pedido como mensagem do estudante e responde como num turno comum."""
     try:
-        content = f"{GOALS[goal]}: {topic}" if goal else topic
         message = cl.Message(content=content, type="user_message", author="Você")
         if not context.session.has_first_interaction:
             context.session.has_first_interaction = True
@@ -438,8 +469,9 @@ async def start_topic(state, topic, goal):
         await message.send()
         await on_message(message)
     except Exception:
-        logger.exception("Erro ao iniciar conversa por assunto")
-        await cl.Message(content="Não foi possível iniciar a conversa. Tente novamente.").send()
+        logger.exception("Erro ao enviar pedido do estudante")
+        state["review"] = None
+        await cl.Message(content=failure).send()
     finally:
         state["starting"] = False
         await context.emitter.task_end()
@@ -583,8 +615,13 @@ async def on_message(message: cl.Message):
         voice = companion_voice(mascot, companion)
     mood = state["mood"]
     state["mood"] = None
+    # A revisão vale para o pedido e para a resposta seguinte, sempre no caderno em que começou.
+    review = state["review"]
+    state["review"] = None
+    if review and review["thread_id"] != context.session.thread_id:
+        review = None
     # O convite "Explique para o companheiro" vale apenas para o turno seguinte.
-    mode = "aprendiz" if state["teach_next"] else state["mode"]
+    mode = "aprendiz" if state["teach_next"] and not review else state["mode"]
     state["teach_next"] = False
     turn = asyncio.current_task()
     state["turn"] = turn
@@ -604,6 +641,8 @@ async def on_message(message: cl.Message):
             "Somente no JSON depois do marcador, use o tipo ensino e inclua a nota com o que ficou "
             "claro e o que faltou; o texto visível não cita esses campos."
         )})
+    if review:
+        messages.append({"role": "system", "content": review_instruction(review["stage"], review["text"])})
     messages.append({"role": "user", "content": message.content})
     reply = cl.Message(content="", author=companion)
     # A autoria é registrada antes do streaming para o selo aparecer já na primeira palavra.
@@ -627,6 +666,15 @@ async def on_message(message: cl.Message):
             reply.elements = [escada_element(state, reply.id, step, companion)]
         await reply.send()
         history.append((message.id, message.content, reply.content, step, reply.id))
+        if review and review["stage"] == "ask":
+            # A pergunta saiu: a revisão conta como feita e a próxima resposta é comparada à descoberta.
+            state["review"] = {**review, "stage": "check"}
+            try:
+                async with state["profile_lock"]:
+                    await update_profile(state, lambda stored: {
+                        "fichario": review_done(stored.get("fichario", []), review["thread_id"])})
+            except Exception:
+                logger.exception("Erro ao reagendar a revisão")
         await load_recent(state)
         if step and (step["tipo"] == "conquista" or (
                 step["tipo"] == "ensino" and step.get("nota") and not step["nota"]["faltou"])):

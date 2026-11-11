@@ -1679,3 +1679,22 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
   .study-sticky-actions { flex-wrap: wrap; }
   .study-sticky-actions .study-form-status:not(:empty) { flex-basis: 100%; }
 }
+
+/* 39. Revisão do dia: mesma linha da retomada, com a ação explícita à direita. */
+.study-review__lead { margin: -.25rem 0 .5rem; font-size: .8125rem; opacity: .85; }
+.study-welcome .study-review__lead { max-width: none; }
+.study-review__item { width: 100%; border: 0; text-align: start; cursor: pointer; font: inherit; }
+.study-review__action { flex: none; color: hsl(var(--study-accent)); font: 600 .8125rem / 1.2 var(--study-font-ui); }
+.study-review > .study-link-button { margin-top: .5rem; }
+.study-review > .study-link-button[hidden] { display: none; }
+.study-discovery__due { color: hsl(var(--study-accent)); font-weight: 600; }
+.study-dialog .study-discovery__meta .study-discovery__review { padding: 0; color: hsl(var(--study-accent)); font-weight: 600; text-decoration: none; }
+.study-dialog .study-discovery__meta .study-discovery__review:hover { text-decoration: underline; }
+/* Celular: o ponto fica ao lado do título; degrau, ordem da revisão e ação descem para a segunda linha. */
+@media (max-width: 600px) {
+  .study-recent__item { display: grid; grid-template-columns: .375rem minmax(0, 1fr) auto; align-items: center; column-gap: .625rem; row-gap: .125rem; }
+  .study-recent__item::before { grid-row: 1; }
+  .study-recent__name { grid-column: 2 / -1; margin-right: 0; }
+  .study-recent__step { grid-column: 2; grid-row: 2; }
+  .study-review__action { grid-column: 3; grid-row: 2; }
+}

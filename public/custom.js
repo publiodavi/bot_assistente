@@ -508,7 +508,95 @@
   const recentList = element("ul", "", "study-recent__list");
   recentSection.append(recentTitle, recentList);
   recentSection.hidden = true;
-  welcome.append(cover, recentSection);
+  // Revisão do dia: mostra o caderno, não a anotação, para a pessoa tentar lembrar antes de reler.
+  const reviewSection = element("section", "", "study-recent study-review");
+  const reviewList = element("ul", "", "study-recent__list");
+  const reviewMore = button("", () => { buildNotes(); notesPanel.dialog.showModal(); }, "study-link-button");
+  reviewSection.append(element("h2", "Revisão do dia"),
+    element("p", "Tente lembrar antes de reler sua anotação.", "study-review__lead"), reviewList, reviewMore);
+  reviewSection.hidden = true;
+  welcome.append(cover, reviewSection, recentSection);
+
+  const reviewKey = "fatec-study.review.v1";
+  const reviewMeters = [];
+  const reviewLinks = [];
+  function endOfToday() {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    return end;
+  }
+  function reviewIsDue(item) {
+    return typeof item?.review_at === "string" && new Date(item.review_at) <= endOfToday();
+  }
+  function reviewsDone(item) {
+    return Number.isSafeInteger(item?.reviews) && item.reviews > 0 ? item.reviews : 0;
+  }
+  // Revisões vencidas até o fim do dia local, das mais antigas para as mais recentes.
+  function dueReviews() {
+    if (!account || !profile || !Array.isArray(profile.fichario)) return [];
+    return profile.fichario
+      .filter((item) => item && typeof item.thread_id === "string" && noteLinks.has(item.thread_id) && reviewIsDue(item))
+      .sort((a, b) => new Date(a.review_at) - new Date(b.review_at));
+  }
+  function notebookName(id) {
+    return notebookMetadata.find((item) => item.id === id)?.name || "Caderno sem título";
+  }
+  // No próprio caderno, a revisão começa na hora; fora dele, o caderno reabre e a revisão segue depois.
+  function startReview(threadId) {
+    notesPanel.dialog.close();
+    if (currentThread === threadId) {
+      request("study.review", { thread_id: threadId });
+      return;
+    }
+    try { sessionStorage.setItem(reviewKey, threadId); } catch {}
+    location.assign(`/thread/${encodeURIComponent(threadId)}`);
+  }
+  let reviewWaiting = false;
+  function resumePendingReview() {
+    let pendingId = null;
+    try { pendingId = sessionStorage.getItem(reviewKey); } catch {}
+    if (!pendingId || reviewWaiting) return;
+    const forget = () => { try { sessionStorage.removeItem(reviewKey); } catch {} };
+    if (!location.pathname.endsWith(`/thread/${pendingId}`)) { forget(); return; }
+    if (!account || currentThread !== pendingId) return;
+    forget();
+    reviewWaiting = true;
+    // Espera a conversa reaparecer na folha para o pedido não chegar antes da retomada.
+    const fire = (tries = 0) => {
+      if (!document.querySelector('[data-step-type="assistant_message"]') && tries < 40) {
+        setTimeout(() => fire(tries + 1), 250);
+        return;
+      }
+      setTimeout(() => {
+        reviewWaiting = false;
+        if (currentThread === pendingId) request("study.review", { thread_id: pendingId });
+      }, 400);
+    };
+    fire();
+  }
+  function renderReviews() {
+    const due = dueReviews();
+    reviewList.replaceChildren(...due.slice(0, 3).map((item) => {
+      const entry = element("li");
+      const name = notebookName(item.thread_id);
+      const order = `${reviewsDone(item) + 1}ª revisão`;
+      const open = button("", () => startReview(item.thread_id), "study-recent__item study-review__item");
+      open.append(element("span", name, "study-recent__name"), element("span", order, "study-recent__step"),
+        element("span", "Revisar", "study-review__action"));
+      open.setAttribute("aria-label", `Revisar ${name}, ${order}`);
+      entry.append(open);
+      return entry;
+    }));
+    reviewMore.hidden = due.length <= 3;
+    reviewMore.textContent = `Ver as ${due.length} revisões no Fichário`;
+    reviewSection.hidden = due.length === 0;
+    const count = due.length ? String(due.length) : "";
+    const label = due.length
+      ? `Fichário de descobertas, ${due.length} ${due.length === 1 ? "revisão" : "revisões"} para hoje`
+      : "Fichário de descobertas";
+    for (const meter of reviewMeters) if (meter.textContent !== count) meter.textContent = count;
+    for (const link of reviewLinks) if (link.getAttribute("aria-label") !== label) link.setAttribute("aria-label", label);
+  }
 
   function renderRecent(items) {
     recentList.replaceChildren(...items.map((item) => {
@@ -625,8 +713,13 @@
     const meter = element("span", "", "study-nav__meta");
     focusLink.append(meter);
     focusMeters.push(meter);
-    return section("Ferramentas", focusLink,
-      navButton("Fichário de descobertas", "notes", () => { buildNotes(); notesPanel.dialog.showModal(); }),
+    // O Fichário mostra quantas revisões vencem hoje.
+    const notesLink = navButton("Fichário de descobertas", "notes", () => { buildNotes(); notesPanel.dialog.showModal(); });
+    const reviewMeter = element("span", "", "study-nav__meta");
+    notesLink.append(reviewMeter);
+    reviewMeters.push(reviewMeter);
+    reviewLinks.push(notesLink);
+    return section("Ferramentas", focusLink, notesLink,
       navButton("Check-in de ânimo", "heart", () => { buildMood(); moodPanel.dialog.showModal(); }));
   }
   toolsPanel.body.append(toolLinks());
@@ -721,7 +814,9 @@
       addField(form, "O que eu descobri neste caderno", text);
       const review = element("input"); review.type = "checkbox";
       review.checked = !!entries.find(item => item.thread_id === currentThread)?.review_at;
-      const reviewLabel = element("label", "", "study-inline-check"); reviewLabel.append(review, document.createTextNode("Revisar em 3 dias"));
+      // Com revisão já agendada, reescrever a descoberta mantém a data marcada.
+      const reviewLabel = element("label", "", "study-inline-check");
+      reviewLabel.append(review, document.createTextNode(review.checked ? "Manter na Revisão do dia" : "Revisar em 3 dias"));
       const submit = element("button", "Guardar descoberta", "study-button study-button--primary"); submit.type = "submit";
       const savedStatus = element("p", "", "study-form-status"); savedStatus.setAttribute("role", "status");
       const actions = element("div", "", "study-form-actions");
@@ -735,7 +830,7 @@
         if (saved) { buildNotes(); notify("Descoberta guardada."); }
       });
       notesPanel.body.append(form);
-    } else notesPanel.body.append(element("p", "Comece uma conversa para registrar sua primeira descoberta.", "study-muted"));
+    } else notesPanel.body.append(element("p", "Abra um caderno para registrar o que descobriu nele.", "study-muted"));
     const list = element("div", "", "study-discoveries");
     for (const item of entries.slice(0, 100)) {
       const card = element("article", "", "study-discovery");
@@ -744,7 +839,13 @@
       const meta = element("div", "", "study-discovery__meta");
       const date = new Date(item.date);
       if (!Number.isNaN(date.getTime())) meta.append(element("time", date.toLocaleDateString("pt-BR")));
-      if (item.review_at) meta.append(element("span", `Revisar em ${new Date(item.review_at).toLocaleDateString("pt-BR")}`));
+      const done = reviewsDone(item);
+      if (reviewIsDue(item)) meta.append(element("span", "Revisão para hoje", "study-discovery__due"));
+      else if (item.review_at) meta.append(element("span", `Revisar em ${new Date(item.review_at).toLocaleDateString("pt-BR")}`));
+      if (done) meta.append(element("span", item.review_at ? `${done} ${done === 1 ? "revisão feita" : "revisões feitas"}` : "Revisões concluídas"));
+      if (reviewIsDue(item) && noteLinks.has(item.thread_id)) {
+        meta.append(button("Revisar agora", () => startReview(item.thread_id), "study-link-button study-discovery__review"));
+      }
       if (noteLinks.has(item.thread_id)) {
         const link = element("a", "Abrir caderno", "study-discovery__link"); link.href = `/thread/${encodeURIComponent(item.thread_id)}`; meta.append(link);
       } else meta.append(element("span", "Caderno de origem indisponível"));
@@ -1402,6 +1503,8 @@
     mood = data.mood || null;
     adaptNotebookPanel();
     adaptUserAvatar();
+    renderReviews();
+    resumePendingReview();
     if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;
     if (data.companions && typeof data.companions === "object") {
       const names = { ...defaultNames };
