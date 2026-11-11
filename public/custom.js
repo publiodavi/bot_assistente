@@ -664,44 +664,141 @@
   const levelLabels = { menos: "Menos dicas", guiadas: "Dicas guiadas", mais: "Mais apoio" };
   const support = choiceGroup("Nível de apoio", levelLabels, (id) => choosePreferences({ zdp: id }));
 
+  const userFaceVersions = new WeakMap();
+  function paintUserAvatar(node, selected, username) {
+    const value = selected || { kind: "initials", color: "terra" };
+    const signature = JSON.stringify([value, username]);
+    if (userFaceVersions.get(node) === signature) return;
+    userFaceVersions.set(node, signature);
+    node.replaceChildren();
+    node.dataset.avatarKind = value.kind;
+    node.dataset.avatarColor = value.color || "terra";
+    if (value.kind === "illustration") {
+      if (/^student-[1-8]$/.test(value.id)) {
+        const img = element("img"); img.alt = ""; img.src = new URL(`characters/${value.id}.svg`, assets); node.append(img);
+      } else if (mascots.has(value.id) && value.id !== "oculto") node.append(characterArt(value.id, "idle", "portrait"));
+    } else if (value.kind === "upload" && typeof value.data === "string" && value.data.startsWith("data:image/webp;base64,")) {
+      const img = element("img"); img.alt = ""; img.src = value.data; node.append(img);
+    } else {
+      node.textContent = String(username || "Estudante").trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join("").toUpperCase();
+    }
+  }
+  function adaptUserAvatar() {
+    if (!profile) return;
+    const nav = document.getElementById("user-nav-button");
+    if (nav) {
+      let face = nav.querySelector(".study-header-avatar");
+      if (!face) { face = element("span", "", "study-user-avatar study-header-avatar"); face.setAttribute("aria-hidden", "true"); nav.prepend(face); }
+      paintUserAvatar(face, profile.avatar, profile.name);
+    }
+    for (const step of document.querySelectorAll('[data-step-type="user_message"]')) {
+      let face = step.querySelector(".study-user-stamp");
+      const content = step.querySelector(".message-content");
+      if (content && !face) { face = element("span", "", "study-user-avatar study-user-stamp"); face.setAttribute("aria-hidden", "true"); content.before(face); }
+      if (face) paintUserAvatar(face, profile.avatar, profile.name);
+    }
+  }
+
   function buildProfile() {
     const form = element("form", "", "study-form study-profile");
+    let selectedAvatar = structuredClone(profile.avatar || { kind: "initials", color: "terra" });
+    const portrait = element("span", "", "study-user-avatar study-profile-portrait");
     const nameInput = element("input");
-    nameInput.id = "study-profile-name";
-    nameInput.value = profile.name;
-    nameInput.required = true;
-    nameInput.maxLength = 60;
-    nameInput.autocomplete = "nickname";
-    const nameLabel = element("label", "Nome de exibição");
-    nameLabel.htmlFor = nameInput.id;
-    const nameHint = element("p", "É assim que o companheiro chama você.", "study-muted");
+    nameInput.id = "study-profile-name"; nameInput.value = profile.name;
+    nameInput.required = true; nameInput.maxLength = 60; nameInput.autocomplete = "nickname";
+    const tagline = element("input"); tagline.maxLength = 120; tagline.value = profile.tagline || "";
+    tagline.placeholder = "Estudando para…";
+    const profileCard = element("div", "", "study-student-card");
+    const cardText = element("div");
+    const cardName = element("strong", profile.name);
+    const cardLine = element("p", profile.tagline || "Um passo de cada vez.", "study-muted");
+    cardText.append(element("span", "CARTÃO DE ESTUDANTE", "study-eyebrow"), cardName, cardLine);
+    profileCard.append(portrait, cardText);
+    const updatePortrait = () => {
+      paintUserAvatar(portrait, selectedAvatar, nameInput.value);
+      cardName.textContent = nameInput.value || "Estudante";
+      cardLine.textContent = tagline.value || "Um passo de cada vez.";
+    };
+    nameInput.addEventListener("input", updatePortrait); tagline.addEventListener("input", updatePortrait);
+    const avatarOptions = element("div", "", "study-avatar-picker");
+    const avatarModes = choiceGroup("Tipo de avatar", { illustration: "Ilustração", initials: "Iniciais", upload: "Minha imagem" }, id => {
+      selectedAvatar = id === "illustration" ? { kind: id, id: "student-1" }
+        : id === "initials" ? { kind: id, color: "terra" } : { kind: "initials", color: "terra" };
+      showAvatarOptions(id); updatePortrait();
+    });
+    let uploadPending = false;
+    function showAvatarOptions(kind) {
+      avatarModes.select(kind); avatarOptions.replaceChildren();
+      if (kind === "initials") {
+        const colors = choiceGroup("Cor das iniciais", { terra: "Terra", verde: "Verde", azul: "Azul", ameixa: "Ameixa" }, color => {
+          selectedAvatar = { kind: "initials", color }; colors.select(color); updatePortrait();
+        });
+        colors.select(selectedAvatar.color || "terra"); avatarOptions.append(colors.group);
+      } else if (kind === "illustration") {
+        const grid = element("div", "", "study-avatar-grid");
+        const illustrations = [...Array.from({ length: 8 }, (_, i) => `student-${i + 1}`), ...Object.keys(kinds).filter(id => id !== "oculto")];
+        for (const id of illustrations) {
+          const pick = button("", () => {
+            selectedAvatar = { kind: "illustration", id }; updatePortrait();
+            for (const item of grid.children) item.setAttribute("aria-pressed", String(item === pick));
+          });
+          pick.setAttribute("aria-label", id.startsWith("student-") ? `Estudante ${id.split("-")[1]}` : kinds[id]);
+          pick.setAttribute("aria-pressed", String(selectedAvatar.id === id));
+          const face = element("span", "", "study-user-avatar");
+          paintUserAvatar(face, { kind: "illustration", id }, nameInput.value); pick.append(face); grid.append(pick);
+        }
+        avatarOptions.append(grid);
+      } else {
+        const upload = element("input"); upload.type = "file"; upload.accept = "image/png,image/jpeg,image/webp";
+        const uploadStatus = element("p", "A imagem será recortada em quadrado e enviada apenas ao salvar o perfil.", "study-muted");
+        uploadStatus.setAttribute("role", "status");
+        upload.addEventListener("change", async () => {
+          const file = upload.files?.[0]; if (!file) return;
+          uploadPending = true; submit.disabled = true;
+          try {
+            if (file.size > 8 * 1024 * 1024 || !["image/png", "image/jpeg", "image/webp"].includes(file.type)) throw new Error("Escolha PNG, JPEG ou WebP de até 8 MB.");
+            const bitmap = await createImageBitmap(file);
+            const canvas = document.createElement("canvas"); canvas.width = canvas.height = 256;
+            const ctx = canvas.getContext("2d");
+            const side = Math.min(bitmap.width, bitmap.height);
+            ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, 256, 256); bitmap.close();
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", .82));
+            if (!blob || blob.type !== "image/webp" || blob.size > 80 * 1024) throw new Error("Não foi possível preparar uma imagem de até 80 KB.");
+            const reader = new FileReader();
+            const source = await new Promise((resolve, reject) => { reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+            selectedAvatar = { kind: "upload", data: source }; updatePortrait();
+            uploadStatus.textContent = "Imagem pronta. Salve o perfil para confirmar.";
+          } catch (error) { uploadStatus.textContent = error.message || "Não foi possível abrir a imagem."; }
+          finally { uploadPending = false; submit.disabled = false; }
+        });
+        addField(avatarOptions, "Escolher imagem", upload); avatarOptions.append(uploadStatus);
+      }
+    }
     const goal = radioChips("profile-goal", "Objetivo de estudo", goals, profile.goal);
     const barrier = radioChips("profile-barrier", "Dificuldade mais comum", barriers, profile.barrier);
-    const submit = element("button", "Salvar perfil", "study-button study-button--primary");
-    submit.type = "submit";
-    const formStatus = element("p", "", "study-form-status");
-    formStatus.setAttribute("role", "status");
-    const actions = element("div", "", "study-form-actions");
-    actions.append(submit, formStatus);
-    const supportHint = element("p", "Vale a partir da próxima resposta.", "study-muted");
-    form.append(
-      section("Sobre você", nameLabel, nameInput, nameHint),
-      section("Como você estuda", goal.fieldset, barrier.fieldset,
-        element("p", "Nível de apoio", "study-field-label"), support.group, supportHint),
-      actions,
-    );
+    const submit = element("button", "Salvar perfil", "study-button study-button--primary"); submit.type = "submit";
+    const formStatus = element("p", "", "study-form-status"); formStatus.setAttribute("role", "status");
+    const fields = element("div", "", "study-form");
+    addField(fields, "Nome de exibição", nameInput); addField(fields, "Sua frase (opcional)", tagline);
+    const stats = element("dl", "", "study-stats");
+    for (const [key, label] of Object.entries({ cadernos: "Cadernos", degraus: "Degraus alcançados", sozinho: "Subiu sozinho", ensino: "Ensinou o companheiro" })) {
+      const item = element("div"); item.append(element("dt", label), element("dd", String(Number.isSafeInteger(statistics[key]) ? statistics[key] : 0))); stats.append(item);
+    }
+    form.append(profileCard, section("Sobre você", fields), section("Seu avatar", avatarModes.group, avatarOptions),
+      section("Como você estuda", goal.fieldset, barrier.fieldset, element("p", "Nível de apoio", "study-field-label"), support.group,
+        element("p", "Vale a partir da próxima resposta.", "study-muted")),
+      section("Sua caminhada", stats, element("p", account ? "Degraus e autonomia são avaliações do companheiro sobre respostas existentes, não uma medida comprovada de aprendizagem." : "Entre na conta para acompanhar os registros dos seus cadernos.", "study-muted")),
+      button("Rever introdução", openIntro), submit, formStatus);
     support.select(desiredPreferences.zdp || visible.zdp);
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      submit.disabled = true;
-      formStatus.dataset.state = "";
-      formStatus.textContent = "Salvando…";
-      const saved = await request("study.profile", { name: nameInput.value, goal: goal.value(), barrier: barrier.value() });
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); if (uploadPending) return;
+      submit.disabled = true; formStatus.dataset.state = ""; formStatus.textContent = "Salvando…";
+      const saved = await request("study.profile", { name: nameInput.value, tagline: tagline.value, avatar: selectedAvatar, goal: goal.value(), barrier: barrier.value() });
       formStatus.dataset.state = saved ? "ok" : "error";
       formStatus.textContent = saved ? "Perfil salvo." : "Não foi possível salvar o perfil.";
       submit.disabled = false;
     });
-    profilePanel.body.replaceChildren(form);
+    profilePanel.body.replaceChildren(form); showAvatarOptions(selectedAvatar.kind); updatePortrait();
   }
 
   function topicForm() {
@@ -824,6 +921,7 @@
   function adaptChainlit() {
     adaptSidebar();
     adaptNotebookPanel();
+    adaptUserAvatar();
     const composer = document.getElementById("message-composer");
     if (composer && bar.nextElementSibling !== composer) composer.before(bar);
     const header = document.getElementById("header")?.lastElementChild;
@@ -1067,6 +1165,7 @@
     noteLinks = new Set(Array.isArray(data.note_links) ? data.note_links : []);
     mood = data.mood || null;
     adaptNotebookPanel();
+    adaptUserAvatar();
     if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;
     if (data.companions && typeof data.companions === "object") {
       const names = { ...defaultNames };
