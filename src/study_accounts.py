@@ -215,3 +215,65 @@ async def all_decks(layer, user):
         """), {"owner": UUID(user.id)})
         return [(str(row.thread_id), json.loads(row.data) if isinstance(row.data, str) else (row.data or {}))
                 for row in rows]
+
+
+MAX_MATERIALS = 20
+
+
+async def list_materials(layer, user_id):
+    from sqlalchemy import text
+
+    async with layer.engine.connect() as connection:
+        rows = await connection.execute(text("""
+            SELECT id, name, pages, chunks, status, error, created_at FROM study_materials
+            WHERE user_id = :owner ORDER BY created_at DESC
+        """), {"owner": UUID(user_id)})
+        return [{"id": str(row.id), "name": row.name, "pages": row.pages, "chunks": row.chunks,
+                 "status": row.status, "error": row.error, "created_at": row.created_at.isoformat()} for row in rows]
+
+
+async def create_material(layer, user_id, material_id, name):
+    """Reserva o material como "processando"; recusa acima do limite por conta."""
+    from sqlalchemy import text
+
+    async with layer.engine.begin() as connection:
+        # Bloqueia a linha da conta para que dois envios simultâneos não passem do limite.
+        await connection.execute(text("SELECT id FROM users WHERE id = :owner FOR UPDATE"), {"owner": UUID(user_id)})
+        count = (await connection.execute(text(
+            "SELECT count(*) FROM study_materials WHERE user_id = :owner"), {"owner": UUID(user_id)})).scalar_one()
+        if count >= MAX_MATERIALS:
+            raise ValueError(f"Você já tem {MAX_MATERIALS} materiais. Remova um para enviar outro.")
+        await connection.execute(text(
+            "INSERT INTO study_materials (id, user_id, name) VALUES (:id, :owner, :name)"
+        ), {"id": UUID(material_id), "owner": UUID(user_id), "name": name})
+
+
+async def finish_material(layer, user_id, material_id, status, pages=0, chunks=0, error=None):
+    from sqlalchemy import text
+
+    async with layer.engine.begin() as connection:
+        result = await connection.execute(text("""
+            UPDATE study_materials SET status = :status, pages = :pages, chunks = :chunks, error = :error
+            WHERE id = :id AND user_id = :owner
+        """), {"id": UUID(material_id), "owner": UUID(user_id), "status": status,
+               "pages": pages, "chunks": chunks, "error": error})
+        return result.rowcount == 1
+
+
+async def delete_material(layer, user_id, material_id):
+    from sqlalchemy import text
+
+    async with layer.engine.begin() as connection:
+        result = await connection.execute(text(
+            "DELETE FROM study_materials WHERE id = :id AND user_id = :owner"
+        ), {"id": UUID(material_id), "owner": UUID(user_id)})
+        return result.rowcount == 1
+
+
+async def ready_material_count(layer, user_id):
+    from sqlalchemy import text
+
+    async with layer.engine.connect() as connection:
+        return (await connection.execute(text(
+            "SELECT count(*) FROM study_materials WHERE user_id = :owner AND status = 'ready'"
+        ), {"owner": UUID(user_id)})).scalar_one()

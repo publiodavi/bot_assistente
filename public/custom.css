@@ -1732,3 +1732,11 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
   @keyframes study-flash-in { from { opacity: 0; } }
 }
 @media (hover: none) { .study-flash__keys { display: none; } }
+
+/* 41. Materiais e fontes consultadas na Escada. */
+.study-materials .study-deck .study-link-button { flex: none; margin: 0; }
+.study-materials__error { color: hsl(var(--study-error)) !important; }
+.study-materials__content { display: grid; gap: 1rem; }
+.study-materials__content > .study-section + .study-section { padding-top: 1.25rem; border-top: 1px solid hsl(var(--study-border) / .3); }
+.study-materials__content[hidden] { display: none; }
+.escada__fontes { margin: 0; color: hsl(var(--study-muted-text)); font: .75rem / 1.4 var(--study-font-ui); }

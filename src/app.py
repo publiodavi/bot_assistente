@@ -17,8 +17,10 @@ from src.prompts.companions import (
 )
 from src.prompts.pedagogical_prompt import (
     ESCADA_FORMAT, MODE_INSTRUCTIONS, REVIEW_REQUEST, SYSTEM_PROMPT, ZDP_INSTRUCTIONS, cards_messages,
+    materials_message,
     review_instruction,
 )
+from src.rag.indexer import MaterialIndex, chunk_pages, extract_pages
 from src.services.cards import RATINGS, deck_summary, parse_deck, rate_card, transcript
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
@@ -26,7 +28,8 @@ from src.services.llm_client import ConfigurationError, complete_json, stream_re
 from src.services.study_tools import MOODS, clean_text, note_update, review_done, review_note, validate_avatar
 from src.study_accounts import (
     advance_trail, all_decks, configure_accounts, deck_data, profile_data, recent_notebooks, record_reveal,
-    trail_progress, owned_thread_ids, study_statistics,
+    trail_progress, owned_thread_ids, study_statistics, create_material, delete_material, finish_material,
+    list_materials, ready_material_count,
 )
 
 
@@ -54,7 +57,8 @@ CHANNEL = "fatec-study"
 DATA_LAYER = configure_accounts()
 logger = logging.getLogger(__name__)
 PROFILE_DEFAULTS = {"goal": "", "barrier": "", "intro": "new", "hint": "",
-                    "tagline": "", "avatar": {"kind": "initials", "color": "terra"}, "fichario": []}
+                    "tagline": "", "avatar": {"kind": "initials", "color": "terra"}, "fichario": [],
+                    "use_materials": True}
 
 
 def study_session():
@@ -89,6 +93,8 @@ def study_session():
             "review": None,
             # Flash cards: resumos dos baralhos e geração em andamento.
             "decks": [], "cards_job": None, "cards_task": None,
+            # Quantidade de materiais prontos; zero evita a busca a cada mensagem.
+            "materials_ready": 0,
         }
         context.session.study_runtime = state
     return state
@@ -142,7 +148,7 @@ async def publish_state(state, request_id=None, error=None):
         "thread_id": context.session.thread_id if context.session.has_first_interaction else None,
         "notebooks": state["notebooks"], "statistics": state["statistics"], "mood": state["mood"],
         "note_links": sorted(state["note_links"]),
-        "decks": state["decks"], "cards_job": state["cards_job"],
+        "decks": state["decks"], "cards_job": state["cards_job"], "materials_ready": state["materials_ready"],
     })
 
 
@@ -192,6 +198,10 @@ async def load_decks(state):
             state["decks"] = [deck_summary(thread_id, deck) for thread_id, deck in await all_decks(DATA_LAYER, user)]
         except Exception:
             logger.exception("Erro ao carregar os flash cards")
+        try:
+            state["materials_ready"] = await ready_material_count(DATA_LAYER, user.id)
+        except Exception:
+            logger.exception("Erro ao contar os materiais")
 
 
 def valid_thread_id(value):
@@ -342,7 +352,7 @@ async def synchronize_study(data):
             or len(request_id) > 80 or kind not in (
                 "study.preferences", "study.profile", "study.intro", "study.start", "study.mode",
                 "study.nickname", "study.note", "study.checkin", "study.review",
-                "study.cards", "study.deck", "study.card",
+                "study.cards", "study.deck", "study.card", "study.materials",
             )):
         return
 
@@ -421,6 +431,11 @@ async def synchronize_study(data):
                 task = asyncio.create_task(send_as_student(
                     state, REVIEW_REQUEST, "Não foi possível começar a revisão. Tente novamente."))
                 context.session.current_task = task
+            elif kind == "study.materials":
+                enabled = data.get("enabled")
+                if type(enabled) is not bool:
+                    raise ValueError("Opção inválida")
+                await update_profile(state, lambda stored: {"use_materials": enabled})
             elif kind == "study.profile":
                 name, goal, barrier = display_name(data.get("name")), data.get("goal"), data.get("barrier")
                 if not name or not isinstance(goal, str) or not isinstance(barrier, str):
@@ -749,6 +764,9 @@ async def on_message(message: cl.Message):
         )})
     if review:
         messages.append({"role": "system", "content": review_instruction(review["stage"], review["text"])})
+    sources = await material_sources(state, profile, message.content)
+    if sources:
+        messages.append({"role": "system", "content": materials_message(sources)})
     messages.append({"role": "user", "content": message.content})
     reply = cl.Message(content="", author=companion)
     # A autoria é registrada antes do streaming para o selo aparecer já na primeira palavra.
@@ -760,6 +778,10 @@ async def on_message(message: cl.Message):
         async for token in stream_reply(messages):
             await reply.stream_token(escada.feed(token))
         rest, step = escada.finish()
+        if step and sources:
+            # Só o servidor registra as fontes; o modelo não consegue inventá-las na Escada.
+            step["fontes"] = list({(hit["name"][:80], hit["page"]): {"nome": hit["name"][:80], "pagina": hit["page"]}
+                                   for hit in sources if type(hit["page"]) is int}.values())[:3]
         await reply.stream_token(rest)
         reply.content = tidy_visible(escada.visible.strip())
         if not reply.content:
@@ -795,3 +817,121 @@ async def on_message(message: cl.Message):
                                   "a chave e a disponibilidade da API e tente novamente.")).send()
     finally:
         await finish_turn(state, turn)
+
+
+# --- Materiais do estudante: envio por HTTP, indexação em segundo plano e busca nas respostas ---
+
+MATERIAL_INDEX = MaterialIndex()
+MAX_MATERIAL_BYTES = 25 * 1024 * 1024
+_material_tasks = set()
+
+
+async def material_sources(state, profile, question):
+    """Até três trechos dos materiais da conta, se houver material pronto e a opção estiver ligada."""
+    user = context.session.user
+    if not (DATA_LAYER and user and profile.get("use_materials", True)):
+        return []
+    try:
+        # Consulta barata a cada mensagem: um material que acabou de ficar pronto já vale.
+        state["materials_ready"] = await ready_material_count(DATA_LAYER, user.id)
+    except Exception:
+        logger.exception("Erro ao contar os materiais")
+    if not state["materials_ready"]:
+        return []
+    topic = next((item["name"] for item in state["notebooks"] if item["id"] == context.session.thread_id), "")
+    try:
+        return await asyncio.to_thread(MATERIAL_INDEX.search, user.id, f"{question}\n{topic}")
+    except Exception:
+        logger.exception("Erro ao buscar nos materiais")
+        return []
+
+
+def material_name(filename):
+    name = display_name(str(filename or "").rsplit("/", 1)[-1].rsplit("\\", 1)[-1])
+    name = name[:-4] if name.lower().endswith(".pdf") else name
+    return name[:80] or "Material sem nome"
+
+
+async def index_material(user_id, material_id, name, content):
+    """Extrai e indexa fora do laço de eventos; o PDF existe só na memória durante o processo."""
+    import io
+
+    try:
+        pages = await asyncio.to_thread(extract_pages, io.BytesIO(content))
+        chunks = chunk_pages(pages)
+        if not chunks:
+            raise ValueError("Não foi possível ler o texto do PDF.")
+        await asyncio.to_thread(MATERIAL_INDEX.add, user_id, material_id, name, chunks)
+        if not await finish_material(DATA_LAYER, user_id, material_id, "ready", len(pages), len(chunks)):
+            # Removido enquanto processava: os trechos também saem do índice.
+            await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
+    except ValueError as exc:
+        await finish_material(DATA_LAYER, user_id, material_id, "error", error=str(exc)[:200])
+    except Exception:
+        logger.exception("Erro ao indexar material")
+        await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
+        await finish_material(DATA_LAYER, user_id, material_id, "error", error="Não foi possível processar o PDF.")
+
+
+def install_material_routes():
+    from fastapi import APIRouter, Depends, HTTPException, UploadFile
+    from fastapi.responses import JSONResponse
+    from chainlit.auth import get_current_user
+    from chainlit.server import app as server
+
+    router = APIRouter()
+
+    def account(user):
+        if not DATA_LAYER or not user or not getattr(user, "id", None):
+            raise HTTPException(status_code=401, detail="Entre na sua conta para enviar materiais.")
+        return user.id
+
+    @router.get("/study/materials")
+    async def materials(user=Depends(get_current_user)):
+        return JSONResponse({"materials": await list_materials(DATA_LAYER, account(user))})
+
+    @router.post("/study/materials")
+    async def upload_material(file: UploadFile, user=Depends(get_current_user)):
+        user_id = account(user)
+        content = await file.read(MAX_MATERIAL_BYTES + 1)
+        if len(content) > MAX_MATERIAL_BYTES:
+            raise HTTPException(status_code=413, detail="O arquivo passa de 25 MB.")
+        if not content.startswith(b"%PDF-"):
+            raise HTTPException(status_code=415, detail="Envie um arquivo PDF.")
+        material_id = str(uuid4())
+        try:
+            await create_material(DATA_LAYER, user_id, material_id, material_name(file.filename))
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        task = asyncio.create_task(index_material(user_id, material_id, material_name(file.filename), content))
+        _material_tasks.add(task)
+        task.add_done_callback(_material_tasks.discard)
+        return JSONResponse({"id": material_id}, status_code=202)
+
+    @router.delete("/study/materials/{material_id}")
+    async def remove_material(material_id: str, user=Depends(get_current_user)):
+        user_id = account(user)
+        if not valid_thread_id(material_id) or not await delete_material(DATA_LAYER, user_id, material_id):
+            raise HTTPException(status_code=404, detail="Material não encontrado.")
+        await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
+        return JSONResponse({"ok": True})
+
+    # A rota coringa do frontend do Chainlit responderia antes; as rotas novas vão para o início.
+    before = len(server.router.routes)
+    server.include_router(router)
+    added = server.router.routes[before:]
+    del server.router.routes[before:]
+    server.router.routes[0:0] = added
+
+
+if DATA_LAYER:
+    install_material_routes()
+
+    def _warm_up_index():
+        try:
+            MATERIAL_INDEX.warm_up()
+        except Exception:
+            logger.exception("Não foi possível preparar o índice de materiais")
+
+    import threading
+    threading.Thread(target=_warm_up_index, name="study-materials-warmup", daemon=True).start()

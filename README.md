@@ -58,7 +58,7 @@ O Python mantém o estado da conversa e valida as preferências. O navegador apl
 | Persistência | PostgreSQL, SQLAlchemy e asyncpg |
 | Configuração local | python-dotenv |
 
-A recuperação de conteúdo em PDFs com RAG e as trilhas geradas a partir de diagnóstico ainda estão planejadas. O módulo de indexação contém a estrutura inicial, sem integração ao chat. A trilha fixa anterior permanece no código para compatibilidade com conversas existentes.
+Cada estudante pode enviar os próprios PDFs da faculdade no painel Materiais. O texto é dividido em trechos e indexado num ChromaDB local (`.local/chroma`, com o modelo de embeddings padrão, baixado uma única vez para `~/.cache/chroma`); o PDF original não é guardado. Nas respostas, até três trechos da própria conta são consultados, citados como fonte e usados para dar pistas, sem entregar resoluções. As trilhas geradas a partir de diagnóstico ainda estão planejadas. A trilha fixa anterior permanece no código para compatibilidade com conversas existentes.
 
 ## Execução local
 

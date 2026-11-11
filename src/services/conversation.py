@@ -25,7 +25,22 @@ def stored_step(metadata):
     if step:
         revealed = saved.get("reveladas")
         step["reveladas"] = revealed if type(revealed) is int and 0 <= revealed <= layers(step) else 0
+        sources = clean_sources(saved.get("fontes"))
+        if sources:
+            step["fontes"] = sources
     return step
+
+
+def clean_sources(value):
+    """Fontes consultadas nos materiais; só o servidor as grava, nunca o modelo."""
+    if not isinstance(value, list):
+        return []
+    sources = []
+    for item in value[:3]:
+        if (isinstance(item, dict) and isinstance(item.get("nome"), str) and item["nome"].strip()
+                and type(item.get("pagina")) is int and 1 <= item["pagina"] <= 9999):
+            sources.append({"nome": item["nome"].strip()[:80], "pagina": item["pagina"]})
+    return sources
 
 
 def restore_history(steps):

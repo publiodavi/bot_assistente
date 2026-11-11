@@ -737,6 +737,7 @@
   const moodPanel = panel("Como você chega hoje?", "Opcional. Orienta só a próxima resposta e não fica salvo no perfil.");
   const cardsPanel = panel("Flash cards", "Tente responder de memória antes de virar o cartão.");
   cardsPanel.dialog.classList.add("study-dialog--cards");
+  const materialsPanel = panel("Materiais", "Apostilas, livros e listas da faculdade em PDF. Só o seu companheiro consulta.");
   // A linha do Foco mostra o tempo restante enquanto a sessão corre.
   const focusMeters = [];
   function toolLinks() {
@@ -755,7 +756,7 @@
     cardsLink.append(cardMeter);
     cardMeters.push(cardMeter);
     cardLinks.push(cardsLink);
-    return section("Ferramentas", focusLink, notesLink, cardsLink,
+    return section("Ferramentas", focusLink, notesLink, cardsLink, navButton("Materiais", "book", () => openMaterials()),
       navButton("Check-in de ânimo", "heart", () => { buildMood(); moodPanel.dialog.showModal(); }));
   }
   toolsPanel.body.append(toolLinks());
@@ -1119,6 +1120,122 @@
       rateCurrent(["again", "hard", "good"][Number(event.key) - 1]);
     }
   });
+
+  // Materiais: PDFs privados da conta, enviados por HTTP e indexados em segundo plano.
+  let materials = [];
+  let materialsTimer = null;
+  let removeArmed = null;
+  const materialsInput = element("input");
+  materialsInput.type = "file";
+  materialsInput.accept = "application/pdf,.pdf";
+  materialsInput.hidden = true;
+  const materialsStatus = element("p", "", "study-form-status");
+  materialsStatus.setAttribute("role", "status");
+  const materialsList = element("div", "", "study-decks study-materials");
+  const materialsAdd = button("Adicionar PDF", () => materialsInput.click(), "study-button study-button--primary");
+  const materialsSwitch = button("", async () => {
+    const enabled = materialsSwitch.getAttribute("aria-checked") !== "true";
+    materialsSwitch.setAttribute("aria-checked", String(enabled));
+    if (!(await request("study.materials", { enabled }))) materialsSwitch.setAttribute("aria-checked", String(!enabled));
+  }, "study-switch");
+  materialsSwitch.setAttribute("role", "switch");
+  materialsSwitch.setAttribute("aria-label", "Usar meus materiais nas respostas");
+  materialsSwitch.setAttribute("aria-checked", "true");
+  const materialsActions = element("div", "", "study-form-actions");
+  materialsActions.append(materialsAdd, materialsInput);
+  const materialsAccount = element("p", "Entre na sua conta para enviar materiais.", "study-muted");
+  const materialsContent = element("div", "", "study-materials__content");
+  materialsContent.append(
+    section("Seus PDFs", materialsActions,
+      element("p", "Até 20 PDFs com texto selecionável, de até 25 MB e 400 páginas. O arquivo não é guardado: só o texto, em trechos, para consulta.", "study-muted"),
+      materialsList),
+    section("Nas respostas", settingRow("Usar meus materiais", "O companheiro cita a fonte e transforma exercícios em pistas.", materialsSwitch)));
+  materialsPanel.body.append(materialsAccount, materialsContent);
+  const materialsFooter = element("div", "", "study-dialog__footer");
+  materialsFooter.append(materialsStatus);
+  materialsPanel.dialog.append(materialsFooter);
+  materialsPanel.dialog.addEventListener("close", () => clearTimeout(materialsTimer));
+  function openMaterials() {
+    setStatus(materialsStatus, "", "");
+    renderMaterials();
+    if (!materialsPanel.dialog.open) materialsPanel.dialog.showModal();
+    if (account) loadMaterials();
+  }
+  async function loadMaterials() {
+    clearTimeout(materialsTimer);
+    try {
+      const response = await fetch("/study/materials", { credentials: "same-origin" });
+      if (!response.ok) throw new Error(String(response.status));
+      const data = await response.json();
+      materials = Array.isArray(data.materials) ? data.materials.filter((item) => item && typeof item.id === "string"
+        && typeof item.name === "string" && ["processing", "ready", "error"].includes(item.status)) : [];
+    } catch {
+      setStatus(materialsStatus, "error", "Não foi possível carregar seus materiais.");
+    }
+    renderMaterials();
+    // Enquanto algum PDF é processado, a lista se atualiza sozinha.
+    if (materialsPanel.dialog.open && materials.some((item) => item.status === "processing")) {
+      materialsTimer = setTimeout(loadMaterials, 2000);
+    }
+  }
+  materialsInput.addEventListener("change", async () => {
+    const file = materialsInput.files?.[0];
+    materialsInput.value = "";
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) { setStatus(materialsStatus, "error", "O arquivo passa de 25 MB."); return; }
+    materialsAdd.disabled = true;
+    setStatus(materialsStatus, "", `Enviando ${file.name}…`);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/study/materials", { method: "POST", body: form, credentials: "same-origin" });
+      if (!response.ok) {
+        const detail = (await response.json().catch(() => ({}))).detail;
+        setStatus(materialsStatus, "error", typeof detail === "string" ? detail : "Não foi possível enviar o arquivo.");
+      } else setStatus(materialsStatus, "ok", "Recebido. Preparando o texto para consulta…");
+    } catch {
+      setStatus(materialsStatus, "error", "Não foi possível enviar o arquivo. Confira a conexão.");
+    }
+    materialsAdd.disabled = false;
+    loadMaterials();
+  });
+  async function removeMaterial(item) {
+    // Remover é definitivo: o segundo clique confirma.
+    if (removeArmed !== item.id) {
+      removeArmed = item.id;
+      renderMaterials();
+      materialsList.querySelector(`[data-material="${item.id}"]`)?.focus();
+      setTimeout(() => { if (removeArmed === item.id) { removeArmed = null; renderMaterials(); } }, 6000);
+      return;
+    }
+    removeArmed = null;
+    const response = await fetch(`/study/materials/${encodeURIComponent(item.id)}`, { method: "DELETE", credentials: "same-origin" }).catch(() => null);
+    setStatus(materialsStatus, response?.ok ? "ok" : "error", response?.ok ? `${item.name} removido.` : "Não foi possível remover o material.");
+    loadMaterials();
+  }
+  function renderMaterials() {
+    materialsAccount.hidden = !!account;
+    materialsContent.hidden = !account;
+    const focused = document.activeElement?.dataset?.material;
+    materialsList.replaceChildren(...materials.map((item) => {
+      const row = element("div", "", "study-deck");
+      const text = element("div", "", "study-deck__text");
+      const detail = item.status === "processing" ? "Processando…"
+        : item.status === "error" ? (item.error || "Não foi possível ler o PDF.")
+          : `${item.pages} ${item.pages === 1 ? "página" : "páginas"} · Pronto`;
+      const meta = element("span", detail);
+      if (item.status === "error") meta.className = "study-materials__error";
+      text.append(element("strong", item.name), meta);
+      const remove = button(removeArmed === item.id ? "Confirmar remoção" : "Remover", () => removeMaterial(item), "study-link-button");
+      remove.dataset.material = item.id;
+      remove.disabled = item.status === "processing";
+      remove.setAttribute("aria-label", `${removeArmed === item.id ? "Confirmar remoção de" : "Remover"} ${item.name}`);
+      row.append(text, remove);
+      return row;
+    }));
+    if (!materials.length) materialsList.append(element("p", "Nenhum material ainda.", "study-muted"));
+    if (focused) materialsList.querySelector(`[data-material="${focused}"]`)?.focus();
+  }
 
   let fallbackHistory = null;
   let historyReturnFocus = null;
@@ -1711,7 +1828,7 @@
       pending.clear();
       if (account !== data.account) {
         confirmed = null;
-        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel, cardsPanel]) dialog.close();
+        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel, cardsPanel, materialsPanel]) dialog.close();
         lastAutoIntroAccount = null;
       }
       closeFallbackHistory();
@@ -1759,6 +1876,8 @@
     if (cardsPanel.dialog.open && cardView.mode === "home" && deckSignature !== lastDeckSignature) renderCards();
     lastDeckSignature = deckSignature;
     renderReviews();
+    const useMaterials = String(profile?.use_materials !== false);
+    if (materialsSwitch.getAttribute("aria-checked") !== useMaterials) materialsSwitch.setAttribute("aria-checked", useMaterials);
     resumePendingReview();
     if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;
     if (data.companions && typeof data.companions === "object") {

@@ -109,6 +109,12 @@ export default function EscadaDicas() {
           )}
         </div>
       )}
+
+      {Array.isArray(props.fontes) && props.fontes.length > 0 && (
+        <p className="escada__fontes">
+          Consultado: {props.fontes.map((fonte) => `${fonte.nome}, p. ${fonte.pagina}`).join("; ")}
+        </p>
+      )}
     </section>
   );
 }
