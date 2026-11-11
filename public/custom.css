@@ -1421,3 +1421,84 @@ html[data-study-theme="vintage"] .study-sheet { box-shadow:0 4px 8px #4d321b0b,0
 html[data-study-theme="aracnideo"] .study-dialog { border-radius:.5rem 1.5rem .5rem 1.5rem; }
 html[data-study-theme="cyberpunk"] .study-dialog { border-radius:.65rem; }
 @media(max-width:600px) { .study-welcome { padding:1rem; background-position:70% center; min-height:0; } .study-cover { padding:1.25rem 1.25rem 1.25rem 2rem; } }
+
+/* 12. Café e Jardim; ajustes independentes do ambiente */
+html[data-study-theme="cafe"] { --study-bg:27 25% 90%; --study-surface:27 35% 97%; --study-text:27 25% 16%; --study-muted-text:27 20% 32%; --study-border:27 20% 43%; --study-accent:27 45% 28%; --study-on-accent:0 0% 100%; --study-muted:27 25% 86%; --study-bubble-student:27 25% 84%; --study-font-title:"Study Lora", Georgia,serif; --study-font-body:"Study Source Sans",system-ui,sans-serif; --study-texture:repeating-linear-gradient(0deg,transparent 0 30px,hsl(27 30% 35% / .07) 30px 31px); --study-art:none; --study-shadow:0 12px 32px #30251b1a; --study-scene-color:#674631; }
+html[data-study-theme="cafe"][data-study-appearance="dark"] { --study-bg:27 20% 10%; --study-surface:27 20% 16%; --study-text:27 35% 93%; --study-muted-text:27 25% 78%; --study-border:27 20% 56%; --study-accent:27 50% 75%; --study-on-accent:27 30% 12%; --study-muted:27 20% 23%; --study-bubble-student:27 20% 25%; }
+html[data-study-theme="cafe"] .study-sheet { border-radius:1rem; border-top:4px solid hsl(var(--study-accent)); }
+html[data-study-theme="jardim"] { --study-bg:135 25% 90%; --study-surface:135 35% 97%; --study-text:135 25% 16%; --study-muted-text:135 20% 32%; --study-border:135 20% 43%; --study-accent:135 45% 28%; --study-on-accent:0 0% 100%; --study-muted:135 25% 86%; --study-bubble-student:135 25% 84%; --study-font-title:"Study Lora", Georgia,serif; --study-font-body:"Study Source Sans",system-ui,sans-serif; --study-texture:repeating-linear-gradient(0deg,transparent 0 30px,hsl(135 30% 35% / .07) 30px 31px); --study-art:none; --study-shadow:0 12px 32px #30251b1a; --study-scene-color:#304e38; }
+html[data-study-theme="jardim"][data-study-appearance="dark"] { --study-bg:135 20% 10%; --study-surface:135 20% 16%; --study-text:135 35% 93%; --study-muted-text:135 25% 78%; --study-border:135 20% 56%; --study-accent:135 50% 75%; --study-on-accent:135 30% 12%; --study-muted:135 20% 23%; --study-bubble-student:135 20% 25%; }
+html[data-study-theme="jardim"] .study-sheet { border-radius:1rem; border-top:4px solid hsl(var(--study-accent)); }
+html[data-study-theme="vintage"][data-study-appearance="light"][data-study-accent="1"] { --study-accent:21 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="vintage"][data-study-appearance="dark"][data-study-accent="1"] { --study-accent:21 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="vintage"][data-study-appearance="light"][data-study-accent="2"] { --study-accent:140 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="vintage"][data-study-appearance="dark"][data-study-accent="2"] { --study-accent:140 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="vintage"][data-study-appearance="light"][data-study-accent="3"] { --study-accent:205 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="vintage"][data-study-appearance="dark"][data-study-accent="3"] { --study-accent:205 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="vintage"][data-study-appearance="light"][data-study-accent="4"] { --study-accent:340 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="vintage"][data-study-appearance="dark"][data-study-accent="4"] { --study-accent:340 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-appearance="light"] [data-preview="vintage"] { --study-scene:url("themes/vintage-scene-light.svg"); }
+html[data-study-appearance="dark"] [data-preview="vintage"] { --study-scene:url("themes/vintage-scene-dark.svg"); }
+html[data-study-theme="castelo"][data-study-appearance="light"][data-study-accent="1"] { --study-accent:334 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="castelo"][data-study-appearance="dark"][data-study-accent="1"] { --study-accent:334 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="castelo"][data-study-appearance="light"][data-study-accent="2"] { --study-accent:35 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="castelo"][data-study-appearance="dark"][data-study-accent="2"] { --study-accent:35 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="castelo"][data-study-appearance="light"][data-study-accent="3"] { --study-accent:155 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="castelo"][data-study-appearance="dark"][data-study-accent="3"] { --study-accent:155 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="castelo"][data-study-appearance="light"][data-study-accent="4"] { --study-accent:260 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="castelo"][data-study-appearance="dark"][data-study-accent="4"] { --study-accent:260 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-appearance="light"] [data-preview="castelo"] { --study-scene:url("themes/castelo-scene-light.svg"); }
+html[data-study-appearance="dark"] [data-preview="castelo"] { --study-scene:url("themes/castelo-scene-dark.svg"); }
+html[data-study-theme="aracnideo"][data-study-appearance="light"][data-study-accent="1"] { --study-accent:350 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="aracnideo"][data-study-appearance="dark"][data-study-accent="1"] { --study-accent:350 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="aracnideo"][data-study-appearance="light"][data-study-accent="2"] { --study-accent:215 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="aracnideo"][data-study-appearance="dark"][data-study-accent="2"] { --study-accent:215 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="aracnideo"][data-study-appearance="light"][data-study-accent="3"] { --study-accent:165 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="aracnideo"][data-study-appearance="dark"][data-study-accent="3"] { --study-accent:165 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="aracnideo"][data-study-appearance="light"][data-study-accent="4"] { --study-accent:280 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="aracnideo"][data-study-appearance="dark"][data-study-accent="4"] { --study-accent:280 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-appearance="light"] [data-preview="aracnideo"] { --study-scene:url("themes/aracnideo-scene-light.svg"); }
+html[data-study-appearance="dark"] [data-preview="aracnideo"] { --study-scene:url("themes/aracnideo-scene-dark.svg"); }
+html[data-study-theme="cyberpunk"][data-study-appearance="light"][data-study-accent="1"] { --study-accent:177 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="dark"][data-study-accent="1"] { --study-accent:177 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="light"][data-study-accent="2"] { --study-accent:205 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="dark"][data-study-accent="2"] { --study-accent:205 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="light"][data-study-accent="3"] { --study-accent:285 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="dark"][data-study-accent="3"] { --study-accent:285 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="light"][data-study-accent="4"] { --study-accent:35 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cyberpunk"][data-study-appearance="dark"][data-study-accent="4"] { --study-accent:35 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-appearance="light"] [data-preview="cyberpunk"] { --study-scene:url("themes/cyberpunk-scene-light.svg"); }
+html[data-study-appearance="dark"] [data-preview="cyberpunk"] { --study-scene:url("themes/cyberpunk-scene-dark.svg"); }
+html[data-study-theme="cafe"][data-study-appearance="light"][data-study-accent="1"] { --study-accent:27 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cafe"][data-study-appearance="dark"][data-study-accent="1"] { --study-accent:27 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="cafe"][data-study-appearance="light"][data-study-accent="2"] { --study-accent:10 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cafe"][data-study-appearance="dark"][data-study-accent="2"] { --study-accent:10 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="cafe"][data-study-appearance="light"][data-study-accent="3"] { --study-accent:140 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cafe"][data-study-appearance="dark"][data-study-accent="3"] { --study-accent:140 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="cafe"][data-study-appearance="light"][data-study-accent="4"] { --study-accent:215 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="cafe"][data-study-appearance="dark"][data-study-accent="4"] { --study-accent:215 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-appearance="light"] [data-preview="cafe"] { --study-scene:url("themes/cafe-scene-light.svg"); }
+html[data-study-appearance="dark"] [data-preview="cafe"] { --study-scene:url("themes/cafe-scene-dark.svg"); }
+html[data-study-theme="jardim"][data-study-appearance="light"][data-study-accent="1"] { --study-accent:135 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="jardim"][data-study-appearance="dark"][data-study-accent="1"] { --study-accent:135 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="jardim"][data-study-appearance="light"][data-study-accent="2"] { --study-accent:20 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="jardim"][data-study-appearance="dark"][data-study-accent="2"] { --study-accent:20 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="jardim"][data-study-appearance="light"][data-study-accent="3"] { --study-accent:200 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="jardim"][data-study-appearance="dark"][data-study-accent="3"] { --study-accent:200 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-theme="jardim"][data-study-appearance="light"][data-study-accent="4"] { --study-accent:310 55% 28%; --study-on-accent:0 0% 100%; }
+html[data-study-theme="jardim"][data-study-appearance="dark"][data-study-accent="4"] { --study-accent:310 55% 76%; --study-on-accent:220 30% 10%; }
+html[data-study-appearance="light"] [data-preview="jardim"] { --study-scene:url("themes/jardim-scene-light.svg"); }
+html[data-study-appearance="dark"] [data-preview="jardim"] { --study-scene:url("themes/jardim-scene-dark.svg"); }
+
+html[data-study-intensity="suave"] { --study-scenery-opacity:.3; --study-scenery-saturation:.6; }
+html[data-study-intensity="normal"] { --study-scenery-opacity:.65; --study-scenery-saturation:1; }
+html[data-study-intensity="vivo"] { --study-scenery-opacity:1; --study-scenery-saturation:1.2; }
+#study-ambient, .study-effects { opacity:var(--study-scenery-opacity,.65); filter:saturate(var(--study-scenery-saturation,1)); }
+html[data-study-theme="cafe"] .study-effects__actor { width:3rem; height:5rem; background:radial-gradient(ellipse,#f3e3c666,transparent 65%); left:85%; top:65%; animation:study-steam 7s ease-in-out infinite; }
+html[data-study-theme="jardim"] .study-effects__actor { width:2rem; height:1rem; background:#7da46a; border-radius:0 90%; left:90%; top:20%; animation:study-leaf 14s ease-in-out infinite; }
+@keyframes study-steam { 0%,100% { transform:translateY(0); opacity:0; } 50% { transform:translateY(-3rem); opacity:.7; } }
+@keyframes study-leaf { 0%,100% { transform:translateY(0) rotate(-20deg); } 50% { transform:translate(-3rem,8rem) rotate(80deg); } }
+html[data-study-text-size="normal"] { --study-reading-size:1rem; }
+html[data-study-text-size="grande"] { --study-reading-size:1.125rem; }
+html[data-study-text-size="extra"] { --study-reading-size:1.25rem; }
+.study-sheet .message-content, #chat-input { font-size:var(--study-reading-size,1rem); line-height:1.65; }

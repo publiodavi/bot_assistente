@@ -28,6 +28,8 @@ THEMES = {
     "Castelo da Magia": "castelo",
     "Herói Aracnídeo": "aracnideo",
     "Cyberpunk": "cyberpunk",
+    "Café Lo-fi": "cafe",
+    "Jardim / Estufa": "jardim",
 }
 MASCOTS = {
     "Coruja": "coruja", "Raposa": "raposa", "Robô": "robo", "Harry": "harry",
@@ -38,6 +40,7 @@ ZDP_LEVELS = {"Menos dicas": "menos", "Dicas guiadas": "guiadas", "Mais apoio": 
 DEFAULTS = {
     "theme": "vintage", "appearance": "light", "animations": "enabled",
     "mascot": "coruja", "mascot_name": "Lumi", "zdp": "guiadas",
+    "accent": "1", "scene_intensity": "normal", "text_size": "normal",
 }
 TRAIL_START = "Quero praticar na trilha."
 CHANNEL = "fatec-study"
@@ -83,6 +86,8 @@ def normalize_preferences(current, changes):
     options_by_key = {
         "theme": THEMES.values(), "mascot": MASCOTS.values(), "zdp": ZDP_LEVELS.values(),
         "appearance": ("light", "dark"), "animations": ("enabled", "paused"),
+        "accent": ("1", "2", "3", "4"), "scene_intensity": ("suave", "normal", "vivo"),
+        "text_size": ("normal", "grande", "extra"),
     }
     for key, options in options_by_key.items():
         value = changes.get(key)
@@ -256,7 +261,7 @@ async def synchronize_study(data):
             if kind == "study.preferences":
                 changes = data.get("preferences")
                 if not isinstance(changes, dict) or any(
-                    key not in ("theme", "mascot", "appearance", "animations", "zdp") for key in changes
+                    key not in ("theme", "mascot", "appearance", "animations", "zdp", "accent", "scene_intensity", "text_size") for key in changes
                 ):
                     raise ValueError("Preferência inválida")
                 normalized = normalize_preferences(DEFAULTS, changes)

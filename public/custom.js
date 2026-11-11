@@ -7,7 +7,7 @@
   const assets = new URL(".", document.currentScript.src);
   const root = document.documentElement;
   root.lang = "pt-BR";
-  const themes = new Set(["vintage", "castelo", "aracnideo", "cyberpunk"]);
+  const themes = new Set(["vintage", "castelo", "aracnideo", "cyberpunk", "cafe", "jardim"]);
   const characterIds = new Set(["harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles"]);
   const mascots = new Set(["coruja", "raposa", "robo", "oculto", ...characterIds]);
   const levels = new Set(["menos", "guiadas", "mais"]);
@@ -62,6 +62,7 @@
   let visible = {
     theme: "vintage", appearance: "light", animations: "enabled",
     mascot: "coruja", mascot_name: "Lumi", zdp: "guiadas",
+    accent: "1", scene_intensity: "normal", text_size: "normal",
   };
   // Escolhas ainda não confirmadas pelo servidor (prévia imediata).
   let desiredPreferences = {};
@@ -245,6 +246,8 @@
     castelo: ["Castelo da Magia", "Biblioteca noturna e dourado"],
     aracnideo: ["Herói Aracnídeo", "Cidade em carmesim e azul-marinho"],
     cyberpunk: ["Cyberpunk", "Estação noturna e luz ciano"],
+    cafe: ["Café Lo-fi", "Chuva na janela e uma pausa quente"],
+    jardim: ["Jardim / Estufa", "Verde, terracota e luz filtrada"],
   };
   const goals = { entender: "Entender um conceito", destravar: "Destravar uma dúvida", praticar: "Praticar um assunto" };
   const barriers = { comecar: "Começar", proximo: "Escolher o próximo passo", conferir: "Conferir meu raciocínio" };
@@ -280,7 +283,13 @@
   motionStatus.setAttribute("role", "status");
   const visualOptions = element("div", "", "study-option-row");
   visualOptions.append(section("Aparência", appearance.group), section("Animações", motion.group, motionStatus));
-  gallery.body.append(section("Ambiente", themeGrid), visualOptions);
+  const accentChoice = choiceGroup("Cor de destaque", { "1": "Original", "2": "Variação 2", "3": "Variação 3", "4": "Variação 4" }, (id) => choosePreferences({ accent: id }));
+  const intensityChoice = choiceGroup("Intensidade do cenário", { suave: "Suave", normal: "Normal", vivo: "Vivo" }, (id) => choosePreferences({ scene_intensity: id }));
+  const sizeChoice = choiceGroup("Tamanho do texto", { normal: "Normal", grande: "Grande", extra: "Extra" }, (id) => choosePreferences({ text_size: id }));
+  gallery.body.append(section("Ambiente", themeGrid), visualOptions,
+    section("Ajustes", element("p", "Cor de destaque", "study-field-label"), accentChoice.group,
+      element("p", "Intensidade do cenário", "study-field-label"), intensityChoice.group,
+      element("p", "Tamanho do texto", "study-field-label"), sizeChoice.group));
 
   const companionPanel = panel("Companheiros");
   const companionGrid = element("div", "", "study-companion-grid");
@@ -775,6 +784,12 @@
     const selected = { ...visible, ...desiredPreferences };
     root.dataset.studyTheme = selected.theme;
     root.dataset.studyAppearance = selected.appearance;
+    root.dataset.studyAccent = selected.accent || "1";
+    root.dataset.studyIntensity = selected.scene_intensity || "normal";
+    root.dataset.studyTextSize = selected.text_size || "normal";
+    accentChoice.select(selected.accent || "1");
+    intensityChoice.select(selected.scene_intensity || "normal");
+    sizeChoice.select(selected.text_size || "normal");
     if (effects.dataset.theme !== selected.theme) {
       effects.dataset.theme = selected.theme;
       const actors = effects.children;
