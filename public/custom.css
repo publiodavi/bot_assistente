@@ -1389,3 +1389,8 @@ html[data-study-theme="castelo"] .study-cover { box-shadow: 0 1.25rem 2.5rem #00
   .study-nickname { gap: .75rem; }
   .study-nickname .study-avatar--large { --avatar-size: 2.75rem; --avatar-scale: .44; }
 }
+
+/* 10. Redimensionamento acessível do painel desktop */
+.study-sidebar-handle { position:absolute; inset:0 -5px 0 auto; width:10px; z-index:30; padding:0; border:0; background:transparent; cursor:col-resize; touch-action:none; }
+.study-sidebar-handle:hover, .study-sidebar-handle:focus-visible { background:hsl(var(--study-accent) / .3); outline:2px solid hsl(var(--study-focus)); outline-offset:-2px; }
+@media(max-width:767px) { .study-sidebar-handle { display:none; } }

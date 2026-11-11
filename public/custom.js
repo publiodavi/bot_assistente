@@ -601,7 +601,68 @@
     if (!introPanel.dialog.open) introPanel.dialog.showModal();
   }
 
+  // A alça nativa alterna o painel; esta mantém o gesto de clique e acrescenta arraste.
+  const sidebarSizeKey = "fatec-study.sidebar-width.v1";
+  let sidebarHandle;
+  function adaptSidebar() {
+    const rail = document.querySelector('[data-sidebar="rail"]');
+    const wrapper = rail?.closest('.group\\/sidebar-wrapper');
+    if (!rail || !wrapper) return;
+    if (!sidebarHandle || sidebarHandle.parentElement !== rail.parentElement) {
+      sidebarHandle?.remove();
+      sidebarHandle = element("button", "", "study-sidebar-handle");
+      sidebarHandle.type = "button";
+      sidebarHandle.setAttribute("role", "separator");
+      sidebarHandle.setAttribute("aria-label", "Largura dos cadernos; use as setas para ajustar");
+      sidebarHandle.setAttribute("aria-orientation", "vertical");
+      let drag = null;
+      const resize = (pixels) => {
+        const rem = parseFloat(getComputedStyle(root).fontSize);
+        const width = Math.max(14 * rem, Math.min(pixels, 28 * rem, innerWidth * .4));
+        wrapper.style.setProperty("--sidebar-width", `${width}px`);
+        sidebarHandle.setAttribute("aria-valuemin", String(Math.round(14 * rem)));
+        sidebarHandle.setAttribute("aria-valuemax", String(Math.round(Math.min(28 * rem, innerWidth * .4))));
+        sidebarHandle.setAttribute("aria-valuenow", String(Math.round(width)));
+        try { localStorage.setItem(sidebarSizeKey, String(width / rem)); } catch {}
+      };
+      const current = () => parseFloat(getComputedStyle(wrapper).getPropertyValue("--sidebar-width")) *
+        (getComputedStyle(wrapper).getPropertyValue("--sidebar-width").includes("rem") ? parseFloat(getComputedStyle(root).fontSize) : 1);
+      let saved;
+      try { saved = Number(localStorage.getItem(sidebarSizeKey)); } catch {}
+      if (saved && Number.isFinite(saved)) resize(saved * parseFloat(getComputedStyle(root).fontSize));
+      sidebarHandle.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        drag = { x: event.clientX, width: current(), moved: false };
+        sidebarHandle.setPointerCapture(event.pointerId);
+      });
+      sidebarHandle.addEventListener("pointermove", (event) => {
+        if (!drag) return;
+        const delta = event.clientX - drag.x;
+        if (Math.abs(delta) > 4) drag.moved = true;
+        if (drag.moved) resize(drag.width + delta);
+      });
+      sidebarHandle.addEventListener("pointerup", () => {
+        if (drag && !drag.moved) rail.click();
+        drag = null;
+      });
+      sidebarHandle.addEventListener("pointercancel", () => { drag = null; });
+      sidebarHandle.addEventListener("dblclick", () => resize(16 * parseFloat(getComputedStyle(root).fontSize)));
+      sidebarHandle.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "Enter", " "].includes(event.key)) return;
+        event.preventDefault();
+        const rem = parseFloat(getComputedStyle(root).fontSize);
+        if (event.key === "Home") resize(16 * rem);
+        else if (event.key.startsWith("Arrow")) resize(current() + (event.key === "ArrowRight" ? rem : -rem));
+        else rail.click();
+      });
+      window.addEventListener("resize", () => { if (innerWidth >= 768) resize(current()); });
+      rail.after(sidebarHandle);
+    }
+    sidebarHandle.hidden = innerWidth < 768 || !!rail.closest('[data-state="collapsed"]');
+  }
+
   function adaptChainlit() {
+    adaptSidebar();
     const composer = document.getElementById("message-composer");
     if (composer && bar.nextElementSibling !== composer) composer.before(bar);
     const header = document.getElementById("header")?.lastElementChild;
