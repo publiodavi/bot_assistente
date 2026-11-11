@@ -1,6 +1,5 @@
 """Interface de conversa do assistente educacional."""
 import asyncio
-import json
 import logging
 import time
 import unicodedata
@@ -16,7 +15,8 @@ from src.prompts.companions import (
     DEFAULT_NAMES, clean_nickname, companion_names, companion_voice, stored_nicknames,
 )
 from src.prompts.pedagogical_prompt import ESCADA_FORMAT, MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS
-from src.services.escada import EscadaStream, as_context, layers, parse_step, tidy_visible
+from src.services.escada import EscadaStream, layers, tidy_visible
+from src.services.conversation import author_of, conversation_context, restore_history, stored_step
 from src.services.llm_client import ConfigurationError, stream_reply
 from src.services.study_tools import MOODS, clean_text, note_update, validate_avatar
 from src.study_accounts import (
@@ -106,15 +106,6 @@ def resolve_companion(state):
     return state["prefs"]["mascot_name"]
 
 
-def author_of(step):
-    """Personagem que assinou uma resposta gravada.
-
-    Antes dos apelidos individuais, todos os companheiros se chamavam "Lumi"; por
-    isso o nome sozinho não identifica o personagem. Sem o registro, o selo mostra
-    apenas o nome gravado como autor.
-    """
-    saved = (step.get("metadata") or {}).get("study_companion")
-    return saved if saved in DEFAULT_NAMES else None
 
 
 async def publish_state(state, request_id=None, error=None):
@@ -258,7 +249,7 @@ async def synchronize_study(data):
     error = None
     if kind == "study.checkin":
         mood = data.get("mood")
-        if mood is not None and mood not in MOODS:
+        if mood is not None and (not isinstance(mood, str) or mood not in MOODS):
             error = "Escolha um dos estados disponíveis."
         else:
             state["mood"] = mood
@@ -357,46 +348,6 @@ async def synchronize_study(data):
 # de mensagens das demais preferências.
 
 
-def stored_step(metadata):
-    """Revalida os dados da escada gravados no passo; formatos antigos viram None."""
-    saved = metadata.get("study_step")
-    if not isinstance(saved, dict):
-        return None
-    step = parse_step(json.dumps(saved))
-    if step:
-        revealed = saved.get("reveladas")
-        step["reveladas"] = revealed if type(revealed) is int and 0 <= revealed <= layers(step) else 0
-    return step
-
-
-def restore_history(steps):
-    """Turnos concluídos (id da pergunta, pergunta, resposta visível, escada, id da resposta)."""
-    users = {step["id"]: step.get("output") for step in steps if step.get("type") == "user_message"}
-    history = []
-    for step in steps:
-        metadata = step.get("metadata") or {}
-        if step.get("type") != "assistant_message" or step.get("streaming") or step.get("isError"):
-            continue
-        question_id = metadata.get("study_reply_to")
-        prompt = users.get(question_id)
-        if prompt and step.get("output"):
-            history.append((question_id, prompt, step["output"], stored_step(metadata), step["id"]))
-    return history
-
-
-def conversation_context(history, message):
-    """Mantém apenas os turnos cujas perguntas ainda estão na conversa.
-
-    Ao editar uma mensagem, o Chainlit remove as mensagens seguintes da tela e do
-    banco e chama on_message novamente com o mesmo ID; os turnos removidos e o
-    turno antigo da pergunta editada não podem continuar no contexto do modelo.
-    A resposta volta ao modelo no mesmo formato pedido, com as camadas reveladas.
-    """
-    present = {item.id for item in chat_context.get()}
-    history[:] = [turn for turn in history if turn[0] in present and turn[0] != message.id]
-    return [entry for _, prompt, answer, step, _ in history for entry in (
-        {"role": "user", "content": prompt}, {"role": "assistant", "content": as_context(answer, step)},
-    )]
 
 
 def escada_element(state, reply_id, step, companion):
@@ -645,7 +596,7 @@ async def on_message(message: cl.Message):
         f"Nome do estudante: {profile.get('name') or 'Estudante'}. "
         f"Objetivo preferido: {goal}. Dificuldade mais comum: {barrier}.\n{ESCADA_FORMAT}"
     )},
-                *conversation_context(history, message)]
+                *conversation_context(history, message, [item.id for item in chat_context.get()])]
     if mode == "aprendiz":
         # Lembrete junto ao turno: instruções só no início perdem força em conversas longas.
         messages.append({"role": "system", "content": (

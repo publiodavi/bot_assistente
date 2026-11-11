@@ -19,8 +19,8 @@
     unlocked: "Próximo degrau liberado.",
   };
 
-  // Chainlit 2.12 reads localStorage while its bundle loads. If the browser
-  // denies that API, keep its storage in memory for this page only.
+  // O Chainlit 2.12 consulta o armazenamento no carregamento. Quando bloqueado,
+  // manter uma alternativa em memória apenas durante esta página.
   try {
     window.localStorage.getItem("userEnv");
   } catch {
@@ -38,14 +38,19 @@
         },
       });
     } catch {
-      // Some browsers may also make the property non-configurable.
+      // Alguns navegadores também impedem redefinir a propriedade.
     }
   }
 
   function validPreferences(value) {
     return value && themes.has(value.theme) && mascots.has(value.mascot)
       && levels.has(value.zdp) && typeof value.mascot_name === "string"
-      && Array.from(value.mascot_name).length <= 24;
+      && Array.from(value.mascot_name).length <= 24
+      && ["light", "dark"].includes(value.appearance)
+      && ["enabled", "paused"].includes(value.animations)
+      && (value.accent === undefined || ["1", "2", "3", "4"].includes(value.accent))
+      && (value.scene_intensity === undefined || ["suave", "normal", "vivo"].includes(value.scene_intensity))
+      && (value.text_size === undefined || ["normal", "grande", "extra"].includes(value.text_size));
   }
 
   function readPreferences() {
@@ -148,6 +153,7 @@
 
   let currentExpression = "idle";
   let focusNotice = "";
+  let focusNoticeTimer;
   function render(expression) {
     currentExpression = expression;
     const mascot = selectedMascot();
@@ -568,6 +574,8 @@
       focusTimer.remaining = Math.min(focusTimer.phase === "study" ? 120 : 30,
         Math.max(1, Number(focusTimer.phase === "study" ? focusDuration.value : breakDuration.value) || 1)) * 60000;
       left = focusTimer.remaining; saveFocus(); render(currentExpression); notify(focusNotice);
+      clearTimeout(focusNoticeTimer);
+      focusNoticeTimer = setTimeout(() => { focusNotice = ""; render(currentExpression); }, 8000);
     }
     const seconds = Math.ceil(left / 1000);
     const label = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
@@ -594,6 +602,7 @@
       text.value = entries.find(item => item.thread_id === currentThread)?.text || "";
       addField(form, "O que eu descobri neste caderno", text);
       const review = element("input"); review.type = "checkbox";
+      review.checked = !!entries.find(item => item.thread_id === currentThread)?.review_at;
       const reviewLabel = element("label", "", "study-inline-check"); reviewLabel.append(review, document.createTextNode("Revisar em 3 dias"));
       const submit = element("button", "Guardar descoberta", "study-button study-button--primary"); submit.type = "submit";
       const savedStatus = element("p", "", "study-form-status"); savedStatus.setAttribute("role", "status");
@@ -603,7 +612,7 @@
         const saved = await request("study.note", { thread_id: currentThread, text: text.value, review: review.checked });
         submit.disabled = false;
         savedStatus.textContent = saved ? "Descoberta guardada." : "Não foi possível guardar. Confira o limite de 100 notas e tente novamente.";
-        if (saved) buildNotes();
+        if (saved) { buildNotes(); notify("Descoberta guardada."); }
       });
       notesPanel.body.append(form);
     } else notesPanel.body.append(element("p", "Comece uma conversa para registrar sua primeira descoberta."));
@@ -873,6 +882,7 @@
       sidebarHandle.setAttribute("aria-label", "Largura dos cadernos; use as setas para ajustar");
       sidebarHandle.setAttribute("aria-orientation", "vertical");
       let drag = null;
+      let sidebarClickTimer;
       const resize = (pixels) => {
         const rem = parseFloat(getComputedStyle(root).fontSize);
         const width = Math.max(14 * rem, Math.min(pixels, 28 * rem, innerWidth * .4));
@@ -889,6 +899,7 @@
       if (saved && Number.isFinite(saved)) resize(saved * parseFloat(getComputedStyle(root).fontSize));
       sidebarHandle.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) return;
+        clearTimeout(sidebarClickTimer);
         drag = { x: event.clientX, width: current(), moved: false };
         sidebarHandle.setPointerCapture(event.pointerId);
       });
@@ -899,11 +910,11 @@
         if (drag.moved) resize(drag.width + delta);
       });
       sidebarHandle.addEventListener("pointerup", () => {
-        if (drag && !drag.moved) rail.click();
+        if (drag && !drag.moved) sidebarClickTimer = setTimeout(() => rail.click(), 260);
         drag = null;
       });
       sidebarHandle.addEventListener("pointercancel", () => { drag = null; });
-      sidebarHandle.addEventListener("dblclick", () => resize(16 * parseFloat(getComputedStyle(root).fontSize)));
+      sidebarHandle.addEventListener("dblclick", () => { clearTimeout(sidebarClickTimer); resize(16 * parseFloat(getComputedStyle(root).fontSize)); });
       sidebarHandle.addEventListener("keydown", (event) => {
         if (!["ArrowLeft", "ArrowRight", "Home", "Enter", " "].includes(event.key)) return;
         event.preventDefault();
@@ -913,6 +924,7 @@
         else rail.click();
       });
       window.addEventListener("resize", () => { if (innerWidth >= 768) resize(current()); });
+      if (innerWidth >= 768) resize(current());
       rail.after(sidebarHandle);
     }
     sidebarHandle.hidden = innerWidth < 768 || !!rail.closest('[data-state="collapsed"]');
@@ -937,9 +949,12 @@
       ["chat-settings-header-button", "Configurações do chat"],
       ["chat-submit", "Enviar mensagem"],
       ["stop-button", "Parar resposta"],
+      ["sidebar-trigger-button", "Conversas"],
+      ["search-chats-button", "Buscar cadernos"],
+      ["new-chat-button", "Novo caderno"],
     ]) {
       const button = document.getElementById(id);
-      if (button && !button.hasAttribute("aria-label")) button.setAttribute("aria-label", label);
+      if (button && button.getAttribute("aria-label") !== label) button.setAttribute("aria-label", label);
     }
     const applyLabel = document.querySelector("#confirm-sidebar > span")?.firstChild;
     if (applyLabel?.nodeType === Node.TEXT_NODE && applyLabel.data !== "Aplicar") {
@@ -1129,7 +1144,7 @@
       pending.clear();
       if (account !== data.account) {
         confirmed = null;
-        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel]) dialog.close();
+        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel]) dialog.close();
         lastAutoIntroAccount = null;
       }
       account = data.account;
@@ -1149,7 +1164,7 @@
       try {
         localStorage.setItem(account ? `${storageKey}.${account}` : storageKey, JSON.stringify(confirmed));
       } catch {
-        // The current chat still works without browser storage.
+        // A conversa continua funcionando sem armazenamento do navegador.
       }
     } else if (newSession) {
       clearTimeout(retryTimer);

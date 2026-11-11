@@ -18,7 +18,7 @@ A personalização visual e o companheiro de estudos complementam essa orientaç
 - **Ensine o companheiro:** quando o companheiro avalia que o estudante entendeu, convida-o a explicar o conceito; o companheiro faz o papel de aprendiz e devolve uma nota com o que ficou claro e o que faltou. O seletor "Quem conduz?" permite escolher esse modo para toda a conversa.
 - Entrada por assunto livre na capa de um caderno, com marcador opcional (entender, destravar ou praticar) e atalhos para continuar as conversas recentes.
 - Três níveis de apoio: menos dicas, dicas guiadas e mais apoio.
-- Quatro ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo e Cyberpunk, todos com aparência clara e escura.
+- Seis ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo Cyberpunk, Café Lo-fi e Jardim / Estufa, todos com aparência clara e escura.
 - Troca imediata de tema, aparência e companheiro, preservando a conversa, o rascunho e a posição de leitura.
 - Barra de estudo compacta acima do campo de mensagem, com companheiro, degrau atual (a escada completa abre sob demanda) e o seletor Guia/Aprende.
 - Companheiros com nome próprio (Lumi para a Coruja; os demais pelo nome do personagem) e apelido individual guardado no perfil, além da opção de ocultá-los. Cada resposta mantém o nome de quem a assinou.
@@ -186,3 +186,28 @@ Na mesma data, a Mesa de estudos, a Escada de dicas e o modo de ensino foram exe
 - ZAWACKI-RICHTER, O. et al. Systematic review of research on artificial intelligence applications in higher education — where are the educators? **International Journal of Educational Technology in Higher Education**, v. 16, n. 39, 2019.
 
 A fundamentação de personalização, presença social e carga cognitiva está detalhada em [Escopo e arquitetura](ESCOPO_E_ARQUITETURA.md).
+
+
+## Ferramentas e personalização ampliada
+
+O painel de cadernos pode ser redimensionado no desktop por arraste ou pelas setas quando a alça está focada. Home e duplo clique restauram a largura padrão. Em telas pequenas, permanece o painel móvel nativo.
+
+Os seis ambientes têm cenas SVG próprias para claro e escuro, quatro cores de destaque, três intensidades de cenário e três tamanhos de leitura. Companheiros usam um sprite SVG com expressões e enquadramentos próprios para retratos, galeria e cenário.
+
+- **Foco:** estudo e pausa ajustáveis, com início, pausa e reinício. O relógio usa horário de término e fica apenas neste navegador.
+- **Fichário:** uma descoberta escrita pelo estudante por conversa, com revisão opcional em três dias. Requer conta; aceita até 100 descobertas de 1.000 caracteres. Uma conversa removida deixa sua anotação disponível, sem link de retorno.
+- **Check-in:** escolha opcional de ânimo, considerada apenas na próxima resposta. Não é salva no perfil. A pausa de respiração é opcional e não usa linguagem clínica.
+- **Perfil:** cartão de estudante com frase, ilustrações locais, iniciais ou uma imagem preparada como WebP de 256 × 256 pixels e até 80 KiB. A imagem só é enviada ao salvar. A validação estrutural no servidor não equivale a um decodificador completo de imagens.
+
+As estatísticas são calculadas a partir das respostas concluídas existentes da própria conta: quantidade de cadernos, soma do maior degrau por conversa, conquistas solo distintas por degrau/conversa e turnos de ensino. Degraus e conquistas são avaliações do companheiro.
+
+### Testes automatizados
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest
+.\.venv\Scripts\python.exe -m compileall -q src
+node --check public/custom.js
+git diff --check
+```
+
+Os testes puros cobrem streaming da Escada com delimitador partido entre tokens, dados inválidos, migração e limite dos apelidos, autoria histórica, remoção do contexto após editar mensagens e validação de descobertas e avatares. Não exigem banco ou credenciais.
