@@ -123,23 +123,13 @@
   const companionName = () => companionNames[selectedMascot()] || visible.mascot_name;
 
   // Miniatura contida: imagem do companheiro ou rosto do personagem desenhado.
-  function paintAvatar(node, mascot, expression = "idle") {
-    if (node.dataset.mascot === mascot && node.dataset.expression === expression) return;
+  function paintAvatar(node, mascot, expression = "idle", pose = "portrait") {
+    if (node.dataset.mascot === mascot && node.dataset.expression === expression && node.dataset.pose === pose) return;
     node.dataset.mascot = mascot || "";
     node.dataset.expression = expression;
-    if (characterIds.has(mascot)) {
-      if (node.firstElementChild?.dataset.character !== mascot) node.replaceChildren(characterArt(mascot));
-    } else if (mascots.has(mascot) && mascot !== "oculto") {
-      const img = node.querySelector("img") || document.createElement("img");
-      img.alt = "";
-      img.width = 48;
-      img.height = 48;
-      const src = new URL(`mascots/${mascot}-${expression}.webp`, assets).href;
-      if (img.src !== src) img.src = src;
-      if (img.parentElement !== node) node.replaceChildren(img);
-    } else {
-      node.replaceChildren();
-    }
+    node.dataset.pose = pose;
+    node.replaceChildren();
+    if (mascots.has(mascot) && mascot !== "oculto") node.append(characterArt(mascot, expression, pose));
   }
 
   // Barra de estudo: companheiro, degrau atual e quem conduz, logo acima do campo.
@@ -182,15 +172,19 @@
     return node;
   }
 
-  function characterArt(id) {
-    const art = element("span", "", "study-character");
-    art.dataset.character = id;
-    art.setAttribute("aria-hidden", "true");
-    for (const part of ["broom", "body", "arm", "foot", "face", "hair", "hat",
-      "eye-left", "eye-right", "glasses", "scar", "smile", "beard", "web"]) {
-      art.append(element("span", "", `study-character__${part}`));
-    }
-    return art;
+  function characterArt(id, expression = "idle", pose = "full") {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 200 200");
+    svg.setAttribute("aria-hidden", "true");
+    svg.classList.add("study-character-art");
+    svg.dataset.character = id;
+    const use = document.createElementNS(ns, "use");
+    use.setAttribute("href", new URL(`characters/sprite.svg#${id}-${pose}-${expression}`, assets).href);
+    use.setAttribute("width", "200");
+    use.setAttribute("height", "200");
+    svg.append(use);
+    return svg;
   }
 
   function spiderArt() {
@@ -299,8 +293,7 @@
     card.dataset.mascot = id;
     const art = element("span", "", "study-companion-card__art");
     art.setAttribute("aria-hidden", "true");
-    if (characterIds.has(id)) art.append(characterArt(id));
-    else if (id !== "oculto") paintAvatar(art, id);
+    if (id !== "oculto") paintAvatar(art, id, "thinking", "full");
     else art.append(element("span", "Sem companheiro na tela", "study-muted"));
     card.append(art, element("strong", "", "study-companion-card__name"),
       element("span", "", "study-companion-card__kind"));
@@ -796,8 +789,8 @@
       actors[0].replaceChildren();
       actors[1].replaceChildren();
       if (selected.theme === "castelo") {
-        actors[0].append(characterArt("harry"));
-        actors[1].append(characterArt("hermione"));
+        actors[0].append(characterArt("harry", "idle", "broom"));
+        actors[1].append(characterArt("hermione", "idle", "broom"));
       } else if (selected.theme === "aracnideo") {
         actors[0].append(characterArt("spiderman"));
         actors[1].append(spiderArt());
@@ -820,7 +813,7 @@
   effects.addEventListener("animationiteration", (event) => {
     if (root.dataset.studyTheme === "castelo" && event.target.matches(".study-effects__actor")) {
       const wizards = ["harry", "hermione", "dumbledore", "voldemort"];
-      event.target.replaceChildren(characterArt(wizards[++wizardVisit % wizards.length]));
+      event.target.replaceChildren(characterArt(wizards[++wizardVisit % wizards.length], "idle", "broom"));
     }
   });
 

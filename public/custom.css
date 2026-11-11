@@ -381,13 +381,7 @@ html[data-study-entry="topic"] .study-bar { display: none; }
   background: hsl(var(--study-muted));
 }
 .study-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.study-avatar > .study-character {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: top left;
-  transform: scale(var(--avatar-scale)) translate(-1.05rem, .1rem);
-}
+
 .study-avatar:empty::before {
   content: attr(data-initial);
   font: var(--study-title-weight) calc(var(--avatar-size) * .45) / 1 var(--study-font-title);
@@ -727,10 +721,7 @@ html[data-study-theme="cyberpunk"] .study-effects__actor:last-child {
   0%, 100% { transform: translateY(0); opacity: .08; }
   50% { transform: translateY(3rem); opacity: .4; }
 }
-@keyframes study-preview {
-  0%, 40%, 100% { opacity: 0; }
-  50%, 90% { opacity: 1; }
-}
+
 html[data-study-motion="paused"] .study-effects { display: none; }
 
 @media (max-width: 35rem) {
@@ -748,249 +739,16 @@ html[data-study-motion="paused"] .study-effects { display: none; }
   .study-effects { display: none; }
 }
 
-/* Personagens chibi desenhados na interface, com cores chapadas e contorno grosso. */
-.study-character {
-  --skin: #f5bea4;
-  --hair: #4d391c;
-  --robe: #171721;
-  --outline: #08090e;
-  position: relative;
-  display: inline-block;
-  width: 8rem;
-  height: 8rem;
-  flex: none;
-  isolation: isolate;
-}
-.study-character > span { position: absolute; display: block; box-sizing: border-box; }
-.study-character__face {
-  z-index: 3;
-  width: 5.1rem;
-  height: 5.1rem;
-  top: .8rem;
-  left: 1.55rem;
-  background: var(--skin);
-  border: .22rem solid var(--outline);
-  border-radius: 46% 46% 44% 44%;
-}
-.study-character__hair {
-  z-index: 4;
-  top: .25rem;
-  left: 1.25rem;
-  width: 5.6rem;
-  height: 3rem;
-  border: .24rem solid var(--outline);
-  background: var(--hair);
-  border-radius: 55% 46% 22% 30%;
-  clip-path: polygon(0 0,100% 0,100% 84%,86% 100%,77% 74%,70% 100%,55% 73%,47% 97%,29% 67%,15% 100%,0 94%);
-}
-.study-character__body {
-  z-index: 2;
-  top: 5.1rem;
-  left: 2.7rem;
-  width: 2.7rem;
-  height: 2.05rem;
-  border: .22rem solid var(--outline);
-  border-radius: .2rem .5rem .6rem .2rem;
-  background: var(--robe);
-  transform: rotate(-13deg);
-}
-.study-character__arm {
-  z-index: 5;
-  top: 5.6rem;
-  left: 4.4rem;
-  width: 1.45rem;
-  height: .6rem;
-  background: var(--skin);
-  border: .19rem solid var(--outline);
-  border-radius: 1rem;
-  transform: rotate(20deg);
-}
-.study-character__foot {
-  z-index: 2;
-  top: 6.5rem;
-  left: 3.4rem;
-  width: 1.35rem;
-  height: .7rem;
-  background: var(--robe);
-  border: .2rem solid var(--outline);
-  border-radius: .5rem;
-  transform: rotate(-32deg);
-}
-.study-character__eye-left, .study-character__eye-right {
-  z-index: 6;
-  top: 3.35rem;
-  left: 2.7rem;
-  width: .4rem;
-  height: .65rem;
-  background: var(--outline);
-  border-radius: 50%;
-}
-.study-character__eye-right { left: 5.45rem; }
-.study-character__glasses {
-  z-index: 5;
-  top: 2.95rem;
-  left: 2.1rem;
-  width: 4.4rem;
-  height: 1.65rem;
-  background: linear-gradient(var(--outline),var(--outline)) center / 1rem .16rem no-repeat;
-}
-.study-character__glasses::before, .study-character__glasses::after {
-  content: "";
-  position: absolute;
-  width: 1.65rem;
-  height: 1.65rem;
-  border: .18rem solid var(--outline);
-  border-radius: 50%;
-}
-.study-character__glasses::before { left: 0; }
-.study-character__glasses::after { right: 0; }
-.study-character__scar {
-  z-index: 6;
-  top: 1.8rem;
-  left: 2.9rem;
-  width: .45rem;
-  height: .7rem;
-  background: #d3744a;
-  clip-path: polygon(60% 0,100% 50%,60% 50%,85% 100%,0 35%,40% 35%,25% 0);
-}
-.study-character__smile {
-  z-index: 6;
-  top: 4.7rem;
-  left: 3.65rem;
-  width: .7rem;
-  height: .35rem;
-  border-bottom: .17rem solid var(--outline);
-  border-radius: 0 0 50% 50%;
-}
-.study-character__broom {
-  z-index: 1;
-  top: 6.75rem;
-  left: .35rem;
-  width: 7rem;
-  height: .4rem;
-  border: .15rem solid var(--outline);
-  background: #be8c66;
-  transform: rotate(-13deg);
-}
-.study-character__broom::before {
-  content: "";
-  position: absolute;
-  width: 2.2rem;
-  height: 1.2rem;
-  top: -.5rem;
-  left: -.3rem;
-  border: .22rem solid var(--outline);
-  border-radius: 65% 20% 20% 65%;
-  background: #81502e;
-}
-.study-character__hat, .study-character__beard, .study-character__web { display: none !important; }
-.study-character[data-character="hermione"] { --hair: #92552c; --robe: #7f2441; }
-.study-character[data-character="hermione"] .study-character__hair {
-  left: 1rem;
-  width: 6rem;
-  height: 4rem;
-  clip-path: polygon(0 0,100% 0,100% 100%,85% 72%,80% 100%,70% 65%,63% 80%,50% 30%,30% 58%,15% 90%,0 100%);
-}
-.study-character[data-character="hermione"] .study-character__glasses,
-.study-character[data-character="hermione"] .study-character__scar { display: none; }
-.study-character[data-character="dumbledore"] { --hair: #ece9e6; --robe: #80528c; }
-.study-character[data-character="dumbledore"] .study-character__scar { display: none; }
-.study-character[data-character="dumbledore"] .study-character__beard {
-  display: block !important;
-  z-index: 7;
-  top: 4.5rem;
-  left: 2.2rem;
-  width: 3.8rem;
-  height: 2.1rem;
-  background: #fff6e6;
-  border: .2rem solid var(--outline);
-  border-radius: 10% 10% 60% 60%;
-}
-.study-character[data-character="dumbledore"] .study-character__hat {
-  display: block !important;
-  z-index: 8;
-  top: -.1rem;
-  left: 1.5rem;
-  width: 5.1rem;
-  height: 2rem;
-  background: #80528c;
-  border: .2rem solid var(--outline);
-  border-radius: 100% 40% 20% 20%;
-}
-.study-character[data-character="voldemort"] { --skin: #e2e5d7; --robe: #233c36; }
-.study-character[data-character="voldemort"] .study-character__hair,
-.study-character[data-character="voldemort"] .study-character__glasses,
-.study-character[data-character="voldemort"] .study-character__scar { display: none; }
-.study-character[data-character="voldemort"] .study-character__eye-left,
-.study-character[data-character="voldemort"] .study-character__eye-right { height: .45rem; }
-.study-character[data-character="spiderman"], .study-character[data-character="miles"] {
-  --skin: #eb3346;
-  --robe: #2761b1;
-}
-.study-character[data-character="miles"] { --skin: #272a35; --robe: #c83348; }
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__hair,
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__glasses,
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__scar,
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__broom { display: none; }
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__face {
-  background: repeating-linear-gradient(35deg,transparent 0 .85rem,#0006 .85rem .91rem), var(--skin);
-}
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__eye-left,
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__eye-right {
-  top: 2.9rem;
-  left: 2.1rem;
-  width: 1.5rem;
-  height: 1.1rem;
-  background: #fffef5;
-  border: .18rem solid var(--outline);
-  border-radius: 15% 20% 50% 50%;
-  transform: rotate(22deg);
-}
-.study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__eye-right {
-  left: 4.45rem;
-  transform: rotate(-22deg);
-}
-/* A teia só aparece no personagem que desce pela tela; miniaturas e cartões ficam sem o fio. */
-.study-effects__actor .study-character:is([data-character="spiderman"],[data-character="miles"]) .study-character__web {
-  display: block !important;
-  z-index: -1;
-  top: -8rem;
-  left: 4rem;
-  height: 10rem;
-  width: .16rem;
-  background: #929db0;
-}
-.study-effects__actor:has(.study-character) { background: none; }
-.study-effects__actor:has(.study-spider) { background: none; }
-.study-effects__actor > .study-character { width: 8rem; height: 8rem; }
-/* Cartões da galeria: área própria de desenho, recortada, do mesmo tamanho para todos. */
-.study-companion-card__art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 4.5rem;
-  height: 4.5rem;
-  overflow: hidden;
-  contain: paint;
-  border-radius: 50%;
-  background: hsl(var(--study-surface));
-}
-.study-companion-card__art img { width: 100%; height: 100%; object-fit: cover; }
-.study-companion-card__art > .study-character {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: top left;
-  transform: scale(.6) translate(-.5rem, -.1rem);
-}
-.study-companion-card__art .study-muted { padding: .5rem; text-align: center; font-size: .72rem; line-height: 1.2; }
-@media (prefers-reduced-motion: no-preference) {
-  html[data-study-motion="enabled"] .study-companion-card[aria-pressed="true"] .study-companion-card__art > * {
-    animation: study-character-bob 4s ease-in-out infinite;
-  }
-}
-@keyframes study-character-bob { 50% { translate: 0 -.2rem; } }
-.study-bar[data-expression="encouraging"] .study-character__smile { height: .5rem; width: .85rem; }
+/* 13. Personagens vetoriais: retrato, corpo e pose de cenário */
+.study-character-art { display:block; width:100%; height:100%; overflow:hidden; }
+.study-avatar > .study-character-art { position:static; transform:none; }
+.study-effects__actor:has(.study-character-art), .study-effects__actor:has(.study-spider) { background:none; }
+.study-effects__actor > .study-character-art { width:8rem; height:8rem; }
+html[data-study-theme="aracnideo"] .study-effects__actor:has(.study-character-art)::before { content:""; position:absolute; left:50%; bottom:80%; height:70vh; width:2px; background:#9aaab5; }
+.study-companion-card__art { overflow:hidden; display:grid; place-items:center; }
+.study-companion-card__art > .study-character-art { width:100%; height:100%; max-height:9rem; }
+@media(prefers-reduced-motion:no-preference) { html[data-study-motion="enabled"] .study-companion-card__art { animation:study-character-bob 5s ease-in-out infinite; } }
+@keyframes study-character-bob { 50% { translate:0 -.15rem; } }
 .study-spider { position: relative; display: block; width: 6rem; height: 6rem; }
 .study-spider > span { position: absolute; }
 .study-spider__body {
