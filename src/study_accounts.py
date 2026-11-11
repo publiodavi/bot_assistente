@@ -138,3 +138,39 @@ async def trail_progress(layer, user, thread_id):
             WHERE t.id = :id AND t."userId" = :owner
         """), {"id": UUID(thread_id), "owner": UUID(user.id)})
         return result.scalar_one_or_none()
+
+
+async def owned_thread_ids(layer, user, ids):
+    """Filtra referências de ferramentas sem expor conversas de outras contas."""
+    from sqlalchemy import text
+    requested = [UUID(str(identifier)) for identifier in ids]
+    if not requested:
+        return set()
+    async with layer.engine.connect() as connection:
+        result = await connection.execute(text(
+            'SELECT id FROM threads WHERE "userId" = :owner AND id = ANY(CAST(:ids AS uuid[]))'
+        ), {"owner": UUID(user.id), "ids": requested})
+        return {str(row.id) for row in result}
+
+
+async def study_statistics(layer, user):
+    """Agrega avaliações de respostas existentes; não mede aprendizagem comprovada."""
+    from sqlalchemy import text
+    async with layer.engine.connect() as connection:
+        rows = await connection.execute(text('''
+            SELECT t.id,
+                MAX(CASE WHEN s.metadata->'study_step'->>'degrau' ~ '^([1-9]|[1-4][0-9]|50)$'
+                    THEN (s.metadata->'study_step'->>'degrau')::int END) AS degraus,
+                COUNT(DISTINCT (s.metadata->'study_step'->>'degrau')) FILTER (
+                    WHERE s.metadata->'study_step'->>'tipo' = 'conquista'
+                      AND s.metadata->'study_step'->>'subiu_sozinho' = 'true'
+                      AND s.metadata->'study_step'->>'degrau' ~ '^([1-9]|[1-4][0-9]|50)$') AS sozinho,
+                COUNT(s.id) FILTER (WHERE s.metadata->'study_step'->>'tipo' = 'ensino') AS ensino
+            FROM threads t LEFT JOIN steps s ON s."threadId" = t.id
+                AND s.type = 'assistant_message' AND s.streaming IS NOT TRUE AND s."isError" IS NOT TRUE
+            WHERE t."userId" = :owner AND t.name IS NOT NULL
+            GROUP BY t.id
+        '''), {"owner": UUID(user.id)})
+        records = list(rows)
+        return {"cadernos": len(records), "degraus": sum(row.degraus or 0 for row in records),
+                "sozinho": sum(row.sozinho for row in records), "ensino": sum(row.ensino for row in records)}

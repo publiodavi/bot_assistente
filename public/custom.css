@@ -1260,3 +1260,18 @@ html[data-study-text-size="normal"] { --study-reading-size:1rem; }
 html[data-study-text-size="grande"] { --study-reading-size:1.125rem; }
 html[data-study-text-size="extra"] { --study-reading-size:1.25rem; }
 .study-sheet .message-content, #chat-input { font-size:var(--study-reading-size,1rem); line-height:1.65; }
+
+/* 14. Cadernos e ferramentas de estudo */
+[data-sidebar="sidebar"] { background:hsl(var(--study-surface)); background-image:repeating-linear-gradient(0deg,transparent 0 28px,hsl(var(--study-border) / .05) 28px 29px); }
+.study-notebook-title { font:600 1.1rem var(--study-font-title); padding:.75rem 1rem; }
+.study-notebook-link { border-left:4px solid hsl(var(--study-accent)); border-radius:.25rem .65rem .65rem .25rem; background:hsl(var(--study-muted) / .6); margin:.2rem 0; padding:.65rem; min-width:0; }
+.study-notebook-level { display:block; font-size:.7rem; color:hsl(var(--study-muted-text)); }
+.study-sidebar-tools { display:grid; gap:.4rem; padding:.75rem; border-top:1px solid hsl(var(--study-border)); margin-top:auto; }
+.study-sidebar-tools .study-button { text-align:left; font-size:.85rem; }
+.study-focus-clock { display:block; text-align:center; font:600 clamp(3rem,12vw,5rem) var(--study-font-title); padding:1.5rem; color:hsl(var(--study-accent)); }
+.study-form-actions { flex-wrap:wrap; }
+.study-inline-check { display:flex!important; align-items:center; gap:.5rem; }
+.study-inline-check input { width:1.25rem; height:1.25rem; min-height:0; }
+.study-discoveries { display:grid; gap:1rem; }
+.study-discovery { padding:1rem; background:hsl(var(--study-muted)); border-radius:.8rem; border-left:4px solid hsl(var(--study-accent)); white-space:pre-wrap; overflow-wrap:anywhere; }
+@media(max-width:600px) { .study-tools { gap:.15rem; } .study-tools .study-button { padding:.4rem .35rem; font-size:.72rem; } #readme-button { display:none; } }

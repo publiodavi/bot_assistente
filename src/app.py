@@ -18,8 +18,9 @@ from src.prompts.companions import (
 from src.prompts.pedagogical_prompt import ESCADA_FORMAT, MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS
 from src.services.escada import EscadaStream, as_context, layers, parse_step, tidy_visible
 from src.services.llm_client import ConfigurationError, stream_reply
+from src.services.study_tools import MOODS, clean_text, note_update, validate_avatar
 from src.study_accounts import (
-    advance_trail, configure_accounts, profile_data, recent_notebooks, record_reveal, trail_progress,
+    advance_trail, configure_accounts, profile_data, recent_notebooks, record_reveal, trail_progress, owned_thread_ids, study_statistics,
 )
 
 
@@ -46,7 +47,8 @@ TRAIL_START = "Quero praticar na trilha."
 CHANNEL = "fatec-study"
 DATA_LAYER = configure_accounts()
 logger = logging.getLogger(__name__)
-PROFILE_DEFAULTS = {"goal": "", "barrier": "", "intro": "new", "hint": ""}
+PROFILE_DEFAULTS = {"goal": "", "barrier": "", "intro": "new", "hint": "",
+                    "tagline": "", "avatar": {"kind": "initials", "color": "terra"}, "fichario": []}
 
 
 def study_session():
@@ -76,6 +78,7 @@ def study_session():
             # Apelidos por personagem e autoria das respostas exibidas.
             "nicknames": {},
             "authors": {},
+            "mood": None, "notebooks": [], "statistics": {}, "note_links": set(),
         }
         context.session.study_runtime = state
     return state
@@ -135,6 +138,9 @@ async def publish_state(state, request_id=None, error=None):
         "recent": state["recent"],
         "companions": companion_names(state["nicknames"]),
         "authors": dict(list(state["authors"].items())[-80:]),
+        "thread_id": context.session.thread_id if context.session.has_first_interaction else None,
+        "notebooks": state["notebooks"], "statistics": state["statistics"], "mood": state["mood"],
+        "note_links": sorted(state["note_links"]),
     })
 
 
@@ -166,7 +172,11 @@ async def load_recent(state):
     user = context.session.user
     if DATA_LAYER and user:
         try:
-            state["recent"] = await recent_notebooks(DATA_LAYER, user)
+            state["notebooks"] = await recent_notebooks(DATA_LAYER, user, limit=200)
+            state["recent"] = state["notebooks"][:3]
+            state["statistics"] = await study_statistics(DATA_LAYER, user)
+            ids = [note["thread_id"] for note in state["profile"].get("fichario", []) if isinstance(note, dict) and "thread_id" in note]
+            state["note_links"] = await owned_thread_ids(DATA_LAYER, user, ids)
         except Exception:
             logger.exception("Erro ao carregar cadernos recentes")
 
@@ -241,11 +251,19 @@ async def synchronize_study(data):
     if (data.get("session_id") != state["id"] or not isinstance(request_id, str)
             or len(request_id) > 80 or kind not in (
                 "study.preferences", "study.profile", "study.intro", "study.start", "study.mode",
-                "study.nickname",
+                "study.nickname", "study.note", "study.checkin",
             )):
         return
 
     error = None
+    if kind == "study.checkin":
+        mood = data.get("mood")
+        if mood is not None and mood not in MOODS:
+            error = "Escolha um dos estados disponíveis."
+        else:
+            state["mood"] = mood
+        await publish_state(state, request_id, error)
+        return
     if kind == "study.mode":
         try:
             await set_mode(state, data.get("mode"))
@@ -272,13 +290,26 @@ async def synchronize_study(data):
                         normalize_preferences(DEFAULTS, stored), changes
                     ).items() if key in changes
                 })
+            elif kind == "study.note":
+                thread_id = data.get("thread_id")
+                user = context.session.user
+                if not DATA_LAYER or not user or not isinstance(thread_id, str):
+                    raise ValueError("Entre na sua conta para salvar uma descoberta.")
+                if thread_id not in await owned_thread_ids(DATA_LAYER, user, [thread_id]):
+                    raise ValueError("Conversa indisponível.")
+                await update_profile(state, lambda stored: {"fichario": note_update(
+                    stored.get("fichario", []), thread_id, data.get("text"), data.get("review", False))})
+                await load_recent(state)
             elif kind == "study.profile":
                 name, goal, barrier = display_name(data.get("name")), data.get("goal"), data.get("barrier")
                 if not name or not isinstance(goal, str) or not isinstance(barrier, str):
                     raise ValueError("Perfil inválido")
                 if goal not in (*GOALS, "") or barrier not in (*BARRIERS, ""):
                     raise ValueError("Preferência inválida")
-                await update_profile(state, lambda stored: {"name": name, "goal": goal, "barrier": barrier})
+                tagline = clean_text(data.get("tagline", state["profile"].get("tagline", "")), 120)
+                avatar = validate_avatar(data.get("avatar", state["profile"]["avatar"]))
+                await update_profile(state, lambda stored: {"name": name, "goal": goal, "barrier": barrier,
+                                                          "tagline": tagline, "avatar": avatar})
             elif kind == "study.intro":
                 await update_profile(state, lambda stored: intro_transition(
                     stored, data.get("command"), data.get("value")
@@ -599,6 +630,8 @@ async def on_message(message: cl.Message):
         mascot = prefs["mascot"]
         companion = resolve_companion(state)
         voice = companion_voice(mascot, companion)
+    mood = state["mood"]
+    state["mood"] = None
     # O convite "Explique para o companheiro" vale apenas para o turno seguinte.
     mode = "aprendiz" if state["teach_next"] else state["mode"]
     state["teach_next"] = False
@@ -607,6 +640,7 @@ async def on_message(message: cl.Message):
     history = state.setdefault("history", [])
     messages = [{"role": "system", "content": (
         f"{SYSTEM_PROMPT}\n{voice}\n{MODE_INSTRUCTIONS[mode]}\n"
+        f"{MOODS.get(mood, '')}\n"
         f"Nível de apoio escolhido: {zdp}\n"
         f"Nome do estudante: {profile.get('name') or 'Estudante'}. "
         f"Objetivo preferido: {goal}. Dificuldade mais comum: {barrier}.\n{ESCADA_FORMAT}"
@@ -642,6 +676,7 @@ async def on_message(message: cl.Message):
             reply.elements = [escada_element(state, reply.id, step, companion)]
         await reply.send()
         history.append((message.id, message.content, reply.content, step, reply.id))
+        await load_recent(state)
         if step and (step["tipo"] == "conquista" or (
                 step["tipo"] == "ensino" and step.get("nota") and not step["nota"]["faltou"])):
             await express(state, "celebrating", seconds=4)

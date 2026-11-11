@@ -147,6 +147,7 @@
   who.append(avatar, identity);
 
   let currentExpression = "idle";
+  let focusNotice = "";
   function render(expression) {
     currentExpression = expression;
     const mascot = selectedMascot();
@@ -155,7 +156,8 @@
     paintAvatar(avatar, mascot, expression);
     const label = companionName();
     if (name.textContent !== label) name.textContent = label;
-    if (status.textContent !== statuses[expression]) status.textContent = statuses[expression];
+    const stateText = focusNotice || statuses[expression];
+    if (status.textContent !== stateText) status.textContent = stateText;
   }
 
   function element(tag, text, className) {
@@ -364,6 +366,7 @@
 
   const profilePanel = panel("Meu perfil");
   const introPanel = panel("Primeiros passos");
+  const toolsPanel = panel("Ferramentas");
   const tools = element("div", "", "study-tools");
   tools.hidden = true;
   tools.append(button("Temas", () => gallery.dialog.showModal()),
@@ -372,12 +375,18 @@
       renderCompanions(true);
       companionPanel.dialog.showModal();
     }),
+    button("Ferramentas", () => toolsPanel.dialog.showModal()),
     button("Perfil", () => {
       buildProfile();
       profilePanel.dialog.showModal();
     }));
 
   let profile = null;
+  let currentThread = null;
+  let notebookMetadata = [];
+  let statistics = {};
+  let noteLinks = new Set();
+  let mood = null;
   let account = null;
   let lastAutoIntroAccount = null;
   let entryBypassed = false;
@@ -501,6 +510,155 @@
     }
     fieldset.append(row);
     return { fieldset, value: () => row.querySelector("input:checked")?.value || "" };
+  }
+
+  // Ferramentas locais e registros escritos pelo estudante.
+  const focusPanel = panel("Uma sessão de foco");
+  const notesPanel = panel("Fichário de descobertas");
+  const moodPanel = panel("Como você chega hoje?");
+  function toolLinks() {
+    return section("Ferramentas",
+      button("Foco", () => focusPanel.dialog.showModal()),
+      button("Fichário de descobertas", () => { buildNotes(); notesPanel.dialog.showModal(); }),
+      button("Check-in de ânimo", () => { buildMood(); moodPanel.dialog.showModal(); }));
+  }
+  toolsPanel.body.append(toolLinks());
+  const sidebarTools = toolLinks();
+  sidebarTools.classList.add("study-sidebar-tools");
+  const focusDuration = element("input");
+  focusDuration.type = "number"; focusDuration.min = "1"; focusDuration.max = "120"; focusDuration.value = "25";
+  const breakDuration = element("input");
+  breakDuration.type = "number"; breakDuration.min = "1"; breakDuration.max = "30"; breakDuration.value = "5";
+  const focusClock = element("output", "25:00", "study-focus-clock");
+  focusClock.setAttribute("aria-label", "Tempo restante");
+  focusClock.setAttribute("role", "timer"); focusClock.setAttribute("aria-live", "off");
+  const focusState = element("p", "Prepare uma tarefa pequena para esta sessão.", "study-muted");
+  let focusTimer = { end: null, remaining: 25 * 60000, phase: "study" };
+  try {
+    const cached = JSON.parse(localStorage.getItem("fatec-study.focus.v1"));
+    if (cached && ["study", "break"].includes(cached.phase)
+      && Number.isFinite(cached.remaining) && cached.remaining >= 0 && cached.remaining <= 7200000
+      && (cached.end === null || Number.isFinite(cached.end))) focusTimer = cached;
+  } catch {}
+  const saveFocus = () => { try { localStorage.setItem("fatec-study.focus.v1", JSON.stringify(focusTimer)); } catch {} };
+  const focusStart = button("Começar", () => {
+    focusNotice = "";
+    if (!focusTimer.end) {
+      if (!focusTimer.remaining) focusTimer.remaining = Math.min(focusTimer.phase === "study" ? 120 : 30,
+        Math.max(1, Number(focusTimer.phase === "study" ? focusDuration.value : breakDuration.value) || 1)) * 60000;
+      focusTimer.end = Date.now() + focusTimer.remaining;
+    }
+    saveFocus(); tickFocus();
+  });
+  const focusPause = button("Pausar", () => {
+    if (!focusTimer.end) return;
+    focusTimer.remaining = Math.max(0, focusTimer.end - Date.now()); focusTimer.end = null;
+    saveFocus(); tickFocus();
+  });
+  const focusReset = button("Reiniciar", () => {
+    focusTimer = { end: null, remaining: Math.min(120, Math.max(1, Number(focusDuration.value) || 25)) * 60000, phase: "study" };
+    focusNotice = ""; saveFocus(); tickFocus(); render(currentExpression);
+  });
+  function tickFocus() {
+    let left = focusTimer.end ? Math.max(0, focusTimer.end - Date.now()) : focusTimer.remaining;
+    if (focusTimer.end && left === 0) {
+      focusNotice = focusTimer.phase === "study" ? "Sessão concluída. Que tal uma pausa?" : "Pausa concluída. Retome no seu ritmo.";
+      focusTimer.phase = focusTimer.phase === "study" ? "break" : "study";
+      focusTimer.end = null;
+      focusTimer.remaining = Math.min(focusTimer.phase === "study" ? 120 : 30,
+        Math.max(1, Number(focusTimer.phase === "study" ? focusDuration.value : breakDuration.value) || 1)) * 60000;
+      left = focusTimer.remaining; saveFocus(); render(currentExpression); notify(focusNotice);
+    }
+    const seconds = Math.ceil(left / 1000);
+    const label = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+    if (focusClock.textContent !== label) focusClock.textContent = label;
+    focusStart.textContent = focusTimer.phase === "break" ? "Começar pausa" : focusTimer.end ? "Em foco" : "Começar / retomar";
+    focusStart.disabled = !!focusTimer.end; focusPause.disabled = !focusTimer.end;
+    focusState.textContent = focusTimer.phase === "study" ? "Uma tarefa de cada vez. Você pode pausar quando precisar." : "Afaste os olhos da tela por alguns instantes, se quiser.";
+  }
+  const focusFields = element("div", "", "study-option-row");
+  addField(focusFields, "Estudo (minutos)", focusDuration);
+  addField(focusFields, "Pausa (minutos)", breakDuration);
+  focusDuration.addEventListener("change", () => { if (!focusTimer.end && focusTimer.phase === "study") focusReset.click(); });
+  const focusActions = element("div", "", "study-form-actions"); focusActions.append(focusStart, focusPause, focusReset);
+  focusPanel.body.append(focusClock, focusState, focusFields, focusActions);
+  setInterval(tickFocus, 1000); document.addEventListener("visibilitychange", tickFocus); tickFocus();
+
+  function buildNotes() {
+    notesPanel.body.replaceChildren(element("p", "Registre com suas palavras o que passou a fazer sentido.", "study-muted"));
+    if (!account) { notesPanel.body.append(element("p", "Entre na sua conta para guardar descobertas entre conversas.")); return; }
+    const entries = Array.isArray(profile.fichario) ? profile.fichario : [];
+    if (currentThread) {
+      const form = element("form", "", "study-form");
+      const text = element("textarea"); text.rows = 4; text.maxLength = 1000; text.required = true;
+      text.value = entries.find(item => item.thread_id === currentThread)?.text || "";
+      addField(form, "O que eu descobri neste caderno", text);
+      const review = element("input"); review.type = "checkbox";
+      const reviewLabel = element("label", "", "study-inline-check"); reviewLabel.append(review, document.createTextNode("Revisar em 3 dias"));
+      const submit = element("button", "Guardar descoberta", "study-button study-button--primary"); submit.type = "submit";
+      const savedStatus = element("p", "", "study-form-status"); savedStatus.setAttribute("role", "status");
+      form.append(reviewLabel, submit, savedStatus);
+      form.addEventListener("submit", async event => {
+        event.preventDefault(); submit.disabled = true;
+        const saved = await request("study.note", { thread_id: currentThread, text: text.value, review: review.checked });
+        submit.disabled = false;
+        savedStatus.textContent = saved ? "Descoberta guardada." : "Não foi possível guardar. Confira o limite de 100 notas e tente novamente.";
+        if (saved) buildNotes();
+      });
+      notesPanel.body.append(form);
+    } else notesPanel.body.append(element("p", "Comece uma conversa para registrar sua primeira descoberta."));
+    const list = element("div", "", "study-discoveries");
+    for (const item of entries.slice(0, 100)) {
+      const card = element("article", "", "study-discovery");
+      card.append(element("p", item.text));
+      const date = new Date(item.date);
+      if (!Number.isNaN(date.getTime())) card.append(element("time", date.toLocaleDateString("pt-BR"), "study-muted"));
+      if (item.review_at) card.append(element("p", `Revisar em ${new Date(item.review_at).toLocaleDateString("pt-BR")}`, "study-muted"));
+      if (noteLinks.has(item.thread_id)) {
+        const link = element("a", "Abrir caderno"); link.href = `/thread/${encodeURIComponent(item.thread_id)}`; card.append(link);
+      } else card.append(element("p", "O caderno de origem não está disponível.", "study-muted"));
+      list.append(card);
+    }
+    notesPanel.body.append(section("Suas descobertas", list));
+    if (!entries.length) list.append(element("p", "Seu fichário ainda está em branco.", "study-muted"));
+  }
+  let breathingInterval;
+  moodPanel.dialog.addEventListener("close", () => clearInterval(breathingInterval));
+  function buildMood() {
+    clearInterval(breathingInterval);
+    const hint = element("p", "Opcional. Essa escolha orienta apenas a próxima resposta e não é salva no perfil.", "study-muted");
+    const moodStatus = element("p", mood ? "Check-in pronto para a próxima resposta." : "Escolha como você está chegando.", "study-form-status");
+    moodStatus.setAttribute("role", "status");
+    const choices = choiceGroup("Como você está", { curioso: "Curioso", cansado: "Cansado", travado: "Travado", ansioso: "Ansioso" }, async id => {
+      if (await request("study.checkin", { mood: id })) { choices.select(id); moodStatus.textContent = "O companheiro vai considerar isso na próxima resposta."; }
+    });
+    choices.select(mood);
+    const breathText = element("p", "Se quiser, respire no seu ritmo por um minuto.", "study-muted");
+    const breathe = button("Fazer uma pausa de 1 minuto", () => {
+      clearInterval(breathingInterval); const end = Date.now() + 60000;
+      breathText.textContent = "Respire confortavelmente, sem forçar. 60 segundos.";
+      breathingInterval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+        breathText.textContent = remaining ? `Respire no seu ritmo. ${remaining} segundos.` : "Sua pausa terminou. Volte quando quiser.";
+        if (!remaining) clearInterval(breathingInterval);
+      }, 1000);
+    });
+    moodPanel.body.replaceChildren(hint, choices.group, moodStatus,
+      button("Não usar check-in", async () => { if (await request("study.checkin", { mood: null })) { choices.select(null); moodStatus.textContent = "Check-in removido."; } }), breathe, breathText);
+  }
+
+  function adaptNotebookPanel() {
+    const sidebar = document.querySelector('[data-sidebar="sidebar"]');
+    if (!sidebar) return;
+    const content = sidebar.querySelector('[data-sidebar="content"]') || sidebar;
+    if (!sidebar.querySelector(".study-notebook-title")) content.prepend(element("h2", "Meus cadernos", "study-notebook-title"));
+    if (sidebarTools.parentElement !== content) content.append(sidebarTools);
+    for (const link of sidebar.querySelectorAll('a[href^="/thread/"]')) {
+      link.classList.add("study-notebook-link");
+      const id = link.getAttribute("href").split("/").pop();
+      const metadata = notebookMetadata.find(item => item.id === id);
+      if (metadata?.degrau && !link.querySelector(".study-notebook-level")) link.append(element("span", `Degrau ${metadata.degrau}`, "study-notebook-level"));
+    }
   }
 
   const levelLabels = { menos: "Menos dicas", guiadas: "Dicas guiadas", mais: "Mais apoio" };
@@ -665,6 +823,7 @@
 
   function adaptChainlit() {
     adaptSidebar();
+    adaptNotebookPanel();
     const composer = document.getElementById("message-composer");
     if (composer && bar.nextElementSibling !== composer) composer.before(bar);
     const header = document.getElementById("header")?.lastElementChild;
@@ -902,6 +1061,12 @@
 
     visible = !data.confirmed && confirmed ? confirmed : data.preferences;
     profile = data.profile;
+    currentThread = typeof data.thread_id === "string" ? data.thread_id : null;
+    statistics = data.statistics || {};
+    notebookMetadata = Array.isArray(data.notebooks) ? data.notebooks : [];
+    noteLinks = new Set(Array.isArray(data.note_links) ? data.note_links : []);
+    mood = data.mood || null;
+    adaptNotebookPanel();
     if (data.mode === "guia" || data.mode === "aprendiz") studyMode = data.mode;
     if (data.companions && typeof data.companions === "object") {
       const names = { ...defaultNames };
