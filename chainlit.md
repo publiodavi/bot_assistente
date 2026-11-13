@@ -1,4 +1,4 @@
-# EducAI
+# AjudAI
 
 Um assistente de estudos com inteligência artificial que acompanha o raciocínio do estudante **um degrau de cada vez**. A proposta se inspira na Zona de Desenvolvimento Proximal de Vygotsky: o companheiro primeiro mostra o caminho e, à medida que o estudante avança, retira o apoio aos poucos.
 

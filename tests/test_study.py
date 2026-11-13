@@ -187,6 +187,15 @@ class CardTests(unittest.TestCase):
         self.assertIn("<descoberta>minha ‹b›nota‹/b›</descoberta>", messages[1]["content"])
 
 
+class AccessTests(unittest.TestCase):
+    def test_lista_de_emails_permitidos(self):
+        from src.study_accounts import allowed_email
+        self.assertTrue(allowed_email("qualquer@gmail.com", ""))
+        self.assertTrue(allowed_email(" Davi@Gmail.com ", "davi@gmail.com, amigo@gmail.com"))
+        self.assertFalse(allowed_email("outro@gmail.com", "davi@gmail.com,amigo@gmail.com"))
+        self.assertFalse(allowed_email(None, "davi@gmail.com"))
+
+
 class PromptTests(unittest.TestCase):
     def test_assunto_novo_ensina_antes_de_perguntar(self):
         from src.prompts.pedagogical_prompt import MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS

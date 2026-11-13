@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+.local
+.env
+.env.*
+!.env.example
+*.docx
+*.log
+__pycache__
+.chainlit/.files
+.files
+chroma
+chroma_db

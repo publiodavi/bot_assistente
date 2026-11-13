@@ -1,7 +1,9 @@
+# Versões testadas no protótipo; fixadas para o servidor instalar exatamente o mesmo conjunto.
 chainlit==2.12.0
-SQLAlchemy[asyncio]>=2.0,<3
-asyncpg>=0.30,<1
-openai
-python-dotenv
-chromadb
-pypdf
+SQLAlchemy[asyncio]==2.1.8
+asyncpg==0.32.0
+openai==3.49.0
+python-dotenv==1.2.4
+chromadb==1.5.9
+onnxruntime==1.31.1
+pypdf==7.0.1

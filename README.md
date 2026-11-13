@@ -1,4 +1,4 @@
-# EducAI
+# AjudAI
 
 Assistente de estudos com orientação por etapas, ambientes personalizáveis e histórico de conversas por conta.
 
@@ -6,7 +6,7 @@ Projeto de Trabalho de Graduação do curso de Análise e Desenvolvimento de Sis
 
 ## Proposta
 
-O EducAI utiliza perguntas, dicas graduais e exemplos parciais para ajudar o estudante a desenvolver o próprio raciocínio. A abordagem é inspirada na Zona de Desenvolvimento Proximal de Vygotsky e no conceito de andaimento pedagógico (*scaffolding*).
+O AjudAI utiliza perguntas, dicas graduais e exemplos parciais para ajudar o estudante a desenvolver o próprio raciocínio. A abordagem é inspirada na Zona de Desenvolvimento Proximal de Vygotsky e no conceito de andaimento pedagógico (*scaffolding*).
 
 A personalização visual e o companheiro de estudos complementam essa orientação. Seu efeito sobre acolhimento, autonomia e distração é uma hipótese de experiência do usuário a ser avaliada no TCC; a implementação, por si só, não demonstra ganhos de aprendizagem.
 
@@ -135,6 +135,10 @@ As quatro variáveis de conta devem estar preenchidas para ativar o modo autenti
 O script `start.ps1` inicia o app na porta 8103 e também inicia um PostgreSQL local já preparado em `.local/postgresql`, quando disponível. Ele não instala nem configura um banco em um novo computador. Binários, banco de dados e credenciais locais não fazem parte do repositório.
 
 Referências de configuração: [OAuth no Chainlit](https://docs.chainlit.io/authentication/oauth) e [histórico de conversas](https://docs.chainlit.io/data-persistence/history).
+
+## Publicação na web
+
+O projeto inclui um `Dockerfile` e o script `scripts/migrate.py`, que aplica as migrações a cada início. O passo a passo para publicar no Railway, com PostgreSQL, volume para os materiais e login Google, está em [docs/PUBLICAR.md](docs/PUBLICAR.md). A variável opcional `STUDY_ALLOWED_EMAILS` limita o acesso aos e-mails convidados.
 
 ## Estrutura do repositório
 

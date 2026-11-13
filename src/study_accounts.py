@@ -39,10 +39,23 @@ def configure_accounts():
     return layer
 
 
+def allowed_email(email, allowed=None):
+    """Lista opcional de e-mails autorizados (STUDY_ALLOWED_EMAILS, separados por vírgula).
+
+    Vazia, qualquer conta Google entra; preenchida, só os e-mails listados, o que evita
+    que um site público consuma os créditos da API por pessoas não convidadas."""
+    raw = os.getenv("STUDY_ALLOWED_EMAILS", "") if allowed is None else allowed
+    emails = {item.strip().casefold() for item in raw.split(",") if item.strip()}
+    return not emails or (isinstance(email, str) and email.strip().casefold() in emails)
+
+
 async def google_user(provider_id, token, raw_user_data, default_app_user, id_token=None):
     google_id = raw_user_data.get("id")
     if (provider_id != "google" or not isinstance(google_id, str)
             or not google_id.isascii() or not google_id.isdecimal()):
+        return None
+    if not allowed_email(raw_user_data.get("email")) or (
+            os.getenv("STUDY_ALLOWED_EMAILS", "").strip() and raw_user_data.get("verified_email") is False):
         return None
     name = str(raw_user_data.get("name") or "Estudante")[:60]
     return cl.User(
