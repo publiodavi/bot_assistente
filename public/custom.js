@@ -814,15 +814,26 @@
   function tickFocus() {
     let left = focusTimer.end ? Math.max(0, focusTimer.end - Date.now()) : focusTimer.remaining;
     if (focusTimer.end && left === 0) {
-      focusNotice = focusTimer.phase === "study" ? "Sessão concluída. Que tal uma pausa?" : "Pausa concluída. Retome no seu ritmo.";
-      focusTimer.phase = focusTimer.phase === "study" ? "break" : "study";
-      focusTimer.end = null;
-      focusTimer.remaining = Math.min(focusTimer.phase === "study" ? 120 : 30,
-        Math.max(1, Number(focusTimer.phase === "study" ? focusDuration.value : breakDuration.value) || 1)) * 60000;
-      left = focusTimer.remaining; saveFocus(); render(currentExpression); notify(focusNotice);
+      const studyEnded = focusTimer.phase === "study";
+      focusNotice = studyEnded ? "Sessão concluída. Hora de uma pausa." : "Pausa concluída. Retome no seu ritmo.";
+      if (studyEnded) {
+        // Fim do estudo: a pausa começa sozinha e a tela de pausa cobre o site.
+        const minutes = breakMinutes();
+        focusTimer = { end: Date.now() + minutes * 60000, remaining: minutes * 60000, phase: "break" };
+      } else {
+        focusTimer = { end: null, remaining: studyMinutes() * 60000, phase: "study" };
+      }
+      left = focusTimer.end ? focusTimer.end - Date.now() : focusTimer.remaining;
+      saveFocus(); render(currentExpression);
+      if (!studyEnded) {
+        if (breakDialog.open) breakEnded();
+        else notify(focusNotice);
+      }
       clearTimeout(focusNoticeTimer);
       focusNoticeTimer = setTimeout(() => { focusNotice = ""; render(currentExpression); }, 8000);
     }
+    // Pausa correndo significa tela de pausa aberta, inclusive depois de recarregar a página.
+    if (focusTimer.phase === "break" && focusTimer.end && !breakDialog.open) showBreak();
     const seconds = Math.ceil(left / 1000);
     const label = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
     if (focusClock.textContent !== label) focusClock.textContent = label;
@@ -831,6 +842,145 @@
     focusStart.textContent = focusTimer.phase === "break" ? "Começar pausa" : focusTimer.end ? "Em foco" : "Começar / retomar";
     focusStart.disabled = !!focusTimer.end; focusPause.disabled = !focusTimer.end;
     focusState.textContent = focusTimer.phase === "study" ? "Uma tarefa de cada vez. Você pode pausar quando precisar." : "Afaste os olhos da tela por alguns instantes, se quiser.";
+    if (breakDialog.open && !breakDone) {
+      if (breakClock.textContent !== label) breakClock.textContent = label;
+      document.title = `Pausa · ${label}`;
+    }
+    trackPresence();
+  }
+  function studyMinutes() { return Math.min(120, Math.max(1, Number(focusDuration.value) || 25)); }
+  function breakMinutes() { return Math.min(30, Math.max(1, Number(breakDuration.value) || 5)); }
+
+  // Tela de pausa: cobre o site quando o estudo termina, com a opção de cancelar o bloqueio.
+  const breakDialog = element("dialog", "", "study-break");
+  breakDialog.setAttribute("aria-labelledby", "study-break-title");
+  const breakCard = element("div", "", "study-break__card");
+  const breakFace = element("span", "", "study-avatar study-break__face");
+  breakFace.setAttribute("aria-hidden", "true");
+  const breakTitle = element("h2", "Hora de uma pausa");
+  breakTitle.id = "study-break-title";
+  const breakText = element("p", "", "study-break__text");
+  breakText.setAttribute("role", "status");
+  const breakClock = element("output", "05:00", "study-break__clock");
+  breakClock.setAttribute("role", "timer");
+  breakClock.setAttribute("aria-live", "off");
+  breakClock.setAttribute("aria-label", "Tempo de pausa restante");
+  const breakTips = element("ul", "", "study-break__tips");
+  for (const tip of ["Afaste os olhos da tela e olhe para longe.", "Levante e alongue os ombros e as costas.", "Beba um pouco de água."]) {
+    breakTips.append(element("li", tip));
+  }
+  const breakCancel = button("Cancelar o bloqueio", cancelBreak, "study-button");
+  const breakBack = button("Voltar a estudar", closeBreak, "study-button study-button--primary");
+  const breakActions = element("div", "", "study-break__actions");
+  breakActions.append(breakCancel, breakBack);
+  breakCard.append(breakFace, breakTitle, breakText, breakClock, breakTips, breakActions);
+  breakDialog.append(breakCard);
+  // Esc não prende ninguém: durante a pausa cancela o bloqueio; depois dela, só fecha.
+  breakDialog.addEventListener("cancel", (event) => { event.preventDefault(); breakDone ? closeBreak() : cancelBreak(); });
+  document.body.append(breakDialog);
+  let breakDone = false;
+  let titleBeforeBreak = document.title;
+  function showBreak() {
+    breakDone = false;
+    titleBeforeBreak = document.title.startsWith("Pausa ·") ? titleBeforeBreak : document.title;
+    breakTitle.textContent = "Hora de uma pausa";
+    breakText.textContent = `${companionName()} guarda o seu lugar. Descanse alguns minutos e volte com a cabeça leve.`;
+    breakClock.hidden = breakTips.hidden = breakCancel.hidden = false;
+    breakBack.hidden = true;
+    paintAvatar(breakFace, selectedMascot(), "celebrating", "portrait");
+    breakFace.hidden = selectedMascot() === "oculto";
+    for (const dialog of document.querySelectorAll(".study-dialog[open]")) dialog.close();
+    if (!breakDialog.open) breakDialog.showModal();
+    breakCancel.focus();
+  }
+  function breakEnded() {
+    breakDone = true;
+    breakTitle.textContent = "Pausa concluída";
+    breakText.textContent = "Quando quiser, volte ao seu caderno. O Foco está pronto para outra sessão.";
+    breakClock.hidden = breakTips.hidden = breakCancel.hidden = true;
+    breakBack.hidden = false;
+    paintAvatar(breakFace, selectedMascot(), "encouraging", "portrait");
+    document.title = titleBeforeBreak;
+    breakBack.focus();
+  }
+  function cancelBreak() {
+    focusTimer = { end: null, remaining: studyMinutes() * 60000, phase: "study" };
+    focusNotice = "";
+    saveFocus();
+    closeBreak();
+    tickFocus();
+    render(currentExpression);
+  }
+  function closeBreak() {
+    breakDone = false;
+    if (breakDialog.open) breakDialog.close();
+    if (document.title.startsWith("Pausa ·")) document.title = titleBeforeBreak;
+  }
+  function startBreak() {
+    const minutes = breakMinutes();
+    focusTimer = { end: Date.now() + minutes * 60000, remaining: minutes * 60000, phase: "break" };
+    saveFocus();
+    tickFocus();
+  }
+
+  // Lembrete de tempo de uso: depois de 50 min seguidos com a aba visível, sugere uma pausa.
+  const presenceKey = "fatec-study.presence.v1";
+  const NUDGE_AFTER = 50 * 60000, AWAY_RESET = 10 * 60000, SNOOZE = 15 * 60000;
+  let presence = { active_ms: 0, last_seen: Date.now(), snooze_until: 0 };
+  try {
+    const cached = JSON.parse(localStorage.getItem(presenceKey));
+    if (cached && Number.isFinite(cached.active_ms) && Number.isFinite(cached.last_seen)) {
+      presence = { active_ms: cached.active_ms, last_seen: cached.last_seen,
+        snooze_until: Number.isFinite(cached.snooze_until) ? cached.snooze_until : 0 };
+    }
+  } catch {}
+  let presenceSaved = 0;
+  const nudgePanel = panel("Que tal uma pausa?");
+  nudgePanel.dialog.classList.add("study-dialog--nudge");
+  const nudgeFace = element("span", "", "study-avatar study-avatar--large");
+  nudgeFace.setAttribute("aria-hidden", "true");
+  const nudgeText = element("p", "", "study-nudge__text");
+  const nudgeLater = button("Agora não", () => nudgePanel.dialog.close());
+  const nudgeBreak = button("", () => {
+    nudgeTakingBreak = true;
+    nudgePanel.dialog.close();
+    startBreak();
+  }, "study-button study-button--primary");
+  const nudgeActions = element("div", "", "study-form-actions study-nudge__actions");
+  nudgeActions.append(nudgeLater, nudgeBreak);
+  const nudgeIntro = element("div", "", "study-nudge");
+  nudgeIntro.append(nudgeFace, nudgeText);
+  nudgePanel.body.append(nudgeIntro, nudgeActions);
+  let nudgeTakingBreak = false;
+  // Fechar sem escolher a pausa (Esc, X ou "Agora não") adia o lembrete.
+  nudgePanel.dialog.addEventListener("close", () => {
+    if (nudgeTakingBreak) presence.active_ms = 0;
+    else presence.snooze_until = Date.now() + SNOOZE;
+    nudgeTakingBreak = false;
+    savePresence(true);
+  });
+  function savePresence(force = false) {
+    if (!force && Date.now() - presenceSaved < 10000) return;
+    presenceSaved = Date.now();
+    try { localStorage.setItem(presenceKey, JSON.stringify(presence)); } catch {}
+  }
+  function trackPresence() {
+    const now = Date.now();
+    const gap = now - presence.last_seen;
+    if (gap > AWAY_RESET || breakDialog.open) presence.active_ms = 0;
+    else if (document.visibilityState === "visible") presence.active_ms += Math.min(gap, 5000);
+    presence.last_seen = now;
+    savePresence();
+    if (presence.active_ms >= NUDGE_AFTER && now >= presence.snooze_until && !focusTimer.end
+      && !breakDialog.open && !nudgePanel.dialog.open && !document.querySelector(".study-dialog[open]")) {
+      const minutes = Math.floor(presence.active_ms / 60000);
+      nudgeText.textContent = `Você está estudando há ${minutes} minutos sem parar. Uma pausa curta ajuda a guardar o que aprendeu.`;
+      nudgeBreak.textContent = `Fazer uma pausa de ${breakMinutes()} min`;
+      paintAvatar(nudgeFace, selectedMascot(), "encouraging", "portrait");
+      nudgeFace.hidden = selectedMascot() === "oculto";
+      nudgePanel.dialog.showModal();
+      nudgeBreak.focus();
+    }
   }
   const focusFields = element("div", "", "study-form study-option-row study-focus-fields");
   addField(focusFields, "Estudo (minutos)", focusDuration);
@@ -951,10 +1101,10 @@
     const end = endOfToday();
     const due = cards.filter((card) => new Date(card.due) <= end);
     const queue = (due.length ? due : cards).map((card) => card.id);
-    cardView = { mode: "study", threadId, queue, index: 0, revealed: false, attempt: "",
+    cardView = { mode: "study", threadId, queue, index: 0, revealed: false, flipped: false,
       total: queue.length, good: new Set(), retry: new Set() };
     renderCards();
-    cardsPanel.body.querySelector('[data-card-action="reveal"]')?.focus();
+    cardsPanel.body.querySelector('[data-card-action="flip"]')?.focus();
   }
   function renderCards() {
     if (!account) {
@@ -1043,42 +1193,48 @@
     const head = element("div", "", "study-flash__head");
     head.append(button("Voltar aos baralhos", () => { cardView = { mode: "home" }; renderCards(); }, "study-link-button"),
       element("span", `${cardView.index + 1} de ${cardView.queue.length}`, "study-flash__progress"));
-    const sheet = element("article", "", "study-flash");
-    sheet.append(element("span", notebookName(cardView.threadId), "study-flash__deck"),
-      element("p", card.frente, "study-flash__front"));
-    const parts = [head, sheet];
-    if (!cardView.revealed) {
-      const attempt = element("textarea", "", "study-flash__attempt");
-      attempt.rows = 2;
-      attempt.maxLength = 500;
-      attempt.placeholder = "Sua tentativa (opcional, fica só aqui)";
-      attempt.setAttribute("aria-label", "Sua tentativa, opcional e não enviada");
-      attempt.value = cardView.attempt;
-      attempt.addEventListener("input", () => { cardView.attempt = attempt.value; });
-      const reveal = button("Mostrar resposta", () => {
-        cardView.revealed = true;
-        renderCards();
-        cardsPanel.body.querySelector(".study-flash__back")?.focus();
-      }, "study-button study-button--primary");
-      reveal.dataset.cardAction = "reveal";
-      parts.push(attempt, reveal);
-    } else {
-      const back = element("p", card.verso, "study-flash__back");
-      back.tabIndex = -1;
-      sheet.append(back);
-      if (cardView.attempt.trim()) sheet.append(element("p", `Sua tentativa: ${cardView.attempt.trim()}`, "study-flash__echo"));
-      const rate = element("div", "", "study-flash__rate");
-      rate.setAttribute("role", "group");
-      rate.setAttribute("aria-label", "Quanto você lembrou?");
-      for (const [id, label, className] of [["again", "Não lembrei", "study-button"], ["hard", "Quase", "study-button"],
-        ["good", "Lembrei", "study-button study-button--primary"]]) {
-        const option = button("", () => rateCurrent(id), className);
-        option.append(element("span", label), element("span", nextLabel(card, id), "study-flash__when"));
-        option.dataset.rating = id;
-        rate.append(option);
-      }
-      parts.push(rate, element("p", "Atalhos: 1, 2 ou 3.", "study-muted study-flash__keys"));
+    // Cartão clássico: a frente traz a pergunta; um clique vira e mostra a resposta no verso.
+    const flip = button("", () => {
+      cardView.flipped = !cardView.flipped;
+      cardView.revealed = true;
+      flip.classList.toggle("is-flipped", cardView.flipped);
+      flip.setAttribute("aria-pressed", String(cardView.flipped));
+      flip.setAttribute("aria-label", cardView.flipped ? "Voltar para a pergunta" : "Virar cartão e ver a resposta");
+      rate.hidden = false;
+      keys.hidden = false;
+      spoken.textContent = cardView.flipped ? `Resposta: ${card.verso}` : `Pergunta: ${card.frente}`;
+    }, "study-flip");
+    flip.dataset.cardAction = "flip";
+    flip.classList.toggle("is-flipped", !!cardView.flipped);
+    flip.setAttribute("aria-pressed", String(!!cardView.flipped));
+    flip.setAttribute("aria-label", cardView.flipped ? "Voltar para a pergunta" : "Virar cartão e ver a resposta");
+    const inner = element("span", "", "study-flip__inner");
+    const front = element("span", "", "study-flip__face study-flip__face--front");
+    front.setAttribute("aria-hidden", "true");
+    front.append(element("span", notebookName(cardView.threadId), "study-flash__deck"),
+      element("span", card.frente, "study-flash__front"), element("span", "Toque para virar", "study-flip__hint"));
+    const back = element("span", "", "study-flip__face study-flip__face--back");
+    back.setAttribute("aria-hidden", "true");
+    back.append(element("span", "Resposta", "study-flash__deck"), element("span", card.verso, "study-flash__back"),
+      element("span", "Toque para voltar à pergunta", "study-flip__hint"));
+    inner.append(front, back);
+    flip.append(inner);
+    // O leitor de tela ouve a pergunta e, ao virar, a resposta.
+    const spoken = element("p", `Pergunta: ${card.frente}`, "study-visually-hidden");
+    spoken.setAttribute("aria-live", "polite");
+    const rate = element("div", "", "study-flash__rate");
+    rate.setAttribute("role", "group");
+    rate.setAttribute("aria-label", "Quanto você lembrou?");
+    rate.hidden = !cardView.revealed;
+    for (const [id, label, className] of [["again", "Não lembrei", "study-button"], ["hard", "Quase", "study-button"],
+      ["good", "Lembrei", "study-button study-button--primary"]]) {
+      const option = button("", () => rateCurrent(id), className);
+      option.append(element("span", label), element("span", nextLabel(card, id), "study-flash__when"));
+      option.dataset.rating = id;
+      rate.append(option);
     }
+    const keys = element("p", "Atalhos: Espaço vira o cartão; 1, 2 ou 3 avaliam.", "study-muted study-flash__keys");
+    const parts = [head, flip, spoken, rate, keys];
     cardsPanel.body.replaceChildren(...parts);
   }
   async function rateCurrent(choice) {
@@ -1097,9 +1253,9 @@
     }
     cardView.index += 1;
     cardView.revealed = false;
-    cardView.attempt = "";
+    cardView.flipped = false;
     renderCards();
-    cardsPanel.body.querySelector('[data-card-action="reveal"], .study-dialog--cards .study-button--primary')?.focus();
+    cardsPanel.body.querySelector('[data-card-action="flip"], .study-dialog--cards .study-button--primary')?.focus();
   }
   function renderDone() {
     const total = cardView.total || 0;
@@ -1112,9 +1268,9 @@
   }
   document.addEventListener("keydown", (event) => {
     if (!cardsPanel.dialog.open || cardView.mode !== "study" || event.target.closest?.("textarea, input")) return;
-    if (!cardView.revealed && event.key === " " && !event.target.closest?.("button")) {
+    if (event.key === " " && !event.target.closest?.("button")) {
       event.preventDefault();
-      cardsPanel.body.querySelector('[data-card-action="reveal"]')?.click();
+      cardsPanel.body.querySelector('[data-card-action="flip"]')?.click();
     } else if (cardView.revealed && ["1", "2", "3"].includes(event.key)) {
       event.preventDefault();
       rateCurrent(["again", "hard", "good"][Number(event.key) - 1]);

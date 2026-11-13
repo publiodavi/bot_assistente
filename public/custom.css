@@ -1740,3 +1740,53 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-materials__content > .study-section + .study-section { padding-top: 1.25rem; border-top: 1px solid hsl(var(--study-border) / .3); }
 .study-materials__content[hidden] { display: none; }
 .escada__fontes { margin: 0; color: hsl(var(--study-muted-text)); font: .75rem / 1.4 var(--study-font-ui); }
+
+/* 42. Tela de pausa (bloqueio), lembrete de uso e flash card que vira. */
+.study-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.study-break {
+  width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 1rem;
+  box-sizing: border-box; border: 0; background: transparent; color: hsl(var(--study-text));
+}
+.study-break[open] { display: grid; place-items: center; }
+.study-break::backdrop {
+  background: linear-gradient(#0c0a12d9, #0c0a12d9), var(--study-scene) center / cover, var(--study-scene-color);
+  backdrop-filter: blur(6px);
+}
+.study-break__card {
+  display: grid; justify-items: center; gap: .875rem; width: min(30rem, 100%); box-sizing: border-box;
+  padding: 2rem 1.75rem 1.75rem; border-radius: var(--study-radius-panel);
+  background: hsl(var(--study-surface)); box-shadow: 0 28px 80px #0006; text-align: center; font-family: var(--study-font-ui);
+}
+.study-break__face { --avatar-size: 5rem; --avatar-scale: .8; }
+.study-break__face[hidden], .study-break [hidden] { display: none; }
+.study-break h2 { margin: 0; font: 600 1.625rem / 1.2 var(--study-font-ui); letter-spacing: -.01em; }
+.study-break__text { margin: 0; max-width: 24rem; color: hsl(var(--study-muted-text)); font-size: .9375rem; line-height: 1.5; }
+.study-break__clock { font: 600 clamp(3.25rem, 14vw, 4.5rem) / 1 var(--study-font-ui); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.study-break__tips { display: grid; gap: .375rem; margin: 0; padding: .875rem 1rem; border-radius: var(--study-radius-card); background: hsl(var(--study-muted)); list-style: none; text-align: start; font-size: .875rem; }
+.study-break__tips li::before { content: "·"; margin-inline-end: .5rem; color: hsl(var(--study-accent)); font-weight: 700; }
+.study-break__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: .25rem; }
+.study-nudge { display: flex; align-items: center; gap: 1rem; }
+.study-nudge__text { margin: 0; font-size: .9375rem; line-height: 1.5; }
+.study-nudge__actions { justify-content: flex-end; }
+.study-dialog--nudge { width: min(28rem, calc(100vw - 1.5rem)); }
+
+.study-flip { display: block; width: 100%; min-height: 12rem; padding: 0; border: 0; background: none; color: inherit; text-align: start; cursor: pointer; perspective: 1200px; }
+.study-flip__inner { display: grid; min-height: inherit; transform-style: preserve-3d; transition: transform .45s cubic-bezier(.2, .7, .2, 1); }
+.study-flip.is-flipped .study-flip__inner { transform: rotateY(180deg); }
+.study-flip__face {
+  grid-area: 1 / 1; display: grid; align-content: center; gap: .75rem; min-height: 12rem; box-sizing: border-box;
+  padding: 1.5rem 1.25rem; border-radius: var(--study-radius-card); background: hsl(var(--study-muted));
+  box-shadow: inset 0 0 0 1px hsl(var(--study-border) / .35); backface-visibility: hidden; overflow-wrap: anywhere;
+}
+.study-flip__face--back { transform: rotateY(180deg); background: color-mix(in srgb, hsl(var(--study-muted)) 82%, hsl(var(--study-accent)) 18%); }
+.study-flip__face .study-flash__back { padding: 0; border: 0; }
+.study-flip__hint { color: hsl(var(--study-muted-text)); font: 500 .75rem / 1.2 var(--study-font-ui); }
+.study-flip:hover .study-flip__face { box-shadow: inset 0 0 0 1px hsl(var(--study-accent) / .6); }
+.study-flash__rate[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .study-flip__inner { transition: none; transform: none !important; }
+  .study-flip__face { backface-visibility: visible; transform: none; }
+  .study-flip:not(.is-flipped) .study-flip__face--back, .study-flip.is-flipped .study-flip__face--front { visibility: hidden; }
+}
+html[data-study-motion="paused"] .study-flip__inner { transition: none; }
+@media (max-width: 36rem) { .study-break__card { padding: 1.5rem 1.125rem 1.25rem; } .study-nudge { align-items: flex-start; } }

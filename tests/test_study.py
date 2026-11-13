@@ -175,6 +175,19 @@ class CardTests(unittest.TestCase):
         self.assertIn("<descoberta>minha ‹b›nota‹/b›</descoberta>", messages[1]["content"])
 
 
+class PromptTests(unittest.TestCase):
+    def test_assunto_novo_ensina_antes_de_perguntar(self):
+        from src.prompts.pedagogical_prompt import MODE_INSTRUCTIONS, SYSTEM_PROMPT, ZDP_INSTRUCTIONS
+        self.assertIn("ENSINE primeiro", SYSTEM_PROMPT)
+        self.assertIn("Não comece perguntando", SYSTEM_PROMPT)
+        self.assertIn("uma única pergunta", SYSTEM_PROMPT)
+        self.assertIn("Não faça perguntas vagas", SYSTEM_PROMPT)
+        # O andaimento continua: com tentativa concreta, nada de solução pronta.
+        self.assertIn("não entregue a solução completa", SYSTEM_PROMPT)
+        self.assertTrue(all("primeiro" in text or "Depois de apresentar" in text for text in ZDP_INSTRUCTIONS.values()))
+        self.assertIn("explicando o que é novo", MODE_INSTRUCTIONS["guia"])
+
+
 class MaterialTests(unittest.TestCase):
     def test_trechos_com_sobreposicao_e_pagina(self):
         from src.rag.indexer import chunk_pages
