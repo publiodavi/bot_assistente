@@ -1826,3 +1826,9 @@ html[data-study-motion="paused"] .study-flip__inner { transition: none; }
 [cmdk-input-wrapper]:focus-within { box-shadow: inset 0 -2px 0 hsl(var(--study-focus)); }
 @media (prefers-reduced-motion: reduce) { [cmdk-input-wrapper] { transition: none; } }
 .study-companion-card__kind:empty { display: none; }
+
+/* 45. Escada desta conversa: título e selo numa linha, detalhes embaixo; nada espremido. */
+.study-ladder__step { display: grid; grid-template-columns: minmax(0, 1fr); gap: .125rem; }
+.study-ladder__step strong { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
+.study-ladder__here { flex: none; white-space: nowrap; line-height: 1.4; padding: .0625rem .5rem; }
+.study-ladder__step > span { color: hsl(var(--study-muted-text)); text-align: start; }

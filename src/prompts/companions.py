@@ -24,12 +24,14 @@ PERSONAS = {
 
 
 DEFAULT_NAMES = {
-    "coruja": "Lumi", "raposa": "Raposa", "robo": "Robô", "harry": "Harry",
+    "coruja": "Eva", "raposa": "Foxi", "robo": "Chappie", "harry": "Harry",
     "hermione": "Hermione", "dumbledore": "Dumbledore", "voldemort": "Voldemort",
     "spiderman": "Homem-Aranha", "miles": "Miles Morales", "batman": "Batman",
     "exterminador": "Exterminador", "mccall": "McCall", "oculto": "Companheiro",
 }
 NICKNAME_LIMIT = 24
+# Nome padrão da Coruja nas primeiras versões; perfis antigos o guardaram como "mascot_name".
+LEGACY_DEFAULT_NAME = "Lumi"
 
 
 def clean_nickname(value):
@@ -45,7 +47,7 @@ def stored_nicknames(stored):
 
     Perfis anteriores guardavam um único "mascot_name". Um nome personalizado
     passa a ser o apelido do personagem que estava selecionado; o antigo "Lumi"
-    padrão é apenas o nome da Coruja e não vira apelido.
+    padrão (hoje "Eva") é apenas o nome da Coruja e não vira apelido.
     """
     saved = stored.get("nicknames")
     nicknames = {}
@@ -56,7 +58,7 @@ def stored_nicknames(stored):
                 nicknames[mascot] = name
     legacy = clean_nickname(stored.get("mascot_name"))
     owner = stored.get("mascot") if stored.get("mascot") in DEFAULT_NAMES else "coruja"
-    if legacy and legacy != DEFAULT_NAMES["coruja"] and owner not in nicknames and "nicknames" not in stored:
+    if legacy and legacy not in (LEGACY_DEFAULT_NAME, DEFAULT_NAMES["coruja"]) and owner not in nicknames and "nicknames" not in stored:
         nicknames[owner] = legacy
     return nicknames
 

@@ -50,7 +50,7 @@ MASCOTS = {
 ZDP_LEVELS = {"Menos dicas": "menos", "Dicas guiadas": "guiadas", "Mais apoio": "mais"}
 DEFAULTS = {
     "theme": "vintage", "appearance": "light", "animations": "enabled",
-    "mascot": "coruja", "mascot_name": "Lumi", "zdp": "guiadas",
+    "mascot": "coruja", "mascot_name": "Eva", "zdp": "guiadas",
     "accent": "1", "scene_intensity": "normal", "text_size": "normal",
 }
 TRAIL_START = "Quero praticar na trilha."

@@ -12,7 +12,7 @@ export default function EscadaDicas() {
   const [ocupado, setOcupado] = useState(false);
   const [convite, setConvite] = useState(false);
   const reveladas = Math.max(abertas, props.reveladas || 0);
-  const nome = props.companheiro || "Lumi";
+  const nome = props.companheiro || "Eva";
 
   async function abrir(nivel) {
     if (ocupado) return;

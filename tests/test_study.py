@@ -40,8 +40,10 @@ class CompanionTests(unittest.TestCase):
     def test_apelido_migra_somente_personagem_anterior(self):
         names = stored_nicknames({"mascot": "harry", "mascot_name": "Meu guia"})
         self.assertEqual(names, {"harry": "Meu guia"})
-        self.assertEqual(companion_names(names)["coruja"], "Lumi")
+        self.assertEqual(companion_names(names)["coruja"], "Eva")
+        self.assertEqual((companion_names({})["raposa"], companion_names({})["robo"]), ("Foxi", "Chappie"))
         self.assertEqual(stored_nicknames({"mascot": "harry", "mascot_name": "Lumi"}), {})
+        self.assertEqual(stored_nicknames({"mascot": "harry", "mascot_name": "Eva"}), {})
 
     def test_limite_controles_e_reset(self):
         self.assertEqual(clean_nickname("  A\x00B  "), "AB")

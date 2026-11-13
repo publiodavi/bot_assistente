@@ -66,7 +66,7 @@
   let confirmed = null;
   let visible = {
     theme: "vintage", appearance: "light", animations: "enabled",
-    mascot: "coruja", mascot_name: "Lumi", zdp: "guiadas",
+    mascot: "coruja", mascot_name: "Eva", zdp: "guiadas",
     accent: "1", scene_intensity: "normal", text_size: "normal",
   };
   // Escolhas ainda não confirmadas pelo servidor (prévia imediata).
@@ -113,7 +113,7 @@
 
   // Nomes resolvidos pelo servidor: apelido do personagem ou nome padrão.
   const defaultNames = {
-    coruja: "Lumi", raposa: "Raposa", robo: "Robô", harry: "Harry", hermione: "Hermione",
+    coruja: "Eva", raposa: "Foxi", robo: "Chappie", harry: "Harry", hermione: "Hermione",
     dumbledore: "Dumbledore", voldemort: "Voldemort", spiderman: "Homem-Aranha",
     miles: "Miles Morales", batman: "Batman", exterminador: "Exterminador", mccall: "McCall", oculto: "Companheiro",
   };

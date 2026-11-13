@@ -21,7 +21,7 @@ A personalização visual e o companheiro de estudos complementam essa orientaç
 - Seis ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo, Cyberpunk, Café Lo-fi e Jardim / Estufa, todos com aparência clara e escura.
 - Troca imediata de tema, aparência e companheiro, preservando a conversa, o rascunho e a posição de leitura.
 - Barra de estudo compacta acima do campo de mensagem, com companheiro, degrau atual (a escada completa abre sob demanda) e o seletor Guia/Aprende.
-- Companheiros com nome próprio (Lumi para a Coruja; os demais pelo nome do personagem) e apelido individual guardado no perfil, além da opção de ocultá-los. Cada resposta mantém o nome de quem a assinou.
+- Companheiros com nome próprio (Eva para a Coruja, Foxi para a Raposa e Chappie para o Robô; os demais pelo nome do personagem) e apelido individual guardado no perfil, além da opção de ocultá-los. Cada resposta mantém o nome de quem a assinou.
 - Painéis de Temas, Companheiros e Perfil com a mesma estrutura; o nível de apoio fica no Perfil e o apelido no painel Companheiros.
 - Animações de ambiente com pausa manual e respeito à preferência de movimento reduzido do sistema.
 - Autenticação Google, perfil por conta e persistência de conversas em PostgreSQL, quando configurados.
