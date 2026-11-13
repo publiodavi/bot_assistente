@@ -1431,7 +1431,7 @@
     ["book", "Materiais", "Envie os PDFs da faculdade (apostilas, livros, listas). O companheiro consulta, cita a página e transforma exercícios em pistas, sem entregar a resposta."],
     ["clock", "Foco, pausas e visual", "O Foco marca sessões de estudo; quando o tempo acaba, a tela entra em pausa, com opção de cancelar. Em Temas e Companheiros você muda o visual e quem estuda com você."],
   ];
-  const tutorialPanel = panel("Como usar o Passo a Passo", "Um passo de cada vez, como nos cadernos.");
+  const tutorialPanel = panel("Como usar o EducAI", "Um passo de cada vez, como nos cadernos.");
   tutorialPanel.dialog.classList.add("study-dialog--tutorial");
   let tutorialIndex = 0;
   function tutorialSeen() {

@@ -1,4 +1,4 @@
-# Passo a Passo
+# EducAI
 
 Assistente de estudos com orientação por etapas, ambientes personalizáveis e histórico de conversas por conta.
 
@@ -6,7 +6,7 @@ Projeto de Trabalho de Graduação do curso de Análise e Desenvolvimento de Sis
 
 ## Proposta
 
-O Passo a Passo utiliza perguntas, dicas graduais e exemplos parciais para ajudar o estudante a desenvolver o próprio raciocínio. A abordagem é inspirada na Zona de Desenvolvimento Proximal de Vygotsky e no conceito de andaimento pedagógico (*scaffolding*).
+O EducAI utiliza perguntas, dicas graduais e exemplos parciais para ajudar o estudante a desenvolver o próprio raciocínio. A abordagem é inspirada na Zona de Desenvolvimento Proximal de Vygotsky e no conceito de andaimento pedagógico (*scaffolding*).
 
 A personalização visual e o companheiro de estudos complementam essa orientação. Seu efeito sobre acolhimento, autonomia e distração é uma hipótese de experiência do usuário a ser avaliada no TCC; a implementação, por si só, não demonstra ganhos de aprendizagem.
 

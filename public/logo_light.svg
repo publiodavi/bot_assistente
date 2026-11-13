@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 56" role="img" aria-label="Passo a Passo">
-  <rect x="2" y="4" width="48" height="48" rx="14" fill="#7e4c31"/>
-  <path d="M13 36h9V26h9V16h9" fill="none" stroke="#fff9ed" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="64" y="36" font-family="Georgia,serif" font-size="27" font-weight="bold" fill="#7e4c31">Passo a Passo</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" role="img" aria-label="EducAI">
+  <rect x="2" y="4" width="48" height="48" rx="13" fill="#7e4c31"/>
+  <g transform="translate(5.5 9) scale(.74)" fill="none" stroke="#fff9ed" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 27C3.6 19.5 8 10.4 16.6 8.2 23 2.8 36.4 2.6 44 7.6c6.8 3.2 9.8 10.4 7.8 17.2-1.4 5-6 8.2-11.4 8.2h-3.4c-.6 3.6-.6 7.4-2.4 9.6-1.4 1.6-3.6 1.4-4.6-.4L27.8 34c-4.2 2-10.2 2.2-14.6-.6C9.8 31.6 7.6 29.6 7 27Z"/><path d="M21.6 7.2c-1.6 3.4.2 6.6 4.2 7.4M37.4 5.8c1.2 3.4-.4 6.8-4 8.2M11.2 15.6c3.2-.2 5.4 1.8 5.4 5M26 19.4c-2 2.2-1.4 5.4 1.8 6.8M44 13.4c-1.2 3.2.2 6.2 3.4 7.4M9.8 25.6c3-.4 5 1.4 5.2 4.2M48 25.2c-3.2 0-5.4 2-5.4 5M33.6 24.6c2.4-1 5 .2 5.6 2.8"/></g>
+  <text x="62" y="37" font-family="Inter, 'Segoe UI', system-ui, sans-serif" font-size="27" font-weight="700" letter-spacing="-.5" fill="#7e4c31">Educ<tspan fill="#c0703f">AI</tspan></text>
 </svg>
