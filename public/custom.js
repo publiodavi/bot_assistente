@@ -1278,8 +1278,9 @@
     renderCards();
     cardsPanel.body.querySelector('[data-card-action="flip"], .study-dialog--cards .study-button--primary')?.focus();
   }
-  function startQueue(threadId, queue) {
-    cardView = { mode: "study", threadId, queue, index: 0, revealed: false, flipped: false, results: new Map() };
+  // "all" guarda o baralho da sessão; revisar só os erros não encolhe o "Tentar todos de novo".
+  function startQueue(threadId, queue, all = queue) {
+    cardView = { mode: "study", threadId, queue, all, index: 0, revealed: false, flipped: false, results: new Map() };
     renderCards();
     cardsPanel.body.querySelector('[data-card-action="flip"]')?.focus();
   }
@@ -1309,9 +1310,9 @@
     const actions = element("div", "", "study-form-actions");
     const threadId = cardView.threadId;
     if (missed.length) {
-      actions.append(button("Revisar os que errei", () => startQueue(threadId, missed.map((card) => card.id)), "study-button study-button--primary"));
+      actions.append(button("Revisar os que errei", () => startQueue(threadId, missed.map((card) => card.id), cardView.all), "study-button study-button--primary"));
     }
-    actions.append(button("Tentar todos de novo", () => startQueue(threadId, [...results.keys()]), missed.length ? "study-button" : "study-button study-button--primary"),
+    actions.append(button("Tentar todos de novo", () => startQueue(threadId, cardView.all || [...results.keys()]), missed.length ? "study-button" : "study-button study-button--primary"),
       button("Voltar aos baralhos", () => { cardView = { mode: "home" }; renderCards(); }, "study-link-button"));
     parts.push(actions, element("p", "Os cartões errados voltam amanhã na Revisão do dia; os certos, mais tarde.", "study-muted"));
     cardsPanel.body.replaceChildren(section("Resultado", ...parts));
