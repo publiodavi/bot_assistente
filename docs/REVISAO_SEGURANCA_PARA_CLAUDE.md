@@ -10,7 +10,7 @@ Não interpretar este relatório como certificação de segurança, teste com es
 
 ## Situação da publicação
 
-As alterações foram implementadas e validadas localmente. O resultado da publicação e das verificações externas será acrescentado ao final deste documento. Não considerar a configuração Google nem o deploy concluídos antes desse registro.
+As correções foram publicadas na Railway nos commits `da5582b` e `0c685ba`. O deploy de código `df4596ab-0fb0-4764-bb59-f556c92e5818` foi marcado como ativo e concluído. O consentimento Google foi colocado em produção, com público externo, e o login foi confirmado com duas contas Google reais. O registro detalhado está ao final deste documento; a atualização deste relatório é posterior aos commits de código.
 
 ## Achados e tratamento
 
@@ -67,13 +67,13 @@ As concessões expiram em 130 s para recuperar processos encerrados abruptamente
 ## Testes executados
 
 1. **46 testes no Windows passaram**, incluindo os 22 anteriores, 17 testes novos de fronteira HTTP/OAuth/payload/PDF e sete testes de integração PostgreSQL. Os testes de banco criam e removem apenas schemas com prefixo `security_test_` e UUID, usando conexão local explicitamente fornecida.
-2. **Imagem Linux**: 39 testes passaram; os testes de PostgreSQL são opt-in e foram exercitados separadamente. A última execução no Linux será registrada após reconstruir a imagem final. A integração de banco foi executada separadamente no Windows, sem ignorar esses sete.
+2. **Imagem Linux final**: 46 testes descobertos, 39 passaram e sete de integração PostgreSQL foram ignorados explicitamente por ausência de `STUDY_TEST_DATABASE_URL`. Os sete foram executados e passaram no Windows com PostgreSQL local, sem ignorá-los.
 3. **HTTP e WebSocket em Docker, com PostgreSQL descartável e IA simulada**: duas contas fictícias criaram respostas em streaming persistidas; acesso ao histórico de outra conta recebeu 401. Foram exercitados temas, aparência, companheiro, perfil, Fichário, modo aprendiz, flash cards, Escada, feedback, renomeação, edição e anexos nativos.
 4. **PDF com texto real em Docker**: extração no subprocesso, indexação, consulta com fontes na resposta e exclusão legítima passaram. Exclusão pela outra conta retornou 404.
 5. **Cópia e restauração**: contas e mensagens fictícias foram restauradas em schema vazio; a tentativa de restaurar em schema já ocupado foi recusada. A imagem com o comando real de produção criou a cópia anterior à migração e respondeu 200 no login, 401 nas áreas protegidas, com cabeçalhos aplicados.
 6. **Verificações estáticas**: `compileall`, `node --check public/custom.js`, `git diff --check` e `pip check`.
 
-O provedor simulado foi usado somente em uma instância local, com credenciais fictícias. A imagem publicada não contém rotas de login de teste nem provedor simulado: o harness está em `.local/`, excluído pelo `.dockerignore` e pelo Git. O teste não comprova comportamento de respostas da DeepSeek real nem login de duas pessoas reais.
+O provedor simulado foi usado somente em uma instância local, com credenciais fictícias. A imagem publicada não contém rotas de login de teste nem provedor simulado: o harness está em `.local/`, excluído pelo `.dockerignore` e pelo Git. Esse teste simulado não comprova o comportamento de respostas da DeepSeek real. O login de duas contas Google reais foi verificado separadamente no deploy, conforme o registro abaixo.
 
 ## Dependências e segredos
 
@@ -113,3 +113,22 @@ Foram examinados 146 objetos de texto do histórico Git por padrões de chaves d
 Revise o diff contra `6ee9470` e este relatório. Priorize autorização de objetos, atomicidade SQL, compatibilidade do adaptador com Chainlit 2.12.0, cancelamento/liberação de concessões, limites antes do parser, encerramento do subprocesso, consistência/recuperação do índice e restauração das cópias. Procure regressões nas funcionalidades existentes e diferenças entre as afirmações e os testes.
 
 Preserve a stack Python + Chainlit + DeepSeek, a orientação pedagógica e os dados. Não exponha credenciais, não execute testes destrutivos em produção e não substitua o framework como parte desta revisão. Questione explicitamente decisões de risco residual e proponha correções pontuais com evidência, sem assumir que a revisão anterior está correta.
+
+
+## Registro externo após a publicação
+
+- Railway confirmou o deploy de código `0c685ba` como ativo. Seus logs mostraram a aplicação das migrações 001 a 004 e a inicialização normal do Chainlit.
+- Os logs da primeira implantação desta revisão, `87208c3b-21bb-4914-ac88-64e43148fa84`, registraram **“Cópia de recuperação anterior à migração 004 concluída no volume privado.”** antes das migrações. A restauração real dessa cópia de produção não foi executada; a restauração foi validada com dados fictícios.
+- Consultas públicas ao site confirmaram: `/login` e `/public/privacy.html` em 200; `/study/materials` e `/project/settings` em 401 sem autenticação; HSTS e `X-Frame-Options: DENY`; callback Google com o endereço HTTPS exato; cookie OAuth com `HttpOnly`, `SameSite=Lax` e `Secure`.
+- No Google Cloud, o nome exibido foi atualizado para AjudAI; página inicial e aviso de privacidade foram configurados. O público é Externo e o status passou de Testando para **Em produção**. Não foram acrescentados escopos de acesso, logotipo ou novos segredos.
+- No navegador do responsável, uma segunda conta Google já disponível entrou com sucesso, recebeu `login/callback?success=True` e abriu a interface autenticada com seu próprio perfil. Depois foi realizado logout e login com a conta principal, também com sucesso. Não foi necessário digitar nem alterar senhas.
+- As duas contas exibiam a lista de cadernos vazia na produção. Por isso, o isolamento de histórico preenchido foi comprovado no ambiente fictício, não com conversas reais dessas contas. Nenhuma conversa real foi excluída ou criada para esse teste de login.
+- Evidências locais privadas: `.local/security-evidence/google-production.jpg` e `.local/security-evidence/second-account-login.jpg`. Os arquivos não são publicados no Git nem na imagem.
+
+## Pendências e observações para o revisor
+
+- Fazer uma nova rodada com a DeepSeek real, se desejado, distinguindo-a dos testes simulados documentados.
+- Manter cópia externa do PostgreSQL e do volume: a cópia privada adicionada não protege contra exclusão/perda do próprio volume.
+- A política de convites, quando usada no futuro, atua no callback de novos logins. Tokens JWT já emitidos seguem o modelo de expiração do Chainlit; não foi criada uma lista de revogação imediata de sessões. O modo publicado é público.
+- O aviso do Chainlit sobre ausência de blob storage já existia: anexos nativos não passam a ter persistência permanente nesta revisão. A Escada é recomposta pelos metadados das mensagens, e os materiais do painel utilizam PostgreSQL mais o volume Chroma.
+- Rever o adaptador antes de atualizar o Chainlit: ele envolve interfaces internas da versão fixada 2.12.0. Os testes de integração são necessários em futuras atualizações.
