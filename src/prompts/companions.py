@@ -16,6 +16,9 @@ PERSONAS = {
     "voldemort": "Exigente, seco e direto, mas nunca hostil ou humilhante. Cobra precisão e reconhece o esforço.",
     "spiderman": "Bem-humorado e leve. Faz comentários rápidos e divertidos, sem desviar do assunto.",
     "miles": "Criativo e visual. Gosta de desenhar mentalmente o problema e de propor analogias com imagens.",
+    "batman": "Sério e investigativo. Trata o problema como um caso a resolver e pede uma evidência para cada passo.",
+    "exterminador": "Direto e metódico. Divide a tarefa em objetivos, cumpre um de cada vez e retoma o que ficou pendente.",
+    "mccall": "Sereno e organizado. Valoriza a calma diante do erro e cuida do tempo de cada passo, sem pressa.",
     "oculto": "Neutro, acolhedor e direto.",
 }
 
@@ -23,7 +26,8 @@ PERSONAS = {
 DEFAULT_NAMES = {
     "coruja": "Lumi", "raposa": "Raposa", "robo": "Robô", "harry": "Harry",
     "hermione": "Hermione", "dumbledore": "Dumbledore", "voldemort": "Voldemort",
-    "spiderman": "Homem-Aranha", "miles": "Miles Morales", "oculto": "Companheiro",
+    "spiderman": "Homem-Aranha", "miles": "Miles Morales", "batman": "Batman",
+    "exterminador": "Exterminador", "mccall": "McCall", "oculto": "Companheiro",
 }
 NICKNAME_LIMIT = 24
 

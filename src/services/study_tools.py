@@ -85,7 +85,8 @@ def validate_avatar(value):
     if kind == "illustration":
         identifier = value.get("id")
         allowed = {f"student-{i}" for i in range(1, 9)} | {
-            "coruja", "raposa", "robo", "harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles"}
+            "coruja", "raposa", "robo", "harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles",
+            "batman", "exterminador", "mccall"}
         if identifier not in allowed:
             raise ValueError("Ilustração inválida.")
         return {"kind": kind, "id": identifier}

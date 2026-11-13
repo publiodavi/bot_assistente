@@ -1818,3 +1818,11 @@ html[data-study-motion="paused"] .study-flip__inner { transition: none; }
 .study-tutorial__dot[aria-current="step"] { width: 1.5rem; border-radius: 999px; background: hsl(var(--study-accent)); }
 .study-welcome .study-tutorial-link { display: block; margin-top: .375rem; }
 @media (max-width: 36rem) { .study-tutorial__dots { display: none; } .study-tutorial__step { min-height: 12rem; } }
+
+/* 44. Busca de cadernos: o foco fica dentro da caixa, como uma linha na base. */
+[cmdk-input]:focus-visible { outline: none; }
+[cmdk-input-wrapper] input[cmdk-input] { height: 2.75rem; font: 400 .9375rem / 1.4 var(--study-font-ui); }
+[cmdk-input-wrapper] { transition: box-shadow .15s; }
+[cmdk-input-wrapper]:focus-within { box-shadow: inset 0 -2px 0 hsl(var(--study-focus)); }
+@media (prefers-reduced-motion: reduce) { [cmdk-input-wrapper] { transition: none; } }
+.study-companion-card__kind:empty { display: none; }

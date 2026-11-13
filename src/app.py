@@ -44,7 +44,8 @@ THEMES = {
 MASCOTS = {
     "Coruja": "coruja", "Raposa": "raposa", "Robô": "robo", "Harry": "harry",
     "Hermione": "hermione", "Dumbledore": "dumbledore", "Voldemort": "voldemort",
-    "Homem-Aranha": "spiderman", "Miles Morales": "miles", "Oculto": "oculto",
+    "Homem-Aranha": "spiderman", "Miles Morales": "miles", "Batman": "batman",
+    "Exterminador": "exterminador", "O Protetor": "mccall", "Oculto": "oculto",
 }
 ZDP_LEVELS = {"Menos dicas": "menos", "Dicas guiadas": "guiadas", "Mais apoio": "mais"}
 DEFAULTS = {

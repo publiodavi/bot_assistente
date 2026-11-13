@@ -8,7 +8,7 @@
   const root = document.documentElement;
   root.lang = "pt-BR";
   const themes = new Set(["vintage", "castelo", "aracnideo", "cyberpunk", "cafe", "jardim"]);
-  const characterIds = new Set(["harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles"]);
+  const characterIds = new Set(["harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles", "batman", "exterminador", "mccall"]);
   const mascots = new Set(["coruja", "raposa", "robo", "oculto", ...characterIds]);
   const levels = new Set(["menos", "guiadas", "mais"]);
   const statuses = {
@@ -115,12 +115,12 @@
   const defaultNames = {
     coruja: "Lumi", raposa: "Raposa", robo: "Robô", harry: "Harry", hermione: "Hermione",
     dumbledore: "Dumbledore", voldemort: "Voldemort", spiderman: "Homem-Aranha",
-    miles: "Miles Morales", oculto: "Companheiro",
+    miles: "Miles Morales", batman: "Batman", exterminador: "Exterminador", mccall: "McCall", oculto: "Companheiro",
   };
   const kinds = {
     coruja: "Coruja", raposa: "Raposa", robo: "Robô", harry: "Harry", hermione: "Hermione",
     dumbledore: "Dumbledore", voldemort: "Voldemort", spiderman: "Homem-Aranha",
-    miles: "Miles Morales", oculto: "Oculto",
+    miles: "Miles Morales", batman: "Batman", exterminador: "Exterminador", mccall: "O Protetor", oculto: "Oculto",
   };
   let companionNames = { ...defaultNames };
   let authors = {};
@@ -448,8 +448,10 @@
       const kind = card.querySelector(".study-companion-card__kind");
       const display = companionNames[id] || defaultNames[id];
       if (label.textContent !== display) label.textContent = display;
-      const kindText = display === kinds[id] ? "" : kinds[id];
-      if (kind.textContent !== kindText) kind.textContent = kindText;
+      // Só o nome no cartão; o personagem original continua no rótulo acessível e na dica.
+      if (kind.textContent) kind.textContent = "";
+      const described = display === kinds[id] || id === "oculto" ? display : `${display}, ${kinds[id]}`;
+      if (card.getAttribute("aria-label") !== described) { card.setAttribute("aria-label", described); card.title = described; }
     }
     paintAvatar(nicknameAvatar, mascot);
     nicknameForm.hidden = mascot === "oculto";

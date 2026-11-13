@@ -125,7 +125,8 @@ class AssetTests(unittest.TestCase):
         root = ET.parse(base / "characters/sprite.svg").getroot()
         ids = [node.attrib["id"] for node in root.iter() if "id" in node.attrib]
         self.assertEqual(len(ids), len(set(ids)))
-        for character in ("harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles", "coruja", "raposa", "robo"):
+        for character in ("harry", "hermione", "dumbledore", "voldemort", "spiderman", "miles", "coruja", "raposa", "robo",
+                          "batman", "exterminador", "mccall"):
             for expression in ("idle", "thinking", "encouraging", "celebrating", "unlocked"):
                 for pose in ("portrait", "full"):
                     self.assertIn(f"{character}-{pose}-{expression}", ids)
