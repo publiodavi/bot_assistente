@@ -105,6 +105,7 @@ No Linux e no macOS, utilize `.venv/bin/python` e `cp .env.example .env` nos com
    psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/001_study.sql
    psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/002_chainlit_2_12_columns.sql
    psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/003_cards_materials.sql
+   psql -h localhost -U seu_usuario -d passo_a_passo -v ON_ERROR_STOP=1 -f migrations/004_security_usage.sql
    ```
 
    A segunda migração acrescenta a coluna `autoCollapse`, exigida pelo Chainlit 2.12.0. Sem ela, as respostas enviadas pelo campo de mensagem não reaparecem quando a conversa é retomada. A terceira cria as tabelas dos flash cards e dos materiais enviados. Todas podem ser executadas novamente sem apagar dados.
@@ -138,7 +139,7 @@ Referências de configuração: [OAuth no Chainlit](https://docs.chainlit.io/aut
 
 ## Publicação na web
 
-O projeto inclui um `Dockerfile` e o script `scripts/migrate.py`, que aplica as migrações a cada início. O passo a passo para publicar no Railway, com PostgreSQL, volume para os materiais e login Google, está em [docs/PUBLICAR.md](docs/PUBLICAR.md). A variável opcional `STUDY_ALLOWED_EMAILS` limita o acesso aos e-mails convidados.
+O projeto inclui um `Dockerfile` e o script `scripts/migrate.py`, que aplica as migrações a cada início. O passo a passo para publicar no Railway, com PostgreSQL, volume para os materiais e login Google, está em [docs/PUBLICAR.md](docs/PUBLICAR.md). A imagem Docker permite contas Google verificadas com `STUDY_ACCESS_MODE=public`; para restringir convidados, use `invited` e `STUDY_ALLOWED_EMAILS`. As proteções e limites estão descritos no guia de publicação.
 
 ## Estrutura do repositório
 

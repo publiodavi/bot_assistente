@@ -25,6 +25,8 @@ from src.services.cards import COUNTS, RATINGS, deck_summary, parse_deck, rate_c
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
 from src.services.llm_client import ConfigurationError, complete_json, stream_reply
+from src.security import MAX_MESSAGE_CHARS
+from src.security_limits import UsageLimit
 from src.services.study_tools import clean_text, note_update, review_done, review_note, validate_avatar
 from src.study_accounts import (
     advance_trail, all_decks, configure_accounts, deck_data, profile_data, recent_notebooks, record_reveal,
@@ -717,6 +719,12 @@ async def finish_turn(state, turn):
 @cl.on_message
 async def on_message(message: cl.Message):
     state = study_session()
+    if not message or not isinstance(message.content, str) or len(message.content) > MAX_MESSAGE_CHARS:
+        await cl.Message(content="Escreva uma mensagem de até 20.000 caracteres.").send()
+        return
+    if state["turn"] and state["turn"] is not asyncio.current_task():
+        await cl.Message(content="Espere a resposta atual terminar.").send()
+        return
     if message.content.strip() == TRAIL_START:
         await start_trail(state)
         return
@@ -802,7 +810,7 @@ async def on_message(message: cl.Message):
             await express(state, "celebrating", seconds=4)
         else:
             await publish_state(state)
-    except ConfigurationError as exc:
+    except (ConfigurationError, UsageLimit) as exc:
         await cl.Message(content=str(exc), author=companion).send()
     except Exception:
         logger.exception("Erro ao gerar a resposta")
@@ -817,6 +825,8 @@ async def on_message(message: cl.Message):
 MATERIAL_INDEX = MaterialIndex()
 MAX_MATERIAL_BYTES = 25 * 1024 * 1024
 _material_tasks = set()
+_index_slot = asyncio.Semaphore(1)
+_material_admissions = 0
 
 
 async def material_sources(state, profile, question):
@@ -845,25 +855,31 @@ def material_name(filename):
     return name[:80] or "Material sem nome"
 
 
-async def index_material(user_id, material_id, name, content):
-    """Extrai e indexa fora do laço de eventos; o PDF existe só na memória durante o processo."""
-    import io
+async def index_material(user_id, material_id, name, path):
+    """Fila limitada; arquivo temporário removido mesmo após erro ou cancelamento."""
+    from pathlib import Path
+    from src.rag.safe_extract import extract_isolated
 
     try:
-        pages = await asyncio.to_thread(extract_pages, io.BytesIO(content))
-        chunks = chunk_pages(pages)
-        if not chunks:
-            raise ValueError("Não foi possível ler o texto do PDF.")
-        await asyncio.to_thread(MATERIAL_INDEX.add, user_id, material_id, name, chunks)
-        if not await finish_material(DATA_LAYER, user_id, material_id, "ready", len(pages), len(chunks)):
-            # Removido enquanto processava: os trechos também saem do índice.
-            await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
+        async with _index_slot:
+            # A remoção na fila evita trabalho e índices de materiais já excluídos.
+            if not any(item["id"] == material_id for item in await list_materials(DATA_LAYER, user_id)):
+                return
+            pages, chunks = await extract_isolated(path)
+            if not chunks:
+                raise ValueError("Não foi possível ler o texto do PDF.")
+            await asyncio.to_thread(MATERIAL_INDEX.add, user_id, material_id, name, chunks)
+            if not await finish_material(DATA_LAYER, user_id, material_id, "ready", pages, len(chunks)):
+                await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
     except ValueError as exc:
+        await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
         await finish_material(DATA_LAYER, user_id, material_id, "error", error=str(exc)[:200])
     except Exception:
         logger.exception("Erro ao indexar material")
         await asyncio.to_thread(MATERIAL_INDEX.remove, user_id, material_id)
         await finish_material(DATA_LAYER, user_id, material_id, "error", error="Não foi possível processar o PDF.")
+    finally:
+        Path(path).unlink(missing_ok=True)
 
 
 def install_material_routes():
@@ -885,20 +901,51 @@ def install_material_routes():
 
     @router.post("/study/materials")
     async def upload_material(file: UploadFile, user=Depends(get_current_user)):
+        global _material_admissions
+        import tempfile
+        from pathlib import Path
         user_id = account(user)
-        content = await file.read(MAX_MATERIAL_BYTES + 1)
+        name = material_name(file.filename)
+        try:
+            content = await file.read(MAX_MATERIAL_BYTES + 1)
+        finally:
+            await file.close()
         if len(content) > MAX_MATERIAL_BYTES:
             raise HTTPException(status_code=413, detail="O arquivo passa de 25 MB.")
         if not content.startswith(b"%PDF-"):
             raise HTTPException(status_code=415, detail="Envie um arquivo PDF.")
         material_id = str(uuid4())
+        if _material_admissions >= 8:
+            raise HTTPException(status_code=429, detail="Há muitos materiais na fila. Tente novamente em instantes.")
+        _material_admissions += 1
         try:
-            await create_material(DATA_LAYER, user_id, material_id, material_name(file.filename))
+            from src.security_limits import usage
+            async with usage("upload", account_id=user_id):
+                await create_material(DATA_LAYER, user_id, material_id, name)
         except ValueError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        task = asyncio.create_task(index_material(user_id, material_id, material_name(file.filename), content))
+            _material_admissions -= 1
+            raise HTTPException(status_code=429 if isinstance(exc, UsageLimit) else 409, detail=str(exc)) from None
+        except BaseException:
+            _material_admissions -= 1
+            raise
+        path = None
+        try:
+            with tempfile.NamedTemporaryFile(prefix="ajudai-pdf-", suffix=".pdf", delete=False) as temporary:
+                path = temporary.name
+                temporary.write(content)
+            task = asyncio.create_task(index_material(user_id, material_id, name, path))
+        except Exception:
+            _material_admissions -= 1
+            if path:
+                Path(path).unlink(missing_ok=True)
+            await finish_material(DATA_LAYER, user_id, material_id, "error", error="Não foi possível receber o PDF.")
+            raise HTTPException(503, "Não foi possível receber o PDF. Tente novamente.") from None
         _material_tasks.add(task)
-        task.add_done_callback(_material_tasks.discard)
+        def completed(task):
+            global _material_admissions
+            _material_admissions -= 1
+            _material_tasks.discard(task)
+        task.add_done_callback(completed)
         return JSONResponse({"id": material_id}, status_code=202)
 
     @router.delete("/study/materials/{material_id}")
@@ -924,10 +971,24 @@ if DATA_LAYER:
     # carregamento ele altera sys.path, e uma importação paralela do chromadb falhava.
     @cl.on_app_startup
     async def warm_up_index():
+        from sqlalchemy import text
+        # O deploy usa uma única instância com volume local. Trabalhos anteriores
+        # não sobrevivem ao processo; tornam-se erros recuperáveis pela interface.
+        async with DATA_LAYER.engine.begin() as connection:
+            interrupted = (await connection.execute(text("""
+                UPDATE study_materials SET status='error', error='Processamento interrompido. Envie o material novamente.'
+                WHERE status='processing' RETURNING id, user_id
+            """))).all()
         async def warm():
             try:
+                for item in interrupted:
+                    await asyncio.to_thread(MATERIAL_INDEX.remove, str(item.user_id), str(item.id))
                 await asyncio.to_thread(MATERIAL_INDEX.warm_up)
             except Exception:
                 logger.exception("Não foi possível preparar o índice de materiais")
 
         _material_tasks.add(asyncio.create_task(warm()))
+
+
+from src.security_chainlit import install_security
+install_security()

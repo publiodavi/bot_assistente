@@ -28,9 +28,10 @@ Em **Variables**, adicione:
 | `CHAINLIT_AUTH_SECRET` | um segredo **novo**: rode `.venv\Scripts\python -m chainlit create-secret` no seu PC e copie o valor |
 | `CHAINLIT_URL` | o endereço do passo 4, por exemplo `https://ajudai.up.railway.app` |
 | `STUDY_CHROMA_DIR` | `/data/chroma` |
-| `STUDY_ALLOWED_EMAILS` | o seu e-mail e o do seu amigo, separados por vírgula |
+| `STUDY_ACCESS_MODE` | `public` para qualquer conta Google verificada; `invited` para convidados |
+| `STUDY_ALLOWED_EMAILS` | deixar vazio no modo público; no modo `invited`, e-mails separados por vírgula |
 
-`STUDY_ALLOWED_EMAILS` garante que só vocês entrem, e assim ninguém mais gasta os créditos da DeepSeek. Para liberar para qualquer conta Google, deixe vazio.
+A imagem Docker usa `STUDY_ACCESS_MODE=public`. Nesse modo, uma lista antiga em `STUDY_ALLOWED_EMAILS` não bloqueia outras contas. Para restringir o acesso, configure explicitamente `STUDY_ACCESS_MODE=invited` e preencha a lista. Limites por conta reduzem o abuso, mas não estabelecem um teto financeiro global.
 
 ## 4. Endereço do site
 
@@ -44,7 +45,7 @@ No [Google Cloud Console](https://console.cloud.google.com), dentro do projeto u
 2. Em **URIs de redirecionamento autorizados**, adicione `https://<nome>.up.railway.app/auth/oauth/google/callback`. Mantenha o endereço local, se quiser continuar testando no PC.
 3. **Tela de consentimento OAuth** (em algumas versões, "Público-alvo"):
    - status **Em teste**: adicione o e-mail do seu amigo em **Usuários de teste**, porque só esses e-mails conseguem entrar;
-   - status **Em produção**: qualquer conta Google consegue chegar ao app. Mesmo assim, o `STUDY_ALLOWED_EMAILS` continua filtrando.
+   - status **Em produção**: qualquer conta Google consegue chegar ao app. No modo `invited`, a lista `STUDY_ALLOWED_EMAILS` continua filtrando; no modo `public`, qualquer conta Google com e-mail verificado pode entrar.
 
 ## 6. Primeiro acesso
 
@@ -64,3 +65,20 @@ Cada `git push` para a branch `main` gera uma versão nova, em poucos minutos. O
 
 - O teste dá US$ 5 por 30 dias. Depois disso, o plano **Hobby** custa US$ 5/mês, já com US$ 5 de uso incluídos. O plano Free (0,5 GB) não comporta a busca nos materiais.
 - A DeepSeek cobra por uso; confira o saldo no painel dela.
+
+
+## Segurança e recuperação
+
+A imagem exige autenticação Google, banco, chave DeepSeek, segredo de sessão de pelo menos 32 caracteres e `CHAINLIT_URL` HTTPS em produção. Não use um comando de início personalizado que pule os passos do Dockerfile. O modo demonstração continua disponível no desenvolvimento local.
+
+Antes da primeira migração 004, o início faz uma cópia consistente das tabelas do app em `/data/backups/security-before-004/database` e copia o índice Chroma para a mesma pasta, quando existente. Uma falha interrompe o início antes das migrações. O arquivo `complete` indica conclusão. A cópia fica privada no volume; não substitui backup externo e não cobre perda do próprio volume. Não remova o volume durante publicação ou reversão.
+
+A restauração usa `src.services.backups.restore_database(connection, caminho_database)` em um schema **vazio**, com a mesma versão principal do PostgreSQL. Teste em banco separado antes de recuperar produção. O índice copiado deve ser restaurado com o app parado e com versão compatível do ChromaDB. Não há restauração automática nem exclusão de dados existentes.
+
+O deploy com Chroma local e fila de PDFs usa uma única réplica. Ao reiniciar, materiais interrompidos ficam com erro recuperável; cadernos e materiais prontos permanecem preservados.
+
+Limites: arquivos de 25 MiB, corpo multipart de 30 MiB, 20 anexos/100 MiB por sessão, 20 materiais por conta, até 400 páginas, 2 milhões de caracteres, 3.000 trechos e 60 segundos de extração por PDF. A fila admite até oito materiais por instância e três em processamento/fila por conta. No Linux, o processo de extração também recebe limite de 512 MiB de espaço de endereçamento.
+
+Chat: 20.000 caracteres por mensagem, uma geração simultânea por conta, 10 por minuto, 8.192 tokens de saída e prazo total de 120 segundos. Cartões: uma geração simultânea e cinco a cada dez minutos. Uploads: uma admissão simultânea e 20 por minuto. Operações excedentes recebem orientação para aguardar. O histórico armazenado não é truncado.
+
+O domínio permitido é derivado de `CHAINLIT_URL`; não acrescente `/login` nem o callback nessa variável. Cookies recebem `Secure` em produção. CSP permanece apenas em modo de relatório, enquanto `nosniff`, proteção contra enquadramento e HSTS já são aplicados.

@@ -20,7 +20,7 @@ persist_user_env = false
 mask_user_env = false
 
 # Authorized origins
-allow_origins = ["*"]
+allow_origins = ["http://localhost:8103", "http://127.0.0.1:8103"]
 
 [features]
 # Process and display HTML in messages. This can be a security risk (see https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
@@ -68,7 +68,7 @@ reaction_on_message_received = false
     # Note: Using "*/*" is not recommended as it may cause browser warnings
     accept = ["*/*"]
     max_files = 20
-    max_size_mb = 500
+    max_size_mb = 25
 
 [features.audio]
     # Enable audio features

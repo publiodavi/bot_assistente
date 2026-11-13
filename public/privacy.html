@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacidade — AjudAI</title>
+<style>body{max-width:760px;margin:48px auto;padding:0 24px;font:18px/1.65 system-ui,sans-serif;color:#292521;background:#faf8f3}h1,h2{line-height:1.2}a{color:#754226}small{color:#5d574f}</style>
+<main>
+<h1>Privacidade no AjudAI</h1>
+<p>O AjudAI é um protótipo acadêmico de assistência aos estudos, desenvolvido por Davi Públio para o Trabalho de Graduação da Fatec Guarulhos. Este aviso descreve o funcionamento atual do serviço.</p>
+<h2>Conta e informações de estudo</h2>
+<p>O login utiliza o Google. O aplicativo consulta o identificador da conta, o nome e o e-mail verificado para autenticar o acesso. Ele não recebe a senha do Google. O identificador técnico distingue as contas; nome de exibição e preferências podem ser armazenados no perfil.</p>
+<p>Conversas, preferências, descobertas do Fichário, revisões, flash cards e metadados dos materiais são guardados em PostgreSQL na Railway. O índice de texto dos materiais fica no volume privado do serviço. Esses dados permitem retomar os estudos e personalizar o aplicativo.</p>
+<h2>Inteligência artificial e materiais</h2>
+<p>Para gerar respostas, o aplicativo envia à API DeepSeek a pergunta, o contexto da conversa e informações do perfil usadas na orientação, como o nome escolhido e as preferências de apoio. Quando a consulta aos materiais está ativada, até três trechos selecionados dos seus PDFs também podem ser enviados. A geração de flash cards utiliza o conteúdo da conversa e, quando disponível, a descoberta registrada.</p>
+<p>O PDF do painel Materiais é recebido temporariamente e descartado após o processamento. O texto extraído permanece indexado para consulta até a remoção do material. Anexos enviados diretamente no chat podem permanecer temporariamente no serviço durante a sessão. Não envie documentos confidenciais, senhas ou dados pessoais de terceiros.</p>
+<p>Google, Railway e DeepSeek operam seus próprios serviços e políticas. O envio de conteúdo à DeepSeek faz parte da geração das respostas; o AjudAI não controla os procedimentos internos desses provedores.</p>
+<h2>Armazenamento no navegador</h2>
+<p>Cookies mantêm a sessão autenticada e verificam o retorno do login. O navegador também guarda preferências de interface, estado do foco e informações do tutorial. Algumas preferências permanecem no dispositivo após sair da conta. Em dispositivos compartilhados, encerre a sessão e remova os dados do site quando necessário.</p>
+<h2>Remoção e cópias de recuperação</h2>
+<p>A interface permite excluir conversas e materiais. Uma descoberta do Fichário pode permanecer após a exclusão do caderno de origem. Não há prazo automático de expiração para todos os dados armazenados. Cópias privadas de recuperação podem conservar dados anteriores à exclusão; a exclusão da interface não apaga imediatamente essas cópias.</p>
+<p>Para solicitar esclarecimentos ou remoção de dados da conta que não possam ser gerenciados na interface, entre em contato com <a href="mailto:davipublio05@gmail.com">davipublio05@gmail.com</a>. Identifique a conta Google utilizada, sem enviar senha nem códigos de acesso.</p>
+<p>Respostas da IA podem conter erros. A existência de proteções técnicas não representa garantia de segurança absoluta nem validação de resultados de aprendizagem.</p>
+<p><a href="/">Voltar ao AjudAI</a></p>
+<small>Atualizado em 13 de novembro de 2026.</small>
+</main>
+</html>

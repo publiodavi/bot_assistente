@@ -1,6 +1,26 @@
 (() => {
   "use strict";
 
+  const loginIssue = new URLSearchParams(window.location.search).get("study_error");
+  const loginMessages = {
+    account_not_invited: "Esta conta ainda não está na lista de convidados. Peça ao responsável para liberar o acesso.",
+    email_not_verified: "O Google não confirmou o e-mail desta conta. Verifique sua conta Google e tente novamente.",
+  };
+  if (window.location.pathname === "/login" && loginMessages[loginIssue]) {
+    const showLoginIssue = () => {
+      if (document.getElementById("study-login-issue")) return;
+      const note = document.createElement("p");
+      note.id = "study-login-issue";
+      note.setAttribute("role", "alert");
+      note.textContent = loginMessages[loginIssue];
+      Object.assign(note.style, { position: "fixed", bottom: "24px", left: "5%", width: "90%",
+        padding: "16px", borderRadius: "12px", background: "#fff4e5", color: "#512d00", zIndex: "9999" });
+      document.body.append(note);
+    };
+    if (document.body) showLoginIssue();
+    else document.addEventListener("DOMContentLoaded", showLoginIssue, { once: true });
+  }
+
   if (document.getElementById("study-ambient")) return;
   const channel = "fatec-study";
   const storageKey = "fatec-study.preferences.v3";

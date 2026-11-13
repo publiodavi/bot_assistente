@@ -5,8 +5,10 @@ import sys
 from pathlib import Path
 
 import asyncpg
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT / ".env")
 
 
 async def main():

@@ -1,12 +1,15 @@
 """Conta Google e armazenamento das preferências do estudante."""
 import json
 import os
+import logging
 from uuid import UUID
 
 import chainlit as cl
 
 
 def configure_accounts():
+    from src.security import validate_production
+    validate_production()
     keys = ("OAUTH_GOOGLE_CLIENT_ID", "OAUTH_GOOGLE_CLIENT_SECRET",
             "CHAINLIT_AUTH_SECRET", "DATABASE_URL")
     values = {key: os.getenv(key, "").strip() for key in keys}
@@ -19,14 +22,7 @@ def configure_accounts():
     if missing:
         raise RuntimeError("Configure as variáveis de conta e histórico: " + ", ".join(missing))
 
-    from chainlit.data.sql_alchemy import SQLAlchemyDataLayer
-    from chainlit.utils import utc_now
-
-    class StudyDataLayer(SQLAlchemyDataLayer):
-        # No Chainlit 2.12.0, usuários e conversas recebem a hora local com o
-        # sufixo "Z". Fora de UTC, o histórico mostrava datas deslocadas.
-        async def get_current_timestamp(self):
-            return utc_now()
+    from src.security_data import StudyDataLayer
 
     url = values["DATABASE_URL"]
     if url.startswith("postgresql://"):
@@ -44,18 +40,26 @@ def allowed_email(email, allowed=None):
 
     Vazia, qualquer conta Google entra; preenchida, só os e-mails listados, o que evita
     que um site público consuma os créditos da API por pessoas não convidadas."""
+    if allowed is None and os.getenv("STUDY_ACCESS_MODE", "invited") == "public":
+        return True
     raw = os.getenv("STUDY_ALLOWED_EMAILS", "") if allowed is None else allowed
     emails = {item.strip().casefold() for item in raw.split(",") if item.strip()}
     return not emails or (isinstance(email, str) and email.strip().casefold() in emails)
 
 
 async def google_user(provider_id, token, raw_user_data, default_app_user, id_token=None):
+    from src.security import login_rejection
     google_id = raw_user_data.get("id")
     if (provider_id != "google" or not isinstance(google_id, str)
             or not google_id.isascii() or not google_id.isdecimal()):
         return None
-    if not allowed_email(raw_user_data.get("email")) or (
-            os.getenv("STUDY_ALLOWED_EMAILS", "").strip() and raw_user_data.get("verified_email") is False):
+    if not isinstance(raw_user_data.get("email"), str) or raw_user_data.get("verified_email") is not True:
+        login_rejection.set("email_not_verified")
+        logging.getLogger(__name__).warning("Login Google recusado: email_not_verified")
+        return None
+    if not allowed_email(raw_user_data.get("email")):
+        login_rejection.set("account_not_invited")
+        logging.getLogger(__name__).warning("Login Google recusado: account_not_invited")
         return None
     name = str(raw_user_data.get("name") or "Estudante")[:60]
     return cl.User(
@@ -256,6 +260,11 @@ async def create_material(layer, user_id, material_id, name):
             "SELECT count(*) FROM study_materials WHERE user_id = :owner"), {"owner": UUID(user_id)})).scalar_one()
         if count >= MAX_MATERIALS:
             raise ValueError(f"Você já tem {MAX_MATERIALS} materiais. Remova um para enviar outro.")
+        pending = (await connection.execute(text(
+            "SELECT count(*) FROM study_materials WHERE user_id=:owner AND status='processing'"
+        ), {"owner": UUID(user_id)})).scalar_one()
+        if pending >= 3:
+            raise ValueError("Aguarde seus materiais terminarem de processar antes de enviar outro.")
         await connection.execute(text(
             "INSERT INTO study_materials (id, user_id, name) VALUES (:id, :owner, :name)"
         ), {"id": UUID(material_id), "owner": UUID(user_id), "name": name})

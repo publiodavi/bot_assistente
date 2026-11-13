@@ -17,5 +17,8 @@ if ((Test-Path -LiteralPath $pgControl) -and (Test-Path -LiteralPath (Join-Path 
     }
 }
 
+& $python scripts/migrate.py
+if ($LASTEXITCODE -ne 0) { throw 'Não foi possível aplicar as migrações do banco.' }
+
 & $python -m chainlit run src/app.py --host 127.0.0.1 --port 8103
 exit $LASTEXITCODE

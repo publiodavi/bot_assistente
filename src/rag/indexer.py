@@ -12,6 +12,8 @@ import threading
 import unicodedata
 
 MAX_PAGES = 400
+MAX_TEXT_CHARS = 2_000_000
+MAX_CHUNKS = 3000
 CHUNK_SIZE, CHUNK_OVERLAP = 900, 150
 STOPWORDS = set("""a o as os um uma uns umas de da do das dos em na no nas nos e ou que se por para
 com como sem sobre entre ao aos à às é ser foi era são há mais menos muito pouco isso isto
@@ -38,7 +40,13 @@ def extract_pages(path):
         raise ValueError("O PDF está protegido por senha.")
     if len(reader.pages) > MAX_PAGES:
         raise ValueError(f"O PDF tem mais de {MAX_PAGES} páginas.")
-    pages = [(number, page.extract_text() or "") for number, page in enumerate(reader.pages, start=1)]
+    pages, total = [], 0
+    for number, page in enumerate(reader.pages, start=1):
+        value = page.extract_text() or ""
+        total += len(value)
+        if total > MAX_TEXT_CHARS:
+            raise ValueError("O texto do PDF excede o limite de 2 milhões de caracteres.")
+        pages.append((number, value))
     if sum(len(text.strip()) for _, text in pages) < 200:
         raise ValueError("Não foi possível ler o texto: o PDF parece ser uma imagem digitalizada.")
     return pages
@@ -59,6 +67,8 @@ def chunk_pages(pages, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
             piece = clean[start:end].strip()
             if len(piece) >= 40:
                 chunks.append({"page": number, "text": piece})
+                if len(chunks) > MAX_CHUNKS:
+                    raise ValueError("O PDF excede o limite de 3.000 trechos.")
             if end >= len(clean):
                 break
             # O trecho seguinte recomeça na primeira palavra inteira da sobreposição.
