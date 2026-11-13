@@ -495,7 +495,6 @@
   let notebookMetadata = [];
   let statistics = {};
   let noteLinks = new Set();
-  let mood = null;
   let account = null;
   let lastAutoIntroAccount = null;
   let entryBypassed = false;
@@ -759,7 +758,6 @@
   // Ferramentas locais e registros escritos pelo estudante.
   const focusPanel = panel("Sessão de foco", "Um bloco de estudo seguido de pausa. O tempo continua mesmo com o painel fechado.");
   const notesPanel = panel("Fichário de descobertas", "Registre com suas palavras o que passou a fazer sentido.");
-  const moodPanel = panel("Como você chega hoje?", "Opcional. Orienta só a próxima resposta e não fica salvo no perfil.");
   const cardsPanel = panel("Flash cards", "Tente responder de memória antes de virar o cartão.");
   cardsPanel.dialog.classList.add("study-dialog--cards");
   const materialsPanel = panel("Materiais", "Apostilas, livros e listas da faculdade em PDF. Só o seu companheiro consulta.");
@@ -781,8 +779,7 @@
     cardsLink.append(cardMeter);
     cardMeters.push(cardMeter);
     cardLinks.push(cardsLink);
-    return section("Ferramentas", focusLink, notesLink, cardsLink, navButton("Materiais", "book", () => openMaterials()),
-      navButton("Check-in de ânimo", "heart", () => { buildMood(); moodPanel.dialog.showModal(); }));
+    return section("Ferramentas", focusLink, notesLink, cardsLink, navButton("Materiais", "book", () => openMaterials()));
   }
   toolsPanel.body.append(toolLinks());
   const sidebarTools = toolLinks();
@@ -1066,30 +1063,6 @@
     }
     notesPanel.body.append(section("Suas descobertas", list));
     if (!entries.length) list.append(element("p", "Seu fichário ainda está em branco.", "study-muted"));
-  }
-  let breathingInterval;
-  moodPanel.dialog.addEventListener("close", () => clearInterval(breathingInterval));
-  function buildMood() {
-    clearInterval(breathingInterval);
-    const moodStatus = element("p", mood ? "Check-in pronto para a próxima resposta." : "Escolha como você está chegando.", "study-form-status");
-    moodStatus.setAttribute("role", "status");
-    const choices = choiceGroup("Como você está", { curioso: "Curioso", cansado: "Cansado", travado: "Travado", ansioso: "Ansioso" }, async id => {
-      if (await request("study.checkin", { mood: id })) { choices.select(id); moodStatus.textContent = "O companheiro vai considerar isso na próxima resposta."; }
-    });
-    choices.select(mood);
-    const breathText = element("p", "Se quiser, respire no seu ritmo por um minuto.", "study-muted");
-    const breathe = button("Fazer uma pausa de 1 minuto", () => {
-      clearInterval(breathingInterval); const end = Date.now() + 60000;
-      breathText.textContent = "Respire confortavelmente, sem forçar. 60 segundos.";
-      breathingInterval = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-        breathText.textContent = remaining ? `Respire no seu ritmo. ${remaining} segundos.` : "Sua pausa terminou. Volte quando quiser.";
-        if (!remaining) clearInterval(breathingInterval);
-      }, 1000);
-    });
-    const clear = button("Não usar check-in", async () => { if (await request("study.checkin", { mood: null })) { choices.select(null); moodStatus.textContent = "Check-in removido."; } }, "study-link-button");
-    moodPanel.body.replaceChildren(section("Hoje estou", choices.group, moodStatus, clear),
-      section("Pausa curta", breathText, breathe));
   }
 
   // Flash cards: um baralho por caderno, gerado da conversa e revisado em caixas.
@@ -2098,7 +2071,7 @@
       pending.clear();
       if (account !== data.account) {
         confirmed = null;
-        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel, cardsPanel, materialsPanel, tutorialPanel]) dialog.close();
+        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, focusPanel, cardsPanel, materialsPanel, tutorialPanel]) dialog.close();
         lastAutoIntroAccount = null;
       }
       closeFallbackHistory();
@@ -2134,7 +2107,6 @@
     statistics = data.statistics || {};
     notebookMetadata = Array.isArray(data.notebooks) ? data.notebooks : [];
     noteLinks = new Set(Array.isArray(data.note_links) ? data.note_links : []);
-    mood = data.mood || null;
     adaptNotebookPanel();
     adaptUserAvatar();
     // Resumos dos baralhos (datas de cada cartão) e geração em andamento.

@@ -4,13 +4,6 @@ import struct
 import unicodedata
 from datetime import datetime, timedelta, timezone
 
-MOODS = {
-    "curioso": "Acolha a curiosidade e proponha uma pergunta exploratória curta.",
-    "cansado": "Use uma explicação breve, com um passo pequeno por vez e sem pressão.",
-    "travado": "Ajude a identificar o primeiro passo com uma pista concreta e curta.",
-    "ansioso": "Use um tom tranquilo, sem cobrança, e proponha uma ação pequena e possível.",
-}
-
 
 def clean_text(value, limit):
     if not isinstance(value, str) or len(value) > limit:

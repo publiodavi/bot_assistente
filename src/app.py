@@ -25,7 +25,7 @@ from src.services.cards import COUNTS, RATINGS, deck_summary, parse_deck, rate_c
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
 from src.services.llm_client import ConfigurationError, complete_json, stream_reply
-from src.services.study_tools import MOODS, clean_text, note_update, review_done, review_note, validate_avatar
+from src.services.study_tools import clean_text, note_update, review_done, review_note, validate_avatar
 from src.study_accounts import (
     advance_trail, all_decks, configure_accounts, deck_data, profile_data, recent_notebooks, record_reveal,
     trail_progress, owned_thread_ids, study_statistics, create_material, delete_material, finish_material,
@@ -89,7 +89,7 @@ def study_session():
             # Apelidos por personagem e autoria das respostas exibidas.
             "nicknames": {},
             "authors": {},
-            "mood": None, "notebooks": [], "statistics": {}, "note_links": set(),
+            "notebooks": [], "statistics": {}, "note_links": set(),
             # Revisão do dia em andamento: {"thread_id", "text", "stage": "ask" | "check"}.
             "review": None,
             # Flash cards: resumos dos baralhos e geração em andamento.
@@ -147,7 +147,7 @@ async def publish_state(state, request_id=None, error=None):
         "companions": companion_names(state["nicknames"]),
         "authors": dict(list(state["authors"].items())[-80:]),
         "thread_id": context.session.thread_id if context.session.has_first_interaction else None,
-        "notebooks": state["notebooks"], "statistics": state["statistics"], "mood": state["mood"],
+        "notebooks": state["notebooks"], "statistics": state["statistics"],
         "note_links": sorted(state["note_links"]),
         "decks": state["decks"], "cards_job": state["cards_job"], "materials_ready": state["materials_ready"],
     })
@@ -355,7 +355,7 @@ async def synchronize_study(data):
     if (data.get("session_id") != state["id"] or not isinstance(request_id, str)
             or len(request_id) > 80 or kind not in (
                 "study.preferences", "study.profile", "study.intro", "study.start", "study.mode",
-                "study.nickname", "study.note", "study.checkin", "study.review",
+                "study.nickname", "study.note", "study.review",
                 "study.cards", "study.deck", "study.card", "study.materials",
             )):
         return
@@ -369,14 +369,6 @@ async def synchronize_study(data):
         except Exception:
             logger.exception("Erro nos flash cards")
             error = "Não foi possível concluir. Tente novamente."
-        await publish_state(state, request_id, error)
-        return
-    if kind == "study.checkin":
-        mood = data.get("mood")
-        if mood is not None and (not isinstance(mood, str) or mood not in MOODS):
-            error = "Escolha um dos estados disponíveis."
-        else:
-            state["mood"] = mood
         await publish_state(state, request_id, error)
         return
     if kind == "study.mode":
@@ -738,8 +730,6 @@ async def on_message(message: cl.Message):
         mascot = prefs["mascot"]
         companion = resolve_companion(state)
         voice = companion_voice(mascot, companion)
-    mood = state["mood"]
-    state["mood"] = None
     # A revisão vale para o pedido e para a resposta seguinte, sempre no caderno em que começou.
     review = state["review"]
     state["review"] = None
@@ -753,7 +743,6 @@ async def on_message(message: cl.Message):
     history = state.setdefault("history", [])
     messages = [{"role": "system", "content": (
         f"{SYSTEM_PROMPT}\n{voice}\n{MODE_INSTRUCTIONS[mode]}\n"
-        f"{MOODS.get(mood, '')}\n"
         f"Nível de apoio escolhido: {zdp}\n"
         f"Nome do estudante: {profile.get('name') or 'Estudante'}. "
         f"Objetivo preferido: {goal}. Dificuldade mais comum: {barrier}.\n{ESCADA_FORMAT}"

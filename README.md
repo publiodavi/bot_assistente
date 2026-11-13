@@ -197,7 +197,6 @@ Os seis ambientes têm cenas SVG próprias para claro e escuro, quatro cores de 
 
 - **Foco:** estudo e pausa ajustáveis, com início, pausa e reinício. O relógio usa horário de término e fica apenas neste navegador.
 - **Fichário:** uma descoberta escrita pelo estudante por conversa, com revisão opcional em três dias. Requer conta; aceita até 100 descobertas de 1.000 caracteres. Uma conversa removida deixa sua anotação disponível, sem link de retorno.
-- **Check-in:** escolha opcional de ânimo, considerada apenas na próxima resposta. Não é salva no perfil. A pausa de respiração é opcional e não usa linguagem clínica.
 - **Perfil:** cartão de estudante com frase, ilustrações locais, iniciais ou uma imagem preparada como WebP de 256 × 256 pixels e até 80 KiB. A imagem só é enviada ao salvar. A validação estrutural no servidor não equivale a um decodificador completo de imagens.
 
 As estatísticas são calculadas a partir das respostas concluídas existentes da própria conta: quantidade de cadernos, soma do maior degrau por conversa, conquistas solo distintas por degrau/conversa e turnos de ensino. Degraus e conquistas são avaliações do companheiro.

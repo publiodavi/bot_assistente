@@ -1505,7 +1505,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 @media (prefers-reduced-motion: reduce) { .study-switch, .study-switch::after { transition: none; } }
 
 /* 38. Padrão da amostra levado às demais telas: capa, barra de estudo, Escada nas
-   respostas e painéis Companheiros, Perfil, Ferramentas, Foco, Fichário e Check-in. */
+   respostas e painéis Companheiros, Perfil, Ferramentas, Foco e Fichário. */
 
 /* 38.1 Capa: o título segue temático; etiqueta, marcadores e retomada usam a fonte de interface. */
 .study-cover > p { font-size: .9375rem; line-height: 1.5; }
@@ -1657,7 +1657,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-avatar-grid .study-button { min-height: 0; border-radius: 50%; background: transparent; }
 .study-avatar-grid .study-button:hover { background: hsl(var(--study-muted)); }
 
-/* 38.7 Ferramentas, Foco, Fichário e Check-in. */
+/* 38.7 Ferramentas, Foco e Fichário. */
 .study-dialog--tools .study-section__title { display: none; }
 .study-focus-clock { padding: 1rem 0 .25rem; color: hsl(var(--study-text)); font: 600 clamp(3rem, 10vw, 4.5rem) / 1.1 var(--study-font-ui); letter-spacing: -.02em; }
 .study-focus-clock + .study-muted { margin: 0; text-align: center; }
