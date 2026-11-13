@@ -73,7 +73,7 @@ A imagem exige autenticação Google, banco, chave DeepSeek, segredo de sessão 
 
 Antes da primeira migração 004, o início faz uma cópia consistente das tabelas do app em `/data/backups/security-before-004/database` e copia o índice Chroma para a mesma pasta, quando existente. Uma falha interrompe o início antes das migrações. O arquivo `complete` indica conclusão. A cópia fica privada no volume; não substitui backup externo e não cobre perda do próprio volume. Não remova o volume durante publicação ou reversão.
 
-A restauração usa `src.services.backups.restore_database(connection, caminho_database)` em um schema **vazio**, com a mesma versão principal do PostgreSQL. Teste em banco separado antes de recuperar produção. O índice copiado deve ser restaurado com o app parado e com versão compatível do ChromaDB. Não há restauração automática nem exclusão de dados existentes.
+A restauração usa `src.services.backups.restore_database(connection, caminho_database)` em um schema **vazio**, com a mesma versão principal do PostgreSQL. Após restaurar, reaplique as migrações do app para recompor funções e triggers. Teste em banco separado antes de recuperar produção. O índice copiado deve ser restaurado com o app parado e com versão compatível do ChromaDB. Não há restauração automática nem exclusão de dados existentes.
 
 O deploy com Chroma local e fila de PDFs usa uma única réplica. Ao reiniciar, materiais interrompidos ficam com erro recuperável; cadernos e materiais prontos permanecem preservados.
 

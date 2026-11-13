@@ -77,6 +77,12 @@ class DatabaseSecurityTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await self.layer.create_step({**step, "parentId": str(self.steps[1])})
 
+    async def test_database_invariants_block_thread_takeover_and_step_transfer(self):
+        with self.assertRaises(asyncpg.InsufficientPrivilegeError):
+            await self.admin.execute('UPDATE threads SET "userId"=$1 WHERE id=$2', self.users[1], self.threads[0])
+        with self.assertRaises(asyncpg.InsufficientPrivilegeError):
+            await self.admin.execute('UPDATE steps SET "threadId"=$1 WHERE id=$2', self.threads[1], self.steps[0])
+
     async def test_shared_usage_releases_on_failure_and_blocks_parallel_sessions(self):
         with patch("chainlit.data.get_data_layer", return_value=self.layer):
             with self.assertRaisesRegex(ValueError, "simulado"):
