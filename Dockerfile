@@ -16,4 +16,4 @@ COPY . .
 RUN mkdir -p /data
 
 # O Railway informa a porta em $PORT; localmente, usa 8000.
-CMD python scripts/migrate.py && python -m chainlit run src/app.py --headless --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "python scripts/migrate.py && exec python -m chainlit run src/app.py --headless --host 0.0.0.0 --port ${PORT:-8000}"]

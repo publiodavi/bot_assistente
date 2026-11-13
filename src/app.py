@@ -920,11 +920,14 @@ def install_material_routes():
 if DATA_LAYER:
     install_material_routes()
 
-    def _warm_up_index():
-        try:
-            MATERIAL_INDEX.warm_up()
-        except Exception:
-            logger.exception("Não foi possível preparar o índice de materiais")
+    # O aquecimento roda depois que o Chainlit termina de carregar o app: durante o
+    # carregamento ele altera sys.path, e uma importação paralela do chromadb falhava.
+    @cl.on_app_startup
+    async def warm_up_index():
+        async def warm():
+            try:
+                await asyncio.to_thread(MATERIAL_INDEX.warm_up)
+            except Exception:
+                logger.exception("Não foi possível preparar o índice de materiais")
 
-    import threading
-    threading.Thread(target=_warm_up_index, name="study-materials-warmup", daemon=True).start()
+        _material_tasks.add(asyncio.create_task(warm()))
