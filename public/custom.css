@@ -1832,3 +1832,14 @@ html[data-study-motion="paused"] .study-flip__inner { transition: none; }
 .study-ladder__step strong { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
 .study-ladder__here { flex: none; white-space: nowrap; line-height: 1.4; padding: .0625rem .5rem; }
 .study-ladder__step > span { color: hsl(var(--study-muted-text)); text-align: start; }
+
+/* 46. Mesmas fontes em todos os ambientes: a identidade vem das cenas e cores, não da tipografia.
+   Interface em Inter, leitura em Source Sans e títulos em Lora, iguais nos seis temas. */
+html[data-study-theme][data-study-theme] {
+  --study-font-title: "Study Lora", Georgia, serif;
+  --study-font-body: "Study Source Sans", system-ui, sans-serif;
+  --study-title-weight: 600;
+}
+.study-dialog--themes .study-theme-grid { gap: .75rem; }
+.study-dialog--themes .study-theme-card { gap: 0; }
+.study-dialog--themes .study-theme-card__art { aspect-ratio: 16 / 11; }

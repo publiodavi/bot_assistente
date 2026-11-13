@@ -24,7 +24,7 @@ from src.rag.indexer import MaterialIndex, chunk_pages, extract_pages
 from src.services.cards import COUNTS, RATINGS, deck_summary, parse_deck, rate_card, transcript
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
-from src.services.llm_client import ConfigurationError, complete_json, stream_reply
+from src.services.llm_client import STREAM_DEADLINE, ConfigurationError, complete_json, stream_reply
 from src.security import MAX_MESSAGE_CHARS
 from src.security_limits import UsageLimit
 from src.services.study_tools import clean_text, note_update, review_done, review_note, validate_avatar
@@ -772,12 +772,19 @@ async def on_message(message: cl.Message):
     reply = cl.Message(content="", author=companion)
     # A autoria é registrada antes do streaming para o selo aparecer já na primeira palavra.
     state["authors"][reply.id] = {"mascot": mascot, "name": companion}
+    escada = EscadaStream()
     try:
         wants_hint = message.content.strip().casefold().rstrip(".!") == "preciso de uma dica"
         await express(state, "encouraging" if wants_hint else "thinking")
-        escada = EscadaStream()
-        async for token in stream_reply(messages):
-            await reply.stream_token(escada.feed(token))
+        stream = stream_reply(messages)
+        try:
+            # O prazo total vale aqui, no consumidor, e vira TimeoutError tratável.
+            async with asyncio.timeout(STREAM_DEADLINE):
+                async for token in stream:
+                    await reply.stream_token(escada.feed(token))
+        finally:
+            # Fecha o stream na hora (inclusive ao parar ou estourar o prazo) e libera a concessão.
+            await stream.aclose()
         rest, step = escada.finish()
         if step and sources:
             # Só o servidor registra as fontes; o modelo não consegue inventá-las na Escada.
@@ -812,6 +819,16 @@ async def on_message(message: cl.Message):
             await publish_state(state)
     except (ConfigurationError, UsageLimit) as exc:
         await cl.Message(content=str(exc), author=companion).send()
+    except TimeoutError:
+        logger.warning("Resposta interrompida pelo prazo de %s s", STREAM_DEADLINE)
+        # O trecho já exibido é guardado como interrompido, sem entrar no contexto do modelo.
+        partial = tidy_visible(escada.visible.strip())
+        if partial:
+            reply.content = partial + "\n\n*(Resposta interrompida: passou do tempo limite.)*"
+            reply.metadata = {"study_reply_to": message.id, "study_companion": mascot, "study_interrupted": True}
+            await reply.send()
+        await cl.Message(author=companion, content=(
+            "A resposta demorou demais e foi interrompida. Tente de novo; se puder, peça uma parte de cada vez.")).send()
     except Exception:
         logger.exception("Erro ao gerar a resposta")
         await cl.Message(author=companion, content=("Não consegui obter uma resposta. Confira a conexão, "

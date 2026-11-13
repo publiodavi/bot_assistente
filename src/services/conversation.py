@@ -49,7 +49,8 @@ def restore_history(steps):
     history = []
     for step in steps:
         metadata = step.get("metadata") or {}
-        if step.get("type") != "assistant_message" or step.get("streaming") or step.get("isError"):
+        if (step.get("type") != "assistant_message" or step.get("streaming") or step.get("isError")
+                or metadata.get("study_interrupted")):
             continue
         question_id = metadata.get("study_reply_to")
         prompt = users.get(question_id)

@@ -140,3 +140,51 @@ class PdfProcessTests(unittest.IsolatedAsyncioTestCase):
             path.write_bytes(b"%PDF-invalid")
             with self.assertRaises(ValueError):
                 await extract_isolated(path)
+
+
+class UsageRuleTests(unittest.TestCase):
+    def test_daily_and_global_caps(self):
+        from src.security_limits import BUSY, DAILY, limit_message
+        self.assertIsNone(limit_message("chat", 0, 0, 0, 0))
+        self.assertEqual(limit_message("chat", 1, 0, 0, 0), BUSY)
+        self.assertEqual(limit_message("chat", 0, 10, 0, 0), BUSY)
+        self.assertIn("limite de uso de hoje", limit_message("chat", 0, 0, DAILY["chat"], 0))
+        self.assertIn("AjudAI atingiu", limit_message("cards", 0, 0, 0, 400))
+        with patch.dict(os.environ, {"STUDY_GLOBAL_DAILY_CARDS": "1000"}):
+            self.assertIsNone(limit_message("cards", 0, 0, 0, 400))
+        with patch.dict(os.environ, {"STUDY_GLOBAL_DAILY_CARDS": "invalido"}):
+            self.assertIsNotNone(limit_message("cards", 0, 0, 0, 400))
+
+
+class StreamDeadlineTests(unittest.IsolatedAsyncioTestCase):
+    async def test_deadline_in_consumer_raises_timeout_and_closes_stream(self):
+        # Mesmo padrão do on_message: prazo no consumidor e aclose no finally.
+        closed = []
+
+        async def slow_stream():
+            try:
+                for index in range(100):
+                    yield str(index)
+            finally:
+                closed.append(True)
+
+        received = []
+        stream = slow_stream()
+        with self.assertRaises(TimeoutError):
+            try:
+                async with asyncio.timeout(0.2):
+                    async for token in stream:
+                        received.append(token)
+                        await asyncio.sleep(0.05)
+            finally:
+                await stream.aclose()
+        self.assertTrue(closed)
+        self.assertGreater(len(received), 0)
+        self.assertFalse(asyncio.current_task().cancelling())
+
+    def test_interrupted_reply_stays_out_of_model_context(self):
+        from src.services.conversation import restore_history
+        steps = [{"id": "q", "type": "user_message", "output": "Pergunta"},
+                 {"id": "a", "type": "assistant_message", "output": "Parcial",
+                  "metadata": {"study_reply_to": "q", "study_interrupted": True}}]
+        self.assertEqual(restore_history(steps), [])

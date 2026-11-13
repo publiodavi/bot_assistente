@@ -4,12 +4,39 @@ from collections import deque
 from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
+import os
+
 RULES = {"chat": (10, 60), "cards": (5, 600), "upload": (20, 60)}
+# Cotas de 24 h: por conta e somando todas as contas (teto de gasto do site público).
+DAILY = {"chat": 150, "cards": 30, "upload": 40}
+GLOBAL_DAILY = {"chat": 3000, "cards": 400, "upload": 600}
 _local = {}
+BUSY = "Espere a tarefa atual terminar ou aguarde alguns instantes antes de tentar novamente."
 
 
 class UsageLimit(ValueError):
     pass
+
+
+def global_daily(operation):
+    """Teto global configurável por STUDY_GLOBAL_DAILY_<OPERAÇÃO>; inválido mantém o padrão."""
+    try:
+        value = int(os.getenv(f"STUDY_GLOBAL_DAILY_{operation.upper()}", GLOBAL_DAILY[operation]))
+        return value if value > 0 else GLOBAL_DAILY[operation]
+    except ValueError:
+        return GLOBAL_DAILY[operation]
+
+
+def limit_message(operation, active, recent, daily, everyone):
+    """Motivo da recusa, do mais imediato ao mais amplo; None quando a operação pode seguir."""
+    maximum = RULES[operation][0]
+    if active or recent >= maximum:
+        return BUSY
+    if daily >= DAILY[operation]:
+        return "Você chegou ao limite de uso de hoje para esta função. Volte amanhã para continuar."
+    if everyone >= global_daily(operation):
+        return "O AjudAI atingiu o limite de uso de hoje. Tente novamente amanhã."
+    return None
 
 
 def session_account():
@@ -38,11 +65,17 @@ async def usage(operation, account_id=None):
             await conn.execute(text("DELETE FROM study_usage WHERE user_id=:owner AND created_at < now() - interval '1 day'"), {"owner": owner})
             row = (await conn.execute(text("""
                 SELECT count(*) FILTER (WHERE created_at > now() - make_interval(secs => :seconds)) AS recent,
-                       count(*) FILTER (WHERE NOT released AND expires_at > now()) AS active
+                       count(*) FILTER (WHERE NOT released AND expires_at > now()) AS active,
+                       count(*) FILTER (WHERE created_at > now() - interval '1 day') AS daily
                 FROM study_usage WHERE user_id=:owner AND operation=:operation
             """), {"owner": owner, "operation": operation, "seconds": seconds})).one()
-            if row.active or row.recent >= maximum:
-                raise UsageLimit("Espere a tarefa atual terminar ou aguarde alguns instantes antes de tentar novamente.")
+            everyone = (await conn.execute(text("""
+                SELECT count(*) FROM study_usage
+                WHERE operation=:operation AND created_at > now() - interval '1 day'
+            """), {"operation": operation})).scalar_one()
+            reason = limit_message(operation, row.active, row.recent, row.daily, everyone)
+            if reason:
+                raise UsageLimit(reason)
             await conn.execute(text("""
                 INSERT INTO study_usage (id, user_id, operation, expires_at)
                 VALUES (:id, :owner, :operation, now() + interval '130 seconds')
@@ -54,7 +87,7 @@ async def usage(operation, account_id=None):
         while entries and entries[0] <= now - seconds:
             entries.popleft()
         if active or len(entries) >= maximum:
-            raise UsageLimit("Espere a tarefa atual terminar ou aguarde alguns instantes antes de tentar novamente.")
+            raise UsageLimit(BUSY)
         entries.append(now)
         _local[key] = (entries, True)
     try:

@@ -17,8 +17,15 @@ def create_client():
     key = os.getenv("DEEPSEEK_API_KEY", "").strip()
     if not key or key == "sua_chave_aqui":
         raise ConfigurationError("Configure DEEPSEEK_API_KEY no arquivo .env antes de iniciar uma conversa.")
+    # Uma nova tentativa cobre falhas passageiras (429/5xx); o prazo total continua no chamador.
     return AsyncOpenAI(api_key=key, base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-                       timeout=120, max_retries=0)
+                       timeout=60, max_retries=1)
+
+
+# Respostas do chat seguem o limite pedagógico (até ~180 palavras); 2.048 tokens dão folga
+# sem permitir gerações que ultrapassem o prazo total.
+CHAT_MAX_TOKENS = 2048
+STREAM_DEADLINE = 120
 
 
 async def complete_json(messages):
@@ -32,10 +39,12 @@ async def complete_json(messages):
 
 
 async def stream_reply(messages):
-    async with usage("chat"), asyncio.timeout(120), create_client() as client:
+    """Gerador do streaming. O prazo total fica no consumidor: um asyncio.timeout aberto
+    dentro de um gerador atravessa os yields e cancelaria a tarefa inteira do chamador."""
+    async with usage("chat"), create_client() as client:
         stream = await client.chat.completions.create(
             model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"), messages=messages,
-            stream=True, max_tokens=8192,
+            stream=True, max_tokens=CHAT_MAX_TOKENS,
         )
         async with stream:
             async for chunk in stream:

@@ -358,13 +358,14 @@
   for (const [id, [title, description]] of Object.entries(catalog)) {
     const card = button("", () => choosePreferences({ theme: id }), "study-theme-card");
     card.dataset.preview = id;
-    const text = element("span", "", "study-theme-card__text");
-    text.append(element("strong", title), element("span", description));
+    // Só a cena no cartão; o nome segue no rótulo acessível e na dica ao passar o mouse.
+    card.setAttribute("aria-label", `${title}: ${description}`);
+    card.title = title;
     const art = element("span", "", "study-theme-card__art");
     const check = element("span", "", "study-theme-card__check");
     check.append(icon("check"));
     art.append(check);
-    card.append(art, text);
+    card.append(art);
     themeCards[id] = card;
     themeGrid.append(card);
   }
