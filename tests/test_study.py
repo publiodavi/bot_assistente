@@ -191,9 +191,9 @@ class AccessTests(unittest.TestCase):
     def test_lista_de_emails_permitidos(self):
         from src.study_accounts import allowed_email
         self.assertTrue(allowed_email("qualquer@gmail.com", ""))
-        self.assertTrue(allowed_email(" Davi@Gmail.com ", "davi@gmail.com, amigo@gmail.com"))
-        self.assertFalse(allowed_email("outro@gmail.com", "davi@gmail.com,amigo@gmail.com"))
-        self.assertFalse(allowed_email(None, "davi@gmail.com"))
+        self.assertTrue(allowed_email(" Estudante@Example.com ", "estudante@example.com, colega@example.com"))
+        self.assertFalse(allowed_email("outro@example.com", "estudante@example.com,colega@example.com"))
+        self.assertFalse(allowed_email(None, "estudante@example.com"))
 
 
 class PromptTests(unittest.TestCase):

@@ -1,4 +1,8 @@
-"""Extração com prazo real: cancelar uma thread não interromperia o parser."""
+"""Extração de PDF em processo separado.
+
+Um processo pode ser encerrado quando estoura o prazo; uma thread não poderia,
+e o parser continuaria consumindo CPU e memória.
+"""
 import asyncio
 import json
 import os
@@ -8,6 +12,8 @@ import tempfile
 
 
 async def extract_isolated(path):
+    """Executa o pdf_worker em outro processo, com prazo de 60 segundos. O processo
+    recebe só as variáveis de sistema necessárias, sem as chaves do app."""
     with tempfile.TemporaryDirectory(prefix="ajudai-extract-") as directory:
         output = Path(directory) / "result.json"
         env = {k: v for k, v in os.environ.items() if k.upper() in

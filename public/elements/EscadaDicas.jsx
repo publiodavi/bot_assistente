@@ -3,6 +3,8 @@ import { Footprints, Lock, GraduationCap } from "lucide-react";
 
 // Escada de dicas: camadas reveladas uma de cada vez, sempre em sequência.
 // O servidor valida e grava cada abertura; aqui a tela responde na hora.
+// `props` (dados da Escada enviados pelo servidor) e `callAction` (chamada a uma ação do
+// Python) são variáveis globais que o Chainlit injeta nos elementos personalizados.
 export default function EscadaDicas() {
   const camadas = [
     ...(props.dicas || []).map((texto, i) => ({ rotulo: `Dica ${i + 1}`, texto })),
@@ -14,6 +16,7 @@ export default function EscadaDicas() {
   const reveladas = Math.max(abertas, props.reveladas || 0);
   const nome = props.companheiro || "Eva";
 
+  // Abre a camada seguinte; se o servidor recusar, volta ao número registrado no banco.
   async function abrir(nivel) {
     if (ocupado) return;
     setOcupado(true);
@@ -28,6 +31,7 @@ export default function EscadaDicas() {
     setOcupado(false);
   }
 
+  // Pede que a próxima resposta use o modo Aprende (o estudante explica ao companheiro).
   async function ensinar() {
     try {
       const resposta = await callAction({ name: "study_teach", payload: { message_id: props.message_id } });

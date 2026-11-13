@@ -5,6 +5,8 @@ from pathlib import Path
 
 
 def main():
+    """Extrai o texto do PDF em processo separado. Fora do Windows, limita CPU, memória
+    e tamanho de arquivo (o módulo resource não existe no Windows)."""
     if sys.platform != "win32":
         import resource
         resource.setrlimit(resource.RLIMIT_CPU, (60, 60))

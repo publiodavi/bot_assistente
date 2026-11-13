@@ -1,3 +1,13 @@
+/*
+ * AjudAI — comportamento da interface sobre o Chainlit 2.12.
+ *
+ * Este arquivo cria os painéis próprios (Temas, Companheiros, Perfil, Foco, Fichário,
+ * Flash cards, Materiais e Como usar), a capa do caderno, a barra de estudo e as
+ * adaptações da lateral. A comunicação com o servidor usa window.postMessage no canal
+ * "fatec-study" (função request); o servidor responde com o estado completo da sessão,
+ * desenhado por render e pelas funções de cada painel. Preferências visuais ficam no
+ * navegador apenas como cache: a fonte de verdade é o perfil da conta no servidor.
+ */
 (() => {
   "use strict";
 
@@ -174,6 +184,7 @@
   let currentExpression = "idle";
   let focusNotice = "";
   let focusNoticeTimer;
+  // Atualiza a barra de estudo e o companheiro a partir do estado recebido do servidor.
   function render(expression) {
     currentExpression = expression;
     const mascot = selectedMascot();
@@ -270,6 +281,7 @@
     return art;
   }
 
+  // Cria um painel (<dialog>) com cabeçalho, botão de fechar e área de rolagem.
   function panel(title, description = "") {
     const dialog = element("dialog", "", "study-dialog");
     const heading = element("h2", title);
@@ -612,6 +624,7 @@
     };
     fire();
   }
+  // Monta a seção Revisão do dia da capa: descobertas e baralhos com revisão vencida.
   function renderReviews() {
     const due = dueReviews();
     reviewList.replaceChildren(...due.slice(0, 3).map((item) => {
@@ -702,6 +715,7 @@
   }, "study-segmented study-bar__lead");
   bar.append(who, ladderButton, lead.group, ladderPanel);
 
+  // Monta o painel "Escada desta conversa", com uma linha por degrau e as dicas usadas.
   function renderLead() {
     const companion = companionName();
     lead.select(studyMode);
@@ -811,7 +825,7 @@
   const nativeSidebarAction = (id) => document.querySelector(`[data-sidebar="sidebar"] [id="${id}"]`)?.click();
   sidebarNav.append(navButton("Novo caderno", "edit", () => nativeSidebarAction("new-chat-button")),
     navButton("Buscar cadernos", "search", () => nativeSidebarAction("search-chats-button")));
-  // Rodapé da lateral: a pessoa e o acesso ao perfil, como nas ferramentas de referência.
+  // Rodapé da lateral: avatar e nome do estudante, com acesso ao perfil.
   const sidebarProfile = button("", openProfile, "study-nav study-sidebar-profile");
   const sidebarProfileFace = element("span", "", "study-user-avatar");
   sidebarProfileFace.setAttribute("aria-hidden", "true");
@@ -1033,6 +1047,7 @@
   focusPanel.body.append(focusClock, focusState, focusFields, focusActions);
   setInterval(tickFocus, 1000); document.addEventListener("visibilitychange", tickFocus); tickFocus();
 
+  // Painel Fichário de descobertas: uma anotação por caderno, com revisão opcional.
   function buildNotes() {
     notesPanel.body.replaceChildren();
     if (!account) { notesPanel.body.append(element("p", "Entre na sua conta para guardar descobertas entre conversas.", "study-muted")); return; }
@@ -1204,6 +1219,7 @@
   function currentCard() {
     return openDeck?.threadId === cardView.threadId ? openDeck.cards.find((card) => card.id === cardView.queue[cardView.index]) : null;
   }
+  // Mostra o cartão atual da sessão de flash cards (frente, verso e Acertei/Errei).
   function renderStudy() {
     const card = currentCard();
     if (!card) {
@@ -1417,6 +1433,7 @@
     setStatus(materialsStatus, response?.ok ? "ok" : "error", response?.ok ? `${item.name} removido.` : "Não foi possível remover o material.");
     loadMaterials();
   }
+  // Lista os PDFs enviados, com estado do processamento e opção de remover.
   function renderMaterials() {
     materialsAccount.hidden = !!account;
     materialsContent.hidden = !account;
@@ -1626,6 +1643,7 @@
     }
   }
 
+  // Painel Meu perfil: cartão do estudante, avatar, objetivo, nível de apoio e estatísticas.
   function buildProfile() {
     const form = element("form", "", "study-form study-profile");
     let selectedAvatar = structuredClone(profile.avatar || { kind: "initials", color: "terra" });
@@ -1789,6 +1807,7 @@
   // A alça nativa alterna o painel; esta mantém o gesto de clique e acrescenta arraste.
   const sidebarSizeKey = "fatec-study.sidebar-width.v1";
   let sidebarHandle;
+  // Reorganiza a lateral nativa do Chainlit: atalhos, cadernos, ferramentas e perfil.
   function adaptSidebar() {
     const rail = document.querySelector('[data-sidebar="rail"]');
     const wrapper = rail?.closest('.group\\/sidebar-wrapper');
@@ -1850,6 +1869,7 @@
     sidebarHandle.hidden = innerWidth < 768 || !!rail.closest('[data-state="collapsed"]');
   }
 
+  // Aplica as adaptações ao DOM do Chainlit sempre que ele é redesenhado.
   function adaptChainlit() {
     adaptSidebar();
     adaptNotebookPanel();
@@ -1967,6 +1987,7 @@
       window.location.origin);
   }
 
+  // Envia uma mensagem ao servidor pelo canal fatec-study e espera a resposta (até 5 s).
   function request(type, payload) {
     const requestId = `${session}:${++sequence}`;
     return new Promise((resolve) => {
@@ -2024,6 +2045,7 @@
     }
   });
 
+  // Aplica na hora uma preferência visual e a confirma com o servidor.
   async function choosePreferences(changes) {
     Object.assign(desiredPreferences, changes);
     paintPreferences();

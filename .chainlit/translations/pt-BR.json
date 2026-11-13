@@ -136,10 +136,10 @@
   },
   "threadHistory": {
     "sidebar": {
-      "title": "Conversas anteriores",
+      "title": "Meus cadernos",
       "filters": {
         "search": "Pesquisar",
-        "placeholder": "Pesquisar conversas..."
+        "placeholder": "Buscar cadernos..."
       },
       "timeframes": {
         "today": "Hoje",
@@ -147,14 +147,14 @@
         "previous7days": "Últimos 7 dias",
         "previous30days": "Últimos 30 dias"
       },
-      "empty": "Nenhuma conversa encontrada",
+      "empty": "Nenhum caderno ainda",
       "actions": {
         "close": "Fechar barra lateral",
         "open": "Abrir barra lateral"
       }
     },
     "thread": {
-      "untitled": "Conversa sem título",
+      "untitled": "Caderno sem título",
       "menu": {
         "rename": "Renomear",
         "share": "Compartilhar",
@@ -206,11 +206,11 @@
       }
     },
     "newChat": {
-      "button": "Novo chat",
+      "button": "Novo caderno",
       "dialog": {
-        "title": "Criar novo chat",
+        "title": "Criar novo caderno",
         "description": "Você vai iniciar uma nova conversa. Com a conta conectada, esta conversa continua disponível no histórico. Quer continuar?",
-        "tooltip": "Novo chat"
+        "tooltip": "Novo caderno"
       }
     },
     "user": {

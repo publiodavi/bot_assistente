@@ -15,6 +15,7 @@ RATINGS = {"again": "Não lembrei", "hard": "Quase", "good": "Lembrei"}
 
 
 def _short(value, limit):
+    """Texto do cartão limpo, em uma linha e cortado no limite."""
     if not isinstance(value, str):
         return ""
     text = " ".join(clean_text(value[:limit * 2], limit * 2).split())
@@ -73,6 +74,7 @@ def rate_card(card, rating, now=None):
 
 
 def is_due(card, until):
+    """Indica se o cartão já deve ser revisado até a data informada."""
     try:
         return datetime.fromisoformat(card["due"]) <= until
     except (KeyError, TypeError, ValueError):

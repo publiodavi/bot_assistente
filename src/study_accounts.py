@@ -1,4 +1,9 @@
-"""Conta Google e armazenamento das preferências do estudante."""
+"""Contas e dados de estudo no PostgreSQL.
+
+Configura o login Google e a camada de dados e reúne as consultas do domínio: perfil e
+preferências, camadas da Escada abertas, cadernos recentes, estatísticas, baralhos de
+flash cards, materiais enviados e a trilha legada.
+"""
 import json
 import os
 import logging
@@ -8,6 +13,8 @@ import chainlit as cl
 
 
 def configure_accounts():
+    """Ativa o login Google e a persistência quando as variáveis estão configuradas;
+    sem elas, o app roda em modo de demonstração."""
     from src.security import validate_production
     validate_production()
     keys = ("OAUTH_GOOGLE_CLIENT_ID", "OAUTH_GOOGLE_CLIENT_SECRET",
@@ -48,6 +55,7 @@ def allowed_email(email, allowed=None):
 
 
 async def google_user(provider_id, token, raw_user_data, default_app_user, id_token=None):
+    """Aceita o login Google apenas de e-mails verificados permitidos pela política de acesso."""
     from src.security import login_rejection
     google_id = raw_user_data.get("id")
     if (provider_id != "google" or not isinstance(google_id, str)
@@ -93,6 +101,7 @@ async def profile_data(layer, user, transform=None):
 
 
 async def advance_trail(layer, user, thread_id, stage):
+    """Avança a etapa da trilha legada de forma atômica, conferindo o dono da conversa."""
     from sqlalchemy import text
 
     async with layer.engine.begin() as connection:
@@ -147,6 +156,7 @@ async def recent_notebooks(layer, user, limit=3):
 
 
 async def trail_progress(layer, user, thread_id):
+    """Etapa da trilha legada registrada para a conversa da conta."""
     from sqlalchemy import text
 
     async with layer.engine.connect() as connection:
@@ -238,6 +248,7 @@ MAX_MATERIALS = 20
 
 
 async def list_materials(layer, user_id):
+    """Lista os materiais enviados pela conta, do mais recente para o mais antigo."""
     from sqlalchemy import text
 
     async with layer.engine.connect() as connection:
@@ -271,6 +282,7 @@ async def create_material(layer, user_id, material_id, name):
 
 
 async def finish_material(layer, user_id, material_id, status, pages=0, chunks=0, error=None):
+    """Marca o fim do processamento de um material, com páginas e trechos ou com o erro."""
     from sqlalchemy import text
 
     async with layer.engine.begin() as connection:
@@ -283,6 +295,7 @@ async def finish_material(layer, user_id, material_id, status, pages=0, chunks=0
 
 
 async def delete_material(layer, user_id, material_id):
+    """Remove o registro de um material da conta e informa se ele existia."""
     from sqlalchemy import text
 
     async with layer.engine.begin() as connection:
@@ -293,6 +306,7 @@ async def delete_material(layer, user_id, material_id):
 
 
 async def ready_material_count(layer, user_id):
+    """Quantidade de materiais da conta prontos para consulta."""
     from sqlalchemy import text
 
     async with layer.engine.connect() as connection:

@@ -1,4 +1,4 @@
-"""ReconstruÃ§Ã£o pura de autoria e contexto de conversas."""
+"""Reconstrução pura de autoria e contexto de conversas."""
 import json
 from src.prompts.companions import DEFAULT_NAMES
 from src.services.escada import as_context, layers, parse_step
@@ -8,7 +8,7 @@ def author_of(step):
     """Personagem que assinou uma resposta gravada.
 
     Antes dos apelidos individuais, todos os companheiros se chamavam "Lumi"; por
-    isso o nome sozinho nÃ£o identifica o personagem. Sem o registro, o selo mostra
+    isso o nome sozinho não identifica o personagem. Sem o registro, o selo mostra
     apenas o nome gravado como autor.
     """
     saved = (step.get("metadata") or {}).get("study_companion")
@@ -44,7 +44,7 @@ def clean_sources(value):
 
 
 def restore_history(steps):
-    """Turnos concluÃ­dos (id da pergunta, pergunta, resposta visÃ­vel, escada, id da resposta)."""
+    """Turnos concluídos (id da pergunta, pergunta, resposta visível, escada, id da resposta)."""
     users = {step["id"]: step.get("output") for step in steps if step.get("type") == "user_message"}
     history = []
     for step in steps:
@@ -60,11 +60,11 @@ def restore_history(steps):
 
 
 def conversation_context(history, message, present_ids):
-    """MantÃ©m apenas os turnos cujas perguntas ainda estÃ£o na conversa.
+    """Mantém apenas os turnos cujas perguntas ainda estão na conversa.
 
     Ao editar uma mensagem, o Chainlit remove as mensagens seguintes da tela e do
     banco e chama on_message novamente com o mesmo ID; os turnos removidos e o
-    turno antigo da pergunta editada nÃ£o podem continuar no contexto do modelo.
+    turno antigo da pergunta editada não podem continuar no contexto do modelo.
     A resposta volta ao modelo no mesmo formato pedido, com as camadas reveladas.
     """
     present = set(present_ids)

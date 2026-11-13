@@ -14,10 +14,12 @@ login_rejection = ContextVar("study_login_rejection", default=None)
 
 
 def production():
+    """Indica se o app roda em produção (Railway ou STUDY_ENV=production)."""
     return bool(os.getenv("RAILWAY_ENVIRONMENT_ID") or os.getenv("STUDY_ENV") == "production")
 
 
 def origins():
+    """Origens permitidas para CORS e WebSocket, derivadas de CHAINLIT_URL."""
     url = os.getenv("CHAINLIT_URL", "http://localhost:8103").strip().rstrip("/")
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.netloc or parts.username or parts.path:
@@ -29,6 +31,7 @@ def origins():
 
 
 def validate_production():
+    """Em produção, interrompe a inicialização se faltar alguma configuração obrigatória."""
     if not production():
         return
     if os.getenv("STUDY_ACCESS_MODE", "public") not in ("public", "invited"):
@@ -51,6 +54,7 @@ class SecurityMiddleware:
         self.app, self.allowed, self.secure = app, set(allowed_origins), secure
 
     async def __call__(self, scope, receive, send):
+        """Aplica a verificação de origem, os limites de corpo e os cabeçalhos de segurança."""
         if scope["type"] not in ("http", "websocket"):
             return await self.app(scope, receive, send)
         headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}

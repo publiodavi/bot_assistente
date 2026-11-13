@@ -64,10 +64,12 @@ def stored_nicknames(stored):
 
 
 def companion_names(nicknames):
+    """Nome de cada companheiro, usando o apelido dado pelo estudante quando houver."""
     return {mascot: nicknames.get(mascot) or name for mascot, name in DEFAULT_NAMES.items()}
 
 
 def companion_voice(mascot, name):
+    """Instrução de personalidade do companheiro escolhido, sem mudar a condução pedagógica."""
     persona = PERSONAS.get(mascot, PERSONAS["oculto"])
     return (
         f"Você fala como {name}, o companheiro de estudos escolhido pelo estudante. "

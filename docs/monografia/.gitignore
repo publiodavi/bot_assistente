@@ -1,0 +1,9 @@
+# Arquivos intermediários da geração; em entrega/ só a versão final é versionada
+AjudAI_Monografia.docx
+AjudAI_Monografia_final.docx
+AjudAI_Monografia.pdf
+entrega/*
+!entrega/TG_AjudAI_Arthur_Germano_Davi_Publio.docx
+!entrega/TG_AjudAI_Arthur_Germano_Davi_Publio.pdf
+figuras/_*
+~$*

@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 
 def clean_text(value, limit):
+    """Remove caracteres de controle e recusa textos acima do limite."""
     if not isinstance(value, str) or len(value) > limit:
         raise ValueError("Texto inválido ou muito longo.")
     return "".join(c for c in value if not unicodedata.category(c).startswith("C") or c == "\n").strip()
@@ -16,6 +17,7 @@ REVIEW_INTERVALS = (3, 7, 14, 30)
 
 
 def review_count(note):
+    """Quantidade de revisões já feitas de uma descoberta, validada."""
     count = note.get("reviews")
     return count if type(count) is int and 0 <= count <= len(REVIEW_INTERVALS) else 0
 

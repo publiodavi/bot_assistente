@@ -1,4 +1,9 @@
-"""Interface de conversa do assistente educacional."""
+"""Aplicação Chainlit do AjudAI.
+
+Reúne o ciclo de vida da conversa (início, retomada, mensagens e ações), a ponte de
+mensagens com a interface (canal fatec-study), as ferramentas de estudo (Fichário,
+flash cards, Materiais) e as rotas HTTP dos materiais enviados pelo estudante.
+"""
 import asyncio
 import logging
 import time
@@ -65,6 +70,7 @@ PROFILE_DEFAULTS = {"goal": "", "barrier": "", "intro": "new", "hint": "",
 
 
 def study_session():
+    """Estado da sessão de estudo (perfil, modo, histórico, travas), criado na primeira chamada."""
     state = getattr(context.session, "study_runtime", None)
     if state is None:
         state = {
@@ -128,6 +134,7 @@ def resolve_companion(state):
 
 
 async def publish_state(state, request_id=None, error=None):
+    """Envia ao navegador o estado atual da sessão (perfil, cadernos, Escada, revisões, baralhos)."""
     state["revision"] += 1
     remaining_ms = None
     expression = state["expression"]
@@ -172,6 +179,7 @@ async def express(state, expression, seconds=None):
 
 @cl.on_chat_start
 async def initialize_study():
+    """Prepara uma conversa nova: carrega o perfil, os cadernos recentes e os baralhos da conta."""
     state = study_session()
     async with state["profile_lock"]:
         await load_profile(state)
@@ -271,6 +279,7 @@ async def card_request(state, kind, data):
 
 
 async def generate_deck(state, user, thread_id, conversation, discovery, count=10):
+    """Gera os flash cards de um caderno com o modelo, valida a resposta e grava o baralho."""
     try:
         cards = parse_deck(await complete_json(cards_messages(conversation, discovery, count)), wanted=count)
         created = datetime.now(timezone.utc).isoformat()
@@ -293,6 +302,7 @@ def display_name(value):
 
 
 def install_profile(state, stored):
+    """Coloca na sessão o perfil salvo da conta, completando os valores ausentes."""
     user = context.session.user
     initial_name = display_name(user.metadata.get("display_name")) if user else ""
     state["profile"] = {
@@ -307,6 +317,7 @@ def install_profile(state, stored):
 
 
 async def load_profile(state):
+    """Lê o perfil da conta no banco uma única vez por sessão."""
     if state["profile_loaded"]:
         return
     user = context.session.user
@@ -319,6 +330,7 @@ async def load_profile(state):
 
 
 async def update_profile(state, transform):
+    """Aplica uma alteração ao perfil e a grava no banco, quando há conta."""
     def merge(stored):
         return {**stored, **transform(stored)}
 
@@ -332,6 +344,7 @@ async def update_profile(state, transform):
 
 @cl.on_window_message
 async def synchronize_study(data):
+    """Recebe as mensagens da interface (canal fatec-study) e executa a ação de cada tipo."""
     if not isinstance(data, dict) or (
         data.get("channel"), data.get("version"), data.get("direction")
     ) != (CHANNEL, 1, "client"):
@@ -492,9 +505,9 @@ async def synchronize_study(data):
     await publish_state(state, request_id, error)
 
 
-# O painel nativo de configurações do Chainlit foi retirado: nível de dicas e apelido
-# do companheiro são editados nos painéis Perfil e Companheiros, pela mesma ponte
-# de mensagens das demais preferências.
+# O nível de dicas e o apelido do companheiro são editados nos painéis Perfil e
+# Companheiros, pela mesma ponte de mensagens das demais preferências; o painel
+# nativo de configurações do Chainlit não é usado.
 
 
 
@@ -510,6 +523,7 @@ def escada_element(state, reply_id, step, companion):
 
 
 async def set_mode(state, mode):
+    """Troca o modo da conversa (Guia ou Aprende) e o guarda nos metadados do caderno."""
     if mode not in MODE_INSTRUCTIONS:
         raise ValueError("Modo inválido")
     state["mode"] = mode
@@ -521,6 +535,7 @@ async def set_mode(state, mode):
 
 @cl.on_chat_resume
 async def resume_study(thread):
+    """Retoma um caderno do histórico: recompõe o contexto, as autorias, o modo e a Escada."""
     steps = thread.get("steps") or []
     # O perfil da conta prevalece sobre as configurações de uma conversa antiga.
     (thread.get("metadata") or {}).pop("chat_settings", None)
@@ -597,6 +612,7 @@ async def send_as_student(state, content, failure):
 
 
 async def send_question(state, question_id=None):
+    """Envia a pergunta atual da trilha legada, com as alternativas como botões."""
     stage = state["trail_stage"]
     question = QUESTIONS[stage]
     actions = [
@@ -618,6 +634,7 @@ async def send_question(state, question_id=None):
 
 
 async def start_trail(state):
+    """Inicia a trilha legada de exercícios, mantida por compatibilidade com conversas antigas."""
     async with state["trail_lock"]:
         stage = state["trail_stage"]
         if stage == len(QUESTIONS):
@@ -632,6 +649,7 @@ async def start_trail(state):
 
 @cl.action_callback("study_trail")
 async def respond_to_question(action):
+    """Corrige a resposta escolhida na trilha legada e avança para a próxima etapa."""
     state = study_session()
     async with state["trail_lock"]:
         issued = state["trail_actions"].get(action.id)
@@ -718,6 +736,8 @@ async def finish_turn(state, turn):
 
 @cl.on_message
 async def on_message(message: cl.Message):
+    """Processa uma mensagem do estudante: monta as instruções, consulta os materiais,
+    gera a resposta em streaming, separa a Escada de dicas e grava o turno."""
     state = study_session()
     if not message or not isinstance(message.content, str) or len(message.content) > MAX_MESSAGE_CHARS:
         await cl.Message(content="Escreva uma mensagem de até 20.000 caracteres.").send()
@@ -900,6 +920,7 @@ async def index_material(user_id, material_id, name, path):
 
 
 def install_material_routes():
+    """Registra as rotas HTTP do painel Materiais (listar, enviar e remover PDFs)."""
     from fastapi import APIRouter, Depends, HTTPException, UploadFile
     from fastapi.responses import JSONResponse
     from chainlit.auth import get_current_user
@@ -988,6 +1009,7 @@ if DATA_LAYER:
     # carregamento ele altera sys.path, e uma importação paralela do chromadb falhava.
     @cl.on_app_startup
     async def warm_up_index():
+        """Na inicialização, marca como erro os materiais que ficaram em processamento."""
         from sqlalchemy import text
         # O deploy usa uma única instância com volume local. Trabalhos anteriores
         # não sobrevivem ao processo; tornam-se erros recuperáveis pela interface.
@@ -1007,5 +1029,7 @@ if DATA_LAYER:
         _material_tasks.add(asyncio.create_task(warm()))
 
 
+# A camada de segurança é instalada por último, depois que todos os handlers do app
+# foram registrados, para envolver as rotas e os eventos do Chainlit já configurados.
 from src.security_chainlit import install_security
 install_security()

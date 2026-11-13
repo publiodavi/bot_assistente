@@ -1,6 +1,8 @@
 # Revisão da interface e ferramentas de estudo
 
-Revisão de 11 de novembro de 2026, baseada no pedido registrado localmente em `.local/PROMPT_CODEX.md` e no complemento de arquitetura aprovado pelo responsável.
+> **Registro histórico (11/11/2026).** Desde então: o Check-in de ânimo foi removido; o sprite passou a ter doze companheiros (treze opções com a oculta); a revisão do Fichário passou a ser espaçada (3, 7, 14 e 30 dias); as fontes foram unificadas em todos os ambientes; e a suíte de testes chegou a 49. Os números abaixo descrevem o estado daquela data.
+
+Revisão de 11 de novembro de 2026 da interface e das ferramentas de estudo.
 
 ## Entrega
 
@@ -64,9 +66,9 @@ git diff --check
 A aplicação real permanece em `http://localhost:8103`. Usar `start.ps1` com o PostgreSQL local existente; evitar iniciar instâncias duplicadas. Os commits desta revisão são locais, sem push.
 
 
-## Correções após a revisão de Davi — 11/11/2026
+## Correções após a revisão visual — 11/11/2026
 
-As capturas enviadas pelo responsável mostraram três problemas que a rodada anterior não havia corrigido:
+As capturas de revisão mostraram três problemas que a rodada anterior não havia corrigido:
 
 1. **Campos do Foco sem tema:** o contêiner dos campos não tinha a classe `study-form`. Passou a usar as regras comuns de formulário, rótulos acima dos campos e duas colunas no desktop/uma no celular. Campos medidos com 44px de altura; sem rolagem horizontal interna no painel móvel.
 2. **Bordas soltas nos cadernos:** o link nativo era inline e recebia borda/padding enquanto continha um botão em bloco. O cartão passou a ser um bloco único, com o selo de degrau contido e atualizado sem duplicação. As ações nativas foram preservadas.

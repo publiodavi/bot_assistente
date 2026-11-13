@@ -29,10 +29,10 @@ Use o botão **Como usar** no topo da página para um passo a passo.
 
 Trabalho de Graduação (TG) do **Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas** da **Faculdade de Tecnologia de Guarulhos (Fatec Guarulhos)**, 2026.
 
-- **Autor:** Davi de Souza Públio
-- **Disciplina de Trabalho de Graduação:** Prof.ª Jane Maria dos Santos Eberson
+- **Autores:** Arthur Germano e Davi de Souza Públio
+- **Orientadora:** Prof.ª Esp. Jane Maria dos Santos Eberson
 
-Projeto de pesquisa: *Assistente virtual para auxílio a estudantes com dificuldade de aprendizado*.
+Título do trabalho: *Assistente virtual para auxílio a estudantes com dificuldade de aprendizado: o AjudAI*.
 
 ## Tecnologias
 

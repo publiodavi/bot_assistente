@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Question:
+    """Pergunta de múltipla escolha da trilha legada."""
     prompt: str
     choices: dict[str, str]
     answer: str

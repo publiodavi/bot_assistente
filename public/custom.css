@@ -1,3 +1,10 @@
+/* AjudAI — estilos próprios aplicados sobre a interface do Chainlit 2.12.
+   Organização: tokens e paletas por ambiente (1-2), integração com o Chainlit (3),
+   conversa como folha de caderno (4-19), capa (20), cenas e ambientes (22-23),
+   ferramentas de estudo e perfil (24-25), ajustes de layout (26-29), acabamento
+   geral (30-31) e telas específicas: Revisão do dia, flash cards, Materiais,
+   pausa, tutorial e busca (32-38). A seção 39 unifica as fontes em todos os temas.
+   As cores vêm de variáveis (tokens); os ambientes só trocam esses valores. */
 @font-face { font-family: "Study Lora"; src: url("fonts/lora-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Study Source Sans"; src: url("fonts/sourcesans3-400.woff2") format("woff2"); font-weight: 400 600; font-display: swap; }
 @font-face { font-family: "Study Cinzel"; src: url("fonts/cinzel-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
@@ -255,7 +262,7 @@ html:root body {
   text-decoration: underline;
 }
 
-/* 6. On the Vintage student's tinted bubble, use the darker text for links. */
+/* 6. Na anotação tingida do estudante (Vintage), links usam o texto mais escuro. */
 [data-step-type="user_message"] .message-content a { color: inherit; }
 
 .message-content :is(code, pre) { font-family: var(--study-font-code); }
@@ -1179,7 +1186,7 @@ html[data-study-theme="aracnideo"] .study-dialog { border-radius:.5rem 1.5rem .5
 html[data-study-theme="cyberpunk"] .study-dialog { border-radius:.65rem; }
 @media(max-width:600px) { .study-welcome { padding:1rem; background-position:70% center; min-height:0; } .study-cover { padding:1.25rem 1.25rem 1.25rem 2rem; } }
 
-/* 23. Café e Jardim; ajustes independentes do ambiente */
+/* 23. Café e Jardim; regras de cor de destaque de todos os ambientes */
 html[data-study-theme="cafe"] { --study-bg:27 25% 90%; --study-surface:27 35% 97%; --study-text:27 25% 16%; --study-muted-text:27 20% 32%; --study-border:27 20% 43%; --study-accent:27 45% 28%; --study-on-accent:0 0% 100%; --study-muted:27 25% 86%; --study-bubble-student:27 25% 84%; --study-font-title:"Study Lora", Georgia,serif; --study-font-body:"Study Source Sans",system-ui,sans-serif; --study-texture:repeating-linear-gradient(0deg,transparent 0 30px,hsl(27 30% 35% / .07) 30px 31px); --study-art:none; --study-shadow:0 12px 32px #30251b1a; --study-scene-color:#674631; }
 html[data-study-theme="cafe"][data-study-appearance="dark"] { --study-bg:27 20% 10%; --study-surface:27 20% 16%; --study-text:27 35% 93%; --study-muted-text:27 25% 78%; --study-border:27 20% 56%; --study-accent:27 50% 75%; --study-on-accent:27 30% 12%; --study-muted:27 20% 23%; --study-bubble-student:27 20% 25%; }
 html[data-study-theme="cafe"] .study-sheet { border-radius:1rem; border-top:4px solid hsl(var(--study-accent)); }
@@ -1334,7 +1341,7 @@ html[data-study-motion="paused"] .study-companion-card__art { animation-play-sta
 
 html[data-study-appearance="dark"] { color-scheme:dark; }
 
-/* 36. Folha contínua e campos das ferramentas: correções da revisão visual. */
+/* 29. Folha contínua e campos das ferramentas. */
 .study-sheet-content { flex:none; box-sizing:border-box; width:100%; max-width:none!important; min-width:0; padding:1.25rem 1.5rem 1rem; }
 html[data-study-theme] .study-sheet { background-attachment:local; }
 .study-focus-fields > label { min-width:0; }
@@ -1346,8 +1353,8 @@ html[data-study-theme] .study-sheet { background-attachment:local; }
 
 @media(max-width:36rem) { html[data-study-theme="vintage"] .study-sheet { background-position:-1.25rem 0,0 1.1rem,0 0; } }
 
-/* 37. Amostra de acabamento (design.md): fonte de interface, papéis de botão,
-   navegação lateral e painel Temas. A fonte temática fica restrita a títulos curtos. */
+/* 30. Acabamento geral (ver design.md): fonte de interface, papéis de botão,
+   navegação lateral e painel Temas. */
 :root {
   --study-font-ui: "Study Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --study-radius-control: .5rem;
@@ -1361,7 +1368,7 @@ html:root body { font-family: var(--study-font-ui); }
 .study-bar__name { font-family: var(--study-font-ui); font-weight: 600; }
 .study-icon { width: 1.125rem; height: 1.125rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
-/* 37.1 Papéis de botão: principal preenchido, secundário discreto, navegação sem recipiente. */
+/* 30.1 Papéis de botão: principal preenchido, secundário discreto, navegação sem recipiente. */
 .study-button {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   min-height: 2.5rem; padding: .5rem .875rem;
@@ -1399,7 +1406,7 @@ html:root body { font-family: var(--study-font-ui); }
 .study-form-status { display: flex; align-items: center; gap: .375rem; }
 .study-form-status .study-icon { width: 1rem; height: 1rem; stroke-width: 2; }
 
-/* 37.2 Cabeçalho: com conta, Ferramentas fica só na lateral; Perfil vai para o rodapé dela no desktop. */
+/* 30.2 Cabeçalho: com conta, Ferramentas fica só na lateral; Perfil vai para o rodapé dela no desktop. */
 .study-tools { gap: .125rem; }
 html[data-study-account="authenticated"] .study-tools [data-tool="ferramentas"] { display: none; }
 @media (min-width: 768px) { html[data-study-account="authenticated"] .study-tools [data-tool="perfil"] { display: none; } }
@@ -1408,7 +1415,7 @@ html[data-study-account="authenticated"] .study-tools [data-tool="ferramentas"] 
   .study-tools .study-nav__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
-/* 37.3 Lateral: atalhos, lista compacta de cadernos, ferramentas e perfil. */
+/* 30.3 Lateral: atalhos, lista compacta de cadernos, ferramentas e perfil. */
 [data-sidebar="sidebar"] { background-image: none; }
 [data-sidebar="sidebar"]:has(.study-sidebar-nav) [data-sidebar="header"] :is(#search-chats-button, #new-chat-button) { display: none; }
 .study-sidebar-nav { display: grid; gap: 2px; padding: 0 .5rem; }
@@ -1437,7 +1444,7 @@ html[data-study-account="authenticated"] .study-tools [data-tool="ferramentas"] 
 .study-sidebar-profile__text strong { font-size: .875rem; font-weight: 600; }
 .study-sidebar-profile__text span { font-size: .75rem; color: hsl(var(--study-muted-text)); }
 
-/* 37.4 Painéis: cabeçalho comum com título de interface e fechar como ação de ícone. */
+/* 30.4 Painéis: cabeçalho comum com título de interface e fechar como ação de ícone. */
 .study-dialog { border-color: hsl(var(--study-border) / .45); border-radius: var(--study-radius-panel); }
 .study-dialog__header { align-items: flex-start; padding: 1.125rem 1rem 1rem 1.5rem; border-bottom-color: hsl(var(--study-border) / .3); }
 .study-dialog__heading { display: grid; gap: .25rem; min-width: 0; }
@@ -1451,7 +1458,7 @@ html[data-study-account="authenticated"] .study-tools [data-tool="ferramentas"] 
 .study-dialog__footer .study-form-status[data-state="ok"] { color: hsl(var(--study-text)); }
 .study-dialog__footer .study-form-status[data-state="ok"] .study-icon { color: hsl(var(--study-accent)); }
 
-/* 37.5 Painel Temas: seções separadas por espaço, sem caixas internas. */
+/* 30.5 Painel Temas: seções separadas por espaço, sem caixas internas. */
 .study-dialog--themes { width: min(40rem, calc(100vw - 1.5rem)); }
 .study-dialog--themes .study-dialog__body { gap: 0; padding: 0 1.5rem .5rem; }
 .study-dialog--themes .study-section { gap: .75rem; padding-block: 1.25rem; }
@@ -1504,10 +1511,10 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 }
 @media (prefers-reduced-motion: reduce) { .study-switch, .study-switch::after { transition: none; } }
 
-/* 38. Padrão da amostra levado às demais telas: capa, barra de estudo, Escada nas
+/* 31. O mesmo acabamento nas demais telas: capa, barra de estudo, Escada nas
    respostas e painéis Companheiros, Perfil, Ferramentas, Foco e Fichário. */
 
-/* 38.1 Capa: o título segue temático; etiqueta, marcadores e retomada usam a fonte de interface. */
+/* 31.1 Capa: o título segue temático; etiqueta, marcadores e retomada usam a fonte de interface. */
 .study-cover > p { font-size: .9375rem; line-height: 1.5; }
 .study-cover .study-topic-form > label:first-child {
   gap: .25rem;
@@ -1552,7 +1559,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-recent__name { margin-right: auto; font: 500 .9375rem / 1.3 var(--study-font-ui); }
 .study-recent__step { font-size: .75rem; font-variant-numeric: tabular-nums; }
 
-/* 38.2 Barra de estudo: borda leve, degrau como ação secundária com seta desenhada. */
+/* 31.2 Barra de estudo: borda leve, degrau como ação secundária com seta desenhada. */
 .study-bar { padding: .3125rem .375rem .3125rem .5rem; border-color: hsl(var(--study-border) / .35); border-radius: var(--study-radius-card); font-family: var(--study-font-ui); }
 .study-bar__status { font-size: .8125rem; }
 .study-bar__step {
@@ -1574,7 +1581,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-ladder__step { padding: .375rem .625rem; border-left-width: 2px; border-radius: 0 var(--study-radius-control) var(--study-radius-control) 0; font: .8125rem / 1.3 var(--study-font-ui); }
 .study-ladder__step--teach { border-left-width: 4px; }
 
-/* 38.3 Respostas: selo e Escada de dicas sem caixa alta; botões seguem os papéis da amostra. */
+/* 31.3 Respostas: selo e Escada de dicas sem caixa alta; botões seguem os papéis definidos na seção 30.1. */
 .study-stamp { font: 600 .8125rem / 1.2 var(--study-font-ui); letter-spacing: 0; }
 .escada__topo { font: 500 .8125rem / 1.3 var(--study-font-ui); letter-spacing: 0; text-transform: none; }
 .escada__selo { font: 600 .75rem / 1.2 var(--study-font-ui); letter-spacing: 0; }
@@ -1596,7 +1603,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .escada__nota strong { font-family: var(--study-font-ui); font-weight: 600; }
 .escada__nota-titulo { font: 600 .8125rem / 1.3 var(--study-font-ui); letter-spacing: 0; text-transform: none; }
 
-/* 38.4 Painéis: mesmo respiro, seções divididas por linha leve e campos com raio de controle. */
+/* 31.4 Painéis: mesmo respiro, seções divididas por linha leve e campos com raio de controle. */
 .study-dialog__body { --study-dialog-pad: 1.5rem; gap: 1rem; padding: 1.25rem var(--study-dialog-pad) var(--study-dialog-pad); }
 .study-dialog__body > .study-section + .study-section,
 .study-profile > .study-section + .study-section { padding-top: 1.25rem; border-top: 1px solid hsl(var(--study-border) / .3); }
@@ -1635,7 +1642,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 }
 .study-sticky-actions .study-form-status { margin-right: auto; }
 
-/* 38.5 Companheiros: cartões sem contorno, seleção com anel e o mesmo raio dos temas. */
+/* 31.5 Companheiros: cartões sem contorno, seleção com anel e o mesmo raio dos temas. */
 .study-companion-grid { grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr)); gap: .75rem; }
 .study-companion-card { gap: .25rem; padding: .625rem .5rem .75rem; border: 0; border-radius: var(--study-radius-card); background: hsl(var(--study-muted) / .55); }
 .study-companion-card:hover { background: hsl(var(--study-muted)); }
@@ -1644,7 +1651,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-companion-card__kind { font-size: .75rem; }
 .study-nickname { align-items: center; }
 
-/* 38.6 Perfil: cartão sem lombada, rótulo em caixa normal e números na fonte de interface. */
+/* 31.6 Perfil: cartão sem lombada, rótulo em caixa normal e números na fonte de interface. */
 .study-student-card { gap: 1rem; padding: 1.25rem; border: 0; border-radius: var(--study-radius-card); background: hsl(var(--study-muted)); }
 .study-student-card strong { font: 600 1.25rem / 1.3 var(--study-font-ui); }
 .study-student-card .study-muted { margin: .125rem 0 0; }
@@ -1657,7 +1664,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-avatar-grid .study-button { min-height: 0; border-radius: 50%; background: transparent; }
 .study-avatar-grid .study-button:hover { background: hsl(var(--study-muted)); }
 
-/* 38.7 Ferramentas, Foco e Fichário. */
+/* 31.7 Ferramentas, Foco e Fichário. */
 .study-dialog--tools .study-section__title { display: none; }
 .study-focus-clock { padding: 1rem 0 .25rem; color: hsl(var(--study-text)); font: 600 clamp(3rem, 10vw, 4.5rem) / 1.1 var(--study-font-ui); letter-spacing: -.02em; }
 .study-focus-clock + .study-muted { margin: 0; text-align: center; }
@@ -1680,7 +1687,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
   .study-sticky-actions .study-form-status:not(:empty) { flex-basis: 100%; }
 }
 
-/* 39. Revisão do dia: mesma linha da retomada, com a ação explícita à direita. */
+/* 32. Revisão do dia: mesma linha da retomada, com a ação explícita à direita. */
 .study-review__lead { margin: -.25rem 0 .5rem; font-size: .8125rem; opacity: .85; }
 .study-welcome .study-review__lead { max-width: none; }
 .study-review__item { width: 100%; border: 0; text-align: start; cursor: pointer; font: inherit; }
@@ -1699,7 +1706,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
   .study-review__action { grid-column: 3; grid-row: 2; }
 }
 
-/* 40. Flash cards: lista de baralhos e cartão de estudo com a fonte de leitura. */
+/* 33. Flash cards: lista de baralhos e cartão de estudo com a fonte de leitura. */
 .study-dialog--cards { width: min(36rem, calc(100vw - 1.5rem)); }
 .study-decks { display: grid; }
 .study-deck { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 0; }
@@ -1733,7 +1740,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 }
 @media (hover: none) { .study-flash__keys { display: none; } }
 
-/* 41. Materiais e fontes consultadas na Escada. */
+/* 34. Materiais e fontes consultadas na Escada. */
 .study-materials .study-deck .study-link-button { flex: none; margin: 0; }
 .study-materials__error { color: hsl(var(--study-error)) !important; }
 .study-materials__content { display: grid; gap: 1rem; }
@@ -1741,7 +1748,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 .study-materials__content[hidden] { display: none; }
 .escada__fontes { margin: 0; color: hsl(var(--study-muted-text)); font: .75rem / 1.4 var(--study-font-ui); }
 
-/* 42. Tela de pausa (bloqueio), lembrete de uso e flash card que vira. */
+/* 35. Tela de pausa (bloqueio), lembrete de uso e flash card que vira. */
 .study-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .study-break {
   width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 1rem;
@@ -1791,7 +1798,7 @@ html[data-study-theme="jardim"] { --swatch-1: 135; --swatch-2: 20; --swatch-3: 2
 html[data-study-motion="paused"] .study-flip__inner { transition: none; }
 @media (max-width: 36rem) { .study-break__card { padding: 1.5rem 1.125rem 1.25rem; } .study-nudge { align-items: flex-start; } }
 
-/* 43. Quantidade de cartões, resultado da sessão, escada agrupada e tutorial. */
+/* 36. Quantidade de cartões, resultado da sessão, escada agrupada e tutorial. */
 .study-flash__extra { margin-inline-start: .5rem; padding: .0625rem .375rem; border-radius: 999px; background: hsl(var(--study-accent) / .16); color: hsl(var(--study-text)); font-size: .6875rem; font-weight: 600; }
 .study-flash__rate { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .study-flash__rate .study-button { min-height: 2.75rem; flex-direction: row; }
@@ -1819,7 +1826,7 @@ html[data-study-motion="paused"] .study-flip__inner { transition: none; }
 .study-welcome .study-tutorial-link { display: block; margin-top: .375rem; }
 @media (max-width: 36rem) { .study-tutorial__dots { display: none; } .study-tutorial__step { min-height: 12rem; } }
 
-/* 44. Busca de cadernos: o foco fica dentro da caixa, como uma linha na base. */
+/* 37. Busca de cadernos: o foco fica dentro da caixa, como uma linha na base. */
 [cmdk-input]:focus-visible { outline: none; }
 [cmdk-input-wrapper] input[cmdk-input] { height: 2.75rem; font: 400 .9375rem / 1.4 var(--study-font-ui); }
 [cmdk-input-wrapper] { transition: box-shadow .15s; }
@@ -1827,13 +1834,13 @@ html[data-study-motion="paused"] .study-flip__inner { transition: none; }
 @media (prefers-reduced-motion: reduce) { [cmdk-input-wrapper] { transition: none; } }
 .study-companion-card__kind:empty { display: none; }
 
-/* 45. Escada desta conversa: título e selo numa linha, detalhes embaixo; nada espremido. */
+/* 38. Escada desta conversa: título e selo numa linha, detalhes embaixo; nada espremido. */
 .study-ladder__step { display: grid; grid-template-columns: minmax(0, 1fr); gap: .125rem; }
 .study-ladder__step strong { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; }
 .study-ladder__here { flex: none; white-space: nowrap; line-height: 1.4; padding: .0625rem .5rem; }
 .study-ladder__step > span { color: hsl(var(--study-muted-text)); text-align: start; }
 
-/* 46. Mesmas fontes em todos os ambientes: a identidade vem das cenas e cores, não da tipografia.
+/* 39. Mesmas fontes em todos os ambientes: a identidade vem das cenas e cores, não da tipografia.
    Interface em Inter, leitura em Source Sans e títulos em Lora, iguais nos seis temas. */
 html[data-study-theme][data-study-theme] {
   --study-font-title: "Study Lora", Georgia, serif;

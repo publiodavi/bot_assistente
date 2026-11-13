@@ -13,10 +13,10 @@ O projeto é conduzido por meio de uma **metodologia de desenvolvimento iterativ
 **Objetivo:** estabelecer a fundação técnica do protótipo: ambiente de desenvolvimento, comunicação com o modelo de linguagem e fluxo mínimo de conversação.
 
 Entregáveis:
-- [ ] Configuração do ambiente (ambiente virtual, variáveis de ambiente e dependências).
-- [ ] Cliente de conexão com a API DeepSeek via SDK compatível com OpenAI (`src/services/llm_client.py`).
-- [ ] Fluxo básico de pergunta e resposta no Chainlit (`src/app.py`).
-- [ ] Versionamento e organização inicial do repositório.
+- [x] Configuração do ambiente (ambiente virtual, variáveis de ambiente e dependências).
+- [x] Cliente de conexão com a API DeepSeek via SDK compatível com OpenAI (`src/services/llm_client.py`).
+- [x] Fluxo básico de pergunta e resposta no Chainlit (`src/app.py`).
+- [x] Versionamento e organização inicial do repositório.
 
 **Critério de aceite:** o assistente responde a mensagens do usuário por meio do modelo de linguagem configurado, com streaming de resposta na interface.
 
@@ -25,10 +25,10 @@ Entregáveis:
 **Objetivo:** conferir ao assistente a identidade pedagógica fundamentada na ZDP de Vygotsky e ancorar as respostas no conteúdo das disciplinas.
 
 Entregáveis:
-- [ ] Prompt de sistema baseado na ZDP com regras de andaimento pedagógico (`src/prompts/pedagogical_prompt.py`).
-- [ ] Fluxo de diagnóstico inicial de lacunas de conhecimento.
-- [ ] Pipeline RAG: leitura de PDFs, segmentação de texto, indexação no ChromaDB e busca semântica (`src/rag/indexer.py`).
-- [ ] Integração do contexto recuperado ao prompt enviado ao modelo.
+- [x] Prompt de sistema baseado na ZDP com regras de andaimento pedagógico (`src/prompts/pedagogical_prompt.py`).
+- [ ] Fluxo de diagnóstico inicial de lacunas de conhecimento. *(Substituído pela regra de explicar primeiro e pelos níveis de apoio; um diagnóstico formal continua como trabalho futuro.)*
+- [x] Pipeline RAG: leitura de PDFs em processo isolado, segmentação de texto, indexação no ChromaDB e busca semântica com reordenação (`src/rag/`).
+- [x] Integração do contexto recuperado ao prompt enviado ao modelo.
 
 **Critério de aceite:** o assistente não entrega respostas prontas; apresenta dicas graduais e perguntas instigantes, fundamentadas nos PDFs indexados.
 
@@ -60,21 +60,21 @@ Responsabilidades:
 Responsabilidades:
 - Implementação da interface conversacional e gerenciamento de sessão (`src/app.py`).
 - Pipeline RAG local: processamento de PDFs, indexação no ChromaDB e busca semântica (`src/rag/indexer.py`).
-- Organização da base de conhecimento em `data/materiais/`.
+- Base de conhecimento por conta: cada estudante envia os próprios PDFs pelo painel Materiais, indexados em `STUDY_CHROMA_DIR` (`.local/chroma` ou `/data/chroma`).
 - Elaboração e aplicação do roteiro de testes de usabilidade.
 - Definição e coleta de métricas de avaliação do protótipo.
 
 ## Checklist de Requisitos Funcionais do Protótipo
 
 - [ ] **Diagnóstico inicial:** o assistente realiza perguntas para mapear as lacunas de conhecimento do estudante no início da sessão.
-- [ ] **Suporte com andaimento pedagógico:** o assistente guia o estudante com dicas graduais e perguntas instigantes, sem entregar respostas prontas, reduzindo o auxílio conforme o estudante progride.
+- [x] **Suporte com andaimento pedagógico:** o assistente guia o estudante com dicas graduais e perguntas instigantes, sem entregar respostas prontas, reduzindo o auxílio conforme o estudante progride.
 - [ ] **Sugestão de trilha de estudo:** com base no diagnóstico, o assistente propõe uma sequência personalizada de conteúdos e atividades.
-- [ ] **Fundamentação em material didático:** as respostas consideram trechos recuperados dos PDFs das disciplinas via RAG.
-- [ ] **Interação em linguagem natural:** a conversa flui em português, em tom acadêmico e acolhedor, adaptado ao ritmo do estudante.
+- [x] **Fundamentação em material didático:** as respostas consideram trechos recuperados dos PDFs das disciplinas via RAG.
+- [x] **Interação em linguagem natural:** a conversa flui em português, em tom acadêmico e acolhedor, adaptado ao ritmo do estudante.
 
 ## Personalização da experiência de estudos
 
-No modo autenticado, o OAuth nativo usa o identificador estável do Google. A camada SQLAlchemy do Chainlit persiste usuários, conversas e passos no PostgreSQL. As preferências e a introdução ficam em `study_profiles` e a etapa concluída fica em `study_trail_progress`. A retomada recompõe o contexto do modelo apenas com pares de mensagens concluídos, vinculados pelo ID da pergunta. O histórico usa as verificações de propriedade do Chainlit e o compartilhamento está desabilitado.
+No modo autenticado, o OAuth nativo usa o identificador estável do Google. A camada SQLAlchemy do Chainlit persiste usuários, conversas e passos no PostgreSQL. As preferências, a introdução e o Fichário ficam em `study_profiles`; os flash cards em `study_card_decks`; os materiais em `study_materials`; o registro de uso para as cotas em `study_usage`; e a etapa da trilha legada em `study_trail_progress`. A camada `StudyDataLayer` (`src/security_data.py`) acrescenta verificações de propriedade, reforçadas por gatilhos no PostgreSQL (migração 004). A retomada recompõe o contexto do modelo apenas com pares de mensagens concluídos, vinculados pelo ID da pergunta. O histórico usa as verificações de propriedade do Chainlit e o compartilhamento está desabilitado.
 
 As galerias aplicam tema, aparência e companheiro imediatamente e enviam a escolha pelo canal do chat. A interface mantém a última escolha em tela durante o salvamento e confirma a preferência no cache daquela conta após resposta do servidor. O apelido de cada companheiro fica no painel Companheiros e o nível de apoio no Perfil. A entrada recebe qualquer assunto e gera a primeira mensagem da conversa, substituindo o exercício fixo.
 
@@ -90,7 +90,7 @@ A interface abandona as convenções de chat genérico (balões, ícone de assis
 
 Cada resposta é dividida pelo modelo em duas partes: o texto que o estudante lê e um bloco estruturado com o tipo do passo, o degrau, até três pistas graduais e um exemplo parcial (`src/services/escada.py`). As pistas ficam ocultas e são abertas uma de cada vez, o que torna visível a retirada progressiva do apoio prevista no andaimento. O servidor valida a sequência, grava as camadas abertas nos metadados da mensagem e informa ao modelo, no turno seguinte, o que já foi visto.
 
-Quando o modelo avalia que o estudante compreendeu o passo, é oferecido o convite para explicar o conceito ao companheiro. Nesse modo, o companheiro faz perguntas de aprendiz e devolve uma nota com o que ficou claro e o que faltou, inspirado no efeito protégé e na técnica de explicar com as próprias palavras. O seletor "Quem conduz?" permite manter esse modo na conversa inteira.
+Quando o modelo avalia que o estudante compreendeu o passo, é oferecido o convite para explicar o conceito ao companheiro. Nesse modo, o companheiro faz perguntas de aprendiz e devolve uma nota com o que ficou claro e o que faltou, inspirado no efeito protégé e na técnica de explicar com as próprias palavras. O seletor Guia/Aprende permite manter esse modo na conversa inteira.
 
 Os indicadores de degrau, de avanço sem dicas e de prontidão para ensinar são julgamentos do modelo de linguagem, apresentados como tal na interface. Não equivalem a correção automática nem a medida validada de aprendizagem; a avaliação desses indicadores é parte do piloto de usabilidade.
 
@@ -100,7 +100,9 @@ Aplicar duas tarefas equivalentes a estudantes universitários, alternando a ord
 
 ### Verificação técnica
 
-Na revisão de ambientes animados, as oito combinações de tema e aparência foram conferidas no navegador e os tokens passaram nos testes de contraste de texto e controles. A entrada por assunto foi exercitada com biologia, literatura, matemática, inglês e programação usando respostas simuladas. O PostgreSQL oficial local passou por testes de reconexão, perfis isolados, recuperação de mensagens, trilha, renomeação e exclusão com contas fictícias. O projeto e o cliente OAuth reais foram criados no Google Cloud, com aceite da política autorizado pelo responsável. As credenciais foram salvas no `.env` local e a tela de entrada Google foi verificada após reiniciar o servidor na porta 8103. A inclusão de usuários de teste e o primeiro login real ainda dependem da sessão Google do responsável; não foram registrados como testes concluídos.
+> Registro histórico das primeiras revisões, quando havia quatro temas (oito combinações) e uma trilha fixa. Hoje são seis ambientes (doze combinações de tema e aparência) e 49 testes automatizados; a trilha fixa é legado. A validação atual está no README e em `docs/monografia/`.
+
+Na revisão de ambientes animados, as oito combinações de tema e aparência foram conferidas no navegador e os tokens passaram nos testes de contraste de texto e controles. A entrada por assunto foi exercitada com biologia, literatura, matemática, inglês e programação usando respostas simuladas. O PostgreSQL oficial local passou por testes de reconexão, perfis isolados, recuperação de mensagens, trilha, renomeação e exclusão com contas fictícias. O projeto e o cliente OAuth reais foram criados no Google Cloud, com a política de privacidade aceita. As credenciais foram salvas no `.env` local e a tela de entrada Google foi verificada após reiniciar o servidor na porta 8103. A inclusão de usuários de teste e o primeiro login real foram concluídos depois, com a publicação no Railway.
 
 A galeria, o retorno ao tema confirmado após falha, a mini prática, a repetição da introdução e o pulo foram exercitados no Edge com largura de 320 px. A migração e a camada SQLAlchemy foram exercitadas em PostgreSQL temporário via PGlite Socket, com usuários fictícios, verificação de propriedade, persistência de perfil e trilha, recomposição do contexto, renomeação e exclusão. A validação do OAuth real exige as credenciais e a URL de retorno do projeto Google.
 

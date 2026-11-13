@@ -1,4 +1,4 @@
-"""Preferências gerais da entrada por assunto."""
+"""Objetivos e dificuldades oferecidos na introdução e transições da tela de entrada."""
 
 GOALS = {
     "entender": "Entender um conceito",
@@ -12,6 +12,7 @@ BARRIERS = {
 
 
 def intro_transition(profile, command, value):
+    """Próximo estado da introdução a partir do comando recebido da interface."""
     if command in ("begin", "replay"):
         return {"intro": "topic", "hint": ""}
     if command == "skip":

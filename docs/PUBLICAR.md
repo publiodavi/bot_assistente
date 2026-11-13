@@ -7,7 +7,7 @@ Passo a passo para colocar o AjudAI na web, com endereço próprio, banco Postgr
 ## 1. Criar o projeto
 
 1. Entre em [railway.com](https://railway.com) com a conta do GitHub. O período de teste dá **US$ 5 em créditos por 30 dias**, sem cartão.
-2. **New Project → Deploy from GitHub repo** e escolha `bot_assistente`.
+2. **New Project → Deploy from GitHub repo** e escolha o repositório `ajudai`.
 3. O Railway encontra o `Dockerfile` e começa a construir o app. O primeiro deploy vai falhar, porque ainda faltam as variáveis; isso é esperado.
 
 ## 2. Banco de dados e disco

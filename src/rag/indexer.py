@@ -28,6 +28,7 @@ def fold(text):
 
 
 def terms(text):
+    """Palavras significativas de um texto, sem acentos e sem palavras comuns."""
     return {word for word in re.findall(r"[a-z0-9]{3,}", fold(text)) if word not in STOPWORDS}
 
 
@@ -98,6 +99,7 @@ class MaterialIndex:
         self._lock = threading.Lock()
 
     def collection(self):
+        """Coleção do ChromaDB, aberta na primeira utilização."""
         with self._lock:
             if self._collection is None:
                 import chromadb
@@ -118,6 +120,7 @@ class MaterialIndex:
         DefaultEmbeddingFunction()(["aquecimento"])
 
     def add(self, user_id, material_id, name, chunks, batch=64):
+        """Indexa os trechos de um material, identificados pela conta e pela página."""
         collection = self.collection()
         for start in range(0, len(chunks), batch):
             part = chunks[start:start + batch]
@@ -129,9 +132,11 @@ class MaterialIndex:
             )
 
     def remove(self, user_id, material_id):
+        """Remove do índice todos os trechos de um material da conta."""
         self.collection().delete(where={"$and": [{"user_id": user_id}, {"material_id": material_id}]})
 
     def search(self, user_id, query, limit=3):
+        """Busca os trechos da conta mais próximos da pergunta e os reordena por relevância."""
         collection = self.collection()
         result = collection.query(query_texts=[query[:2000]], n_results=12, where={"user_id": user_id},
                                   include=["documents", "metadatas", "distances"])

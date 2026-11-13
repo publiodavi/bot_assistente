@@ -15,6 +15,7 @@ from src.security import MAX_MESSAGE_CHARS, MAX_FILE_BYTES, SecurityMiddleware, 
 
 
 def uuid_value(value):
+    """Normaliza um UUID recebido do navegador; devolve None se for inválido."""
     try:
         return str(UUID(value)) if isinstance(value, str) else None
     except ValueError:
@@ -22,12 +23,14 @@ def uuid_value(value):
 
 
 def require_account(user):
+    """Exige uma conta autenticada e devolve seu identificador."""
     if not user or not getattr(user, "id", None):
         raise HTTPException(401, "Entre na sua conta.")
     return user.id
 
 
 def owned_session(user, session_id):
+    """Devolve a sessão de WebSocket somente se ela pertencer ao usuário autenticado."""
     require_account(user)
     session = WebsocketSession.get_by_id(session_id)
     if not session or not session.user or session.user.identifier != user.identifier:
@@ -36,6 +39,7 @@ def owned_session(user, session_id):
 
 
 async def element_access(layer, user, session, data):
+    """Confere se o elemento (Escada de dicas) pertence à conversa e à mensagem da sessão."""
     if not isinstance(data, dict) or data.get("type") != "custom" or data.get("name") != "EscadaDicas":
         raise HTTPException(400, "Elemento inválido.")
     for key in ("id", "threadId", "forId"):
@@ -54,6 +58,7 @@ async def element_access(layer, user, session, data):
 
 
 def clean_message(payload):
+    """Valida uma mensagem do estudante e descarta autoria e metadados enviados pelo navegador."""
     if not isinstance(payload, dict) or not isinstance(payload.get("message"), dict):
         raise ValueError("Mensagem inválida.")
     message = payload["message"]
@@ -70,6 +75,7 @@ def clean_message(payload):
 
 
 def install_security():
+    """Substitui rotas e eventos do Chainlit 2.12.0 por versões com autorização e limites."""
     from chainlit import server, socket
     from starlette.middleware.cors import CORSMiddleware
 

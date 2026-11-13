@@ -1,0 +1,26 @@
+sequenceDiagram
+  autonumber
+  actor E as Estudante
+  participant N as Navegador
+  participant S as Segurança
+  participant A as app.py
+  participant B as PostgreSQL
+  participant R as ChromaDB
+  participant L as DeepSeek
+  E->>N: escreve a mensagem
+  N->>S: client_message (WebSocket)
+  S->>S: valida id, tamanho, autor e trava de ocupado
+  S->>A: on_message
+  A->>B: perfil, preferências e reserva de cota
+  A->>R: busca trechos dos materiais (se ativo)
+  A->>A: monta instruções + histórico + trechos + mensagem
+  A->>L: requisição em streaming
+  loop cada trecho recebido
+    L-->>A: tokens
+    A->>A: separa texto visível e Escada (@@ESCADA@@)
+    A-->>N: texto visível
+  end
+  A->>A: valida o JSON da Escada e as fontes
+  A->>B: grava a resposta e os metadados
+  A-->>N: Escada de dicas e estado atualizado
+  N-->>E: resposta com degrau e dicas fechadas

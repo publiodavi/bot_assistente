@@ -1,4 +1,10 @@
-"""Orientações pedagógicas para o assistente."""
+"""Instruções enviadas ao modelo de linguagem.
+
+SYSTEM_PROMPT define a condução inspirada na ZDP (explicar primeiro, uma pergunta por
+vez, pistas graduais); ESCADA_FORMAT exige a resposta em duas partes; MODE_INSTRUCTIONS
+e ZDP_INSTRUCTIONS ajustam o modo (Guia/Aprende) e o nível de apoio. Textos vindos do
+estudante são isolados por isolate() e tratados como dados, nunca como instruções.
+"""
 
 SYSTEM_PROMPT = """Você é um assistente educacional acolhedor para pessoas de diferentes idades e formações.
 Ajude a estudar qualquer assunto, como história, biologia, literatura, matemática, idiomas e programação.
@@ -129,6 +135,7 @@ def materials_message(hits):
 
 
 def cards_messages(conversation, discovery=None, count=10):
+    """Mensagens para gerar flash cards a partir da conversa e da descoberta registrada."""
     data = f"Quantidade de cartões: {count}.\n" + isolate("conversa", conversation)
     if discovery:
         data += "\n" + isolate("descoberta", discovery)

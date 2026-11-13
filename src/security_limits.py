@@ -15,6 +15,7 @@ BUSY = "Espere a tarefa atual terminar ou aguarde alguns instantes antes de tent
 
 
 class UsageLimit(ValueError):
+    """Limite de uso atingido; a mensagem é mostrada ao estudante."""
     pass
 
 
@@ -40,6 +41,7 @@ def limit_message(operation, active, recent, daily, everyone):
 
 
 def session_account():
+    """Identificador da conta da sessão atual, ou None no modo de demonstração."""
     from chainlit.context import context
     try:
         session = context.session
@@ -50,6 +52,8 @@ def session_account():
 
 @asynccontextmanager
 async def usage(operation, account_id=None):
+    """Reserva uma operação (chat, cartões ou envio) dentro dos limites por minuto, diários
+    e globais, e libera a reserva ao final, mesmo em caso de erro."""
     from chainlit.data import get_data_layer
     from sqlalchemy import text
 

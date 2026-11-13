@@ -17,5 +17,7 @@ RUN python -m pip install --upgrade pip==26.3 && python -m pip install -r requir
 COPY . .
 RUN mkdir -p /data
 
+# Na inicialização: cópia de recuperação antes da migração 004 (só na primeira vez),
+# aplicação das migrações e, por fim, o servidor do Chainlit.
 # O Railway informa a porta em $PORT; localmente, usa 8000.
 CMD ["sh", "-c", "python -m src.services.backups && python scripts/migrate.py && exec python -m chainlit run src/app.py --headless --host 0.0.0.0 --port ${PORT:-8000}"]

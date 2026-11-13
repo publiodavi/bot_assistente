@@ -10,11 +10,13 @@ from sqlalchemy import text
 
 
 class StudyDataLayer(SQLAlchemyDataLayer):
+    """Camada de dados do Chainlit com verificação de propriedade em mensagens, avaliações e elementos."""
     async def get_current_timestamp(self):
         return utc_now()
 
     @queue_until_user_message()
     async def create_step(self, step_dict):
+        """Grava uma mensagem somente na conversa da sessão, sem permitir mudança de conversa."""
         from chainlit.context import context
         if step_dict.get("threadId") != context.session.thread_id:
             raise ValueError("Mensagem indisponível.")
@@ -46,6 +48,7 @@ class StudyDataLayer(SQLAlchemyDataLayer):
                 raise ValueError("Mensagem indisponível.")
 
     async def secure_feedback(self, user_id, feedback=None, delete_id=None):
+        """Cria, altera ou remove uma avaliação, conferindo que a mensagem pertence à conta."""
         owner = UUID(user_id)
         async with self.engine.begin() as conn:
             # Serializa gravações de feedback da conta e impede retargeting de IDs.
@@ -82,6 +85,7 @@ class StudyDataLayer(SQLAlchemyDataLayer):
 
     @queue_until_user_message()
     async def delete_element(self, element_id, thread_id=None):
+        """Remove um elemento apenas da conversa e da conta da sessão atual."""
         from chainlit.context import context
         session = context.session
         owner = getattr(session.user, "id", None)

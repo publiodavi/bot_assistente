@@ -17,15 +17,18 @@ TABLES = {"users", "threads", "steps", "elements", "feedbacks", "study_profiles"
 
 
 def quoted(value):
+    """Nome de tabela entre aspas duplas, para uso seguro no SQL."""
     return '"' + value.replace('"', '""') + '"'
 
 
 def digest(path):
+    """Hash SHA-256 de um arquivo da cópia, usado para conferir a integridade."""
     with Path(path).open("rb") as handle:
         return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 async def export_database(connection, destination):
+    """Exporta as tabelas conhecidas do app em COPY binário, com manifesto e hashes."""
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=False, mode=0o700)
     manifest = {"format": 1, "tables": []}
@@ -103,6 +106,7 @@ async def restore_database(connection, source):
 
 
 async def preflight():
+    """Em produção, cria a cópia de recuperação antes da primeira aplicação da migração 004."""
     if os.getenv("STUDY_ENV") != "production":
         return
     from src.security import validate_production

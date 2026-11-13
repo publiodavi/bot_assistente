@@ -1,0 +1,26 @@
+flowchart TB
+  subgraph NAV["Navegador do estudante"]
+    UI["Interface Chainlit (React)"]
+    EXT["custom.js · custom.css · EscadaDicas.jsx"]
+  end
+  subgraph SRV["Servidor Python (Docker · Railway)"]
+    SEC["Camada de segurança<br/>middleware ASGI · validação · cotas"]
+    APP["app.py<br/>ciclo da conversa e ferramentas"]
+    PED["prompts<br/>instruções pedagógicas e companheiros"]
+    SVC["services<br/>escada · conversation · cards · study_tools · llm_client"]
+    RAG["rag<br/>extração isolada de PDF · indexação · busca"]
+  end
+  PG[("PostgreSQL<br/>contas, cadernos, mensagens,<br/>perfis, cartões, materiais, uso")]
+  CH[("ChromaDB<br/>trechos dos materiais")]
+  LLM["API DeepSeek<br/>(SDK OpenAI)"]
+  GO["Google OAuth"]
+  UI <-->|"WebSocket e mensagens fatec-study"| SEC
+  EXT --- UI
+  SEC --> APP
+  APP --> PED
+  APP --> SVC
+  APP --> RAG
+  SVC -->|"streaming"| LLM
+  APP --> PG
+  RAG --> CH
+  SEC -.->|"login"| GO

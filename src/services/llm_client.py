@@ -14,6 +14,7 @@ class ConfigurationError(ValueError):
 
 
 def create_client():
+    """Cliente da API DeepSeek pelo SDK da OpenAI, com prazo e uma nova tentativa."""
     key = os.getenv("DEEPSEEK_API_KEY", "").strip()
     if not key or key == "sua_chave_aqui":
         raise ConfigurationError("Configure DEEPSEEK_API_KEY no arquivo .env antes de iniciar uma conversa.")

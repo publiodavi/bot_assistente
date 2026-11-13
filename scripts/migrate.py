@@ -1,4 +1,9 @@
-"""Aplica as migrações SQL em ordem. Todas são aditivas (IF NOT EXISTS) e podem rodar a cada deploy."""
+"""Aplica as migrações SQL em ordem a cada início do app.
+
+Todas podem ser executadas de novo sem apagar dados: criam tabelas e índices com
+IF NOT EXISTS, a 002 corrige referências órfãs com UPDATE e a 004 recria funções e
+gatilhos com CREATE OR REPLACE.
+"""
 import asyncio
 import os
 import sys
@@ -12,6 +17,7 @@ load_dotenv(ROOT / ".env")
 
 
 async def main():
+    """Aplica as migrações em ordem; sem DATABASE_URL, não faz nada."""
     url = os.getenv("DATABASE_URL", "").strip()
     if not url:
         print("DATABASE_URL ausente; migrações ignoradas.")

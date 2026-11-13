@@ -1,3 +1,6 @@
+-- Estrutura inicial: tabelas de persistência do Chainlit (usuários, conversas, mensagens,
+-- elementos e avaliações) e as tabelas do AjudAI para o perfil do estudante e a trilha legada.
+-- Pode ser executada novamente sem apagar dados (IF NOT EXISTS).
 BEGIN;
 CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY, identifier text NOT NULL UNIQUE,

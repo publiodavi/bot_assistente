@@ -22,6 +22,8 @@ class EscadaStream:
         self.block = None
 
     def feed(self, token):
+        """Recebe um trecho do streaming e devolve só o texto visível, guardando o que vier
+        depois do marcador @@ESCADA@@, inclusive quando o marcador chega partido."""
         if self.block is not None:
             self.block += token
             return ""

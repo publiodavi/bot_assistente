@@ -1,12 +1,14 @@
-# Direção visual — Passo a Passo
+# Direção visual — AjudAI
+
+> **Situação atual:** direção visual definida em 11/11/2026, quando o projeto ainda se chamava Passo a Passo. Parte dela já foi aplicada; a tipografia por ambiente sugerida nas seções abaixo foi substituída por fontes unificadas (Lora nos títulos, Source Sans na leitura e Inter na interface), e o Check-in de ânimo foi removido a pedido dos usuários.
 
 ## 1. Finalidade e origem
 
-Este documento registra a direção visual solicitada por Davi em 11/11/2026 para a próxima revisão da interface. Deve ser lido junto de `.clinerules`, `README.md`, `docs/REVISAO_INTERFACE.md` e `.local/PROMPT_CLAUDE_CODE.md`.
+Este documento registra a direção visual adotada na revisão da interface de 11/11/2026. Complementa o `README.md` e o `docs/REVISAO_INTERFACE.md`.
 
-O projeto já funciona. Esta direção orienta um refinamento incremental, preservando recursos, dados e correções existentes. A criação deste arquivo não aplicou alterações ao CSS ou ao JavaScript.
+A direção orientou um refinamento incremental, preservando recursos, dados e correções existentes.
 
-**Referência principal:** capturas do Lovable fornecidas por Davi. O que interessa é a clareza, consistência e acabamento dos componentes, combinados com ambientação expressiva. A proposta é incorporar esses princípios à identidade do Passo a Passo.
+**Referência principal:** interfaces de ferramentas web atuais de produtividade. O que interessa é a clareza, consistência e acabamento dos componentes, combinados com ambientação expressiva. A proposta é incorporar esses princípios à identidade do AjudAI.
 
 ## 2. O que agrada na referência
 
@@ -18,9 +20,9 @@ O projeto já funciona. Esta direção orienta um refinamento incremental, prese
 - Uso expressivo de cor na entrada, com uma área de trabalho tranquila durante a conversa.
 - Poucas decisões visuais competindo ao mesmo tempo.
 
-O Lovable também usa gradientes e cantos arredondados. A preferência de Davi não deve ser interpretada como uma proibição desses recursos. A insatisfação está no uso repetitivo, sem hierarquia, que dá à interface aparência de template genérico.
+Essas interfaces também usam gradientes e cantos arredondados, e esses recursos não estão proibidos. O problema está no uso repetitivo, sem hierarquia, que dá à interface aparência de template genérico.
 
-## 3. O que precisa melhorar no estado atual
+## 3. O que precisava melhorar
 
 1. Muitos botões com formato de pílula, contorno e peso semelhantes.
 2. Fontes temáticas chegando a controles e textos em que uma fonte de interface seria mais confortável.
@@ -83,7 +85,7 @@ A aparência pode ser simplificada sem substituir as funções nativas de histó
 
 ## 8. Conversa, caderno e editor
 
-O caderno contínuo é uma decisão já confirmada por Davi. Ele deve preencher a área de conversa até a barra de estudo, inclusive no fim da rolagem.
+O caderno contínuo é uma decisão já confirmada. Ele deve preencher a área de conversa até a barra de estudo, inclusive no fim da rolagem.
 
 - Manter `.study-sheet` no viewport nativo de scroll e `.study-sheet-content` na lista interna.
 - Não aplicar o papel somente ao conteúdo e deixar o espaçador final com o fundo da mesa.
@@ -113,14 +115,14 @@ Os painéis devem compartilhar cabeçalho, espaçamento, tipografia, campos e tr
 
 | Ambiente | Preservar e refinar |
 |---|---|
-| Vintage | Papel creme, iluminação quente, referências de caderno e materiais de estudo. É a referência positiva de Davi. |
+| Vintage | Papel creme, iluminação quente, referências de caderno e materiais de estudo. É a referência principal de acabamento. |
 | Castelo | Biblioteca, mistério, dourado e personagens. Reservar a tipografia ornamental a títulos curtos. |
 | Aracnídeo | Cidade, vermelho/azul, grafismos de quadrinhos e movimento nas margens. Controles continuam claros e consistentes. |
 | Cyberpunk | Superfícies tecnológicas e luzes ciano. Evitar brilho em cada controle e monoespaçada em toda a leitura. |
 | Café Lo-fi | Madeira, caramelo, chuva e clima de pausa. |
 | Jardim / Estufa | Verde, terracota, luz filtrada e plantas. |
 
-Não substituir todos os cenários por um gradiente azul/rosa. A referência do Lovable orienta a composição e o acabamento; a ambientação pertence ao Passo a Passo.
+Não substituir todos os cenários por um gradiente azul/rosa. As referências externas orientam a composição e o acabamento; a ambientação pertence ao AjudAI.
 
 ## 11. Companheiros e movimento
 
@@ -143,42 +145,8 @@ Não substituir todos os cenários por um gradiente azul/rosa. A referência do 
 
 Os números são critérios de verificação; não equivalem a uma declaração prévia de conformidade WCAG.
 
-## 13. Limites de implementação
+## 13. Limites técnicos
 
-Preservar Python + Chainlit 2.12.0 + DeepSeek. Sem frontend React separado e sem novas dependências sem justificativa. A integração JSX nativa do Chainlit já existente permanece permitida.
+A direção visual foi aplicada sem trocar a stack: Python, Chainlit 2.12.0 e DeepSeek, com o frontend restrito a `public/custom.css`, `public/custom.js` e ao componente JSX nativo do Chainlit (`EscadaDicas.jsx`). Nenhuma dependência nova foi necessária. As mudanças preservaram conta Google, perfil, preferências, histórico, isolamento por conta, Escada de dicas, Guia/Aprende, Foco, Fichário, rascunho e posição de leitura.
 
-Preservar conta Google, perfil, preferências, histórico, isolamento por conta, Escada de dicas, Guia/Aprende, Foco, Fichário, check-in, rascunho e posição de leitura. Não sobrescrever `.env`, reinicializar o banco ou apagar conversas. Não fazer push sem pedido de Davi.
-
-A linguagem continua em português brasileiro. Documentação profissional, sem excesso de emojis ou tom promocional.
-
-## 14. Sequência solicitada ao Claude Code
-
-1. Ler contexto e código atual; apresentar diagnóstico breve, usando exemplos concretos.
-2. Propor uma amostra representativa: tipografia, hierarquia dos botões, cabeçalho/histórico e um painel de configuração.
-3. Implementar a amostra após o alinhamento de Davi, com mudanças localizadas. Mostrar a composição em uso, não apenas uma coleção de componentes soltos.
-4. Aguardar a avaliação da amostra antes de espalhar o padrão por todas as telas e temas.
-5. Aplicar o padrão aprovado em incrementos, com testes de regressão e capturas de desktop/celular.
-
-Evitar uma reformulação completa de uma vez. Caso alguma recomendação técnica deste documento gere conflito com o comportamento real do Chainlit, explicar e propor a adaptação mantendo a intenção visual.
-
-## 15. Sugestões de novas funcionalidades
-
-Davi também quer sugestões de funcionalidades interessantes que fortaleçam o diferencial pedagógico. Essa frente deve ser apresentada separadamente da reformulação visual.
-
-- Inspecionar antes para não sugerir como nova uma função já existente.
-- Apresentar de 5 a 8 sugestões concretas.
-- Para cada uma: problema do estudante, exemplo de uso, diferencial, esforço, dependência de IA/banco/serviço/custo e forma de avaliar utilidade.
-- Recomendar as três melhores próximas entregas, com justificativa.
-- Não implementar as novas funcionalidades antes de Davi escolher.
-
-Priorizar começar a estudar, praticar, organizar assuntos, retomar raciocínio e revisar descobertas. Mais recursos não são, por si só, um ganho de produto.
-
-## 16. Referências visuais locais
-
-As capturas foram fornecidas diretamente por Davi. Para vê-las neste computador:
-
-- `C:\Users\davi\Pictures\Screenshots\Captura de tela 2026-11-11 121252.png` — dashboard escuro, navegação lateral e entrada.
-- `C:\Users\davi\Pictures\Screenshots\Captura de tela 2026-11-11 121240.png` — entrada clara, hierarquia de título e superfície de edição.
-- `C:\Users\davi\Pictures\Screenshots\Captura de tela 2026-11-11 121202.png` — conversa escura, navegação e campo de mensagem.
-
-Os arquivos são referências locais e não foram copiados para os assets do produto. Este documento descreve os princípios necessários para continuar mesmo se as capturas não estiverem disponíveis em outra máquina.
+A aplicação seguiu uma amostra representativa (tipografia, hierarquia de botões, cabeçalho, histórico e um painel de configuração), validada em uso antes de ser estendida às demais telas e temas, com capturas de desktop e de celular a cada etapa.
