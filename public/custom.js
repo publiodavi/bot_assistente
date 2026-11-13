@@ -195,6 +195,8 @@
     check: "m5 12.5 4.5 4.5L19 7.5",
     alert: "M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M12 7.5v5.5M12 16.5h.01",
     cards: "M8 4h11a1 1 0 0 1 1 1v11M5 7h11a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1ZM8 12h5M8 15h3",
+    help: "M3 12a9 9 0 1 0 18 0 9 9 0 1 0-18 0M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01",
+    steps: "M4 20h5v-5h5v-5h6M4 20v-2",
     book: "M5 4.5A1.5 1.5 0 0 1 6.5 3H19v14H6.5A1.5 1.5 0 0 0 5 18.5v-14ZM5 18.5A1.5 1.5 0 0 0 6.5 20H19M9 7h6",
   };
   function icon(name) {
@@ -478,6 +480,7 @@
     }],
     ["ferramentas", "Ferramentas", "tools", () => toolsPanel.dialog.showModal()],
     ["perfil", "Perfil", "user", openProfile],
+    ["tutorial", "Como usar", "help", () => openTutorial()],
   ]) {
     const control = navButton(label, iconName, open);
     control.dataset.tool = id;
@@ -504,7 +507,7 @@
     entryBypassed = true;
     adaptChainlit();
     document.getElementById("chat-input")?.focus();
-  }, "study-link-button"));
+  }, "study-link-button"), button("Novo por aqui? Veja como funciona", () => openTutorial(), "study-link-button study-tutorial-link"));
   const recentSection = element("section", "", "study-recent");
   const recentTitle = element("h2", "Continuar de onde parou");
   const recentList = element("ul", "", "study-recent__list");
@@ -649,7 +652,7 @@
   ladderButton.setAttribute("aria-expanded", "false");
   const ladderList = element("ol", "", "study-ladder__steps");
   const ladderNote = element("p", "Os degraus aparecem quando a conversa começar.", "study-muted");
-  const ladderCaption = element("p", "Degrau e “subiu sozinho” são avaliações do companheiro.", "study-muted");
+  const ladderCaption = element("p", "Cada degrau é um avanço no seu raciocínio; a conversa pode ficar no mesmo degrau até você avançar. Degrau e “subiu sozinho” são avaliações do companheiro.", "study-muted");
   ladderPanel.append(element("h3", "Escada desta conversa", "study-section__title"), ladderList, ladderNote, ladderCaption);
   function setLadderOpen(open) {
     ladderPanel.hidden = !open;
@@ -684,14 +687,34 @@
     lead.buttons.aprendiz.title = `Você explica e ${companion} tenta aprender, apontando o que ficou claro e o que faltou.`;
   }
 
+  // Uma linha por degrau: várias respostas podem acontecer no mesmo degrau até a pessoa avançar.
   function renderLadder(steps) {
-    ladderList.replaceChildren(...steps.map((step) => {
-      const help = step.reveladas ? `com ${step.reveladas} ${step.reveladas === 1 ? "dica" : "dicas"}` : "sem dicas";
+    const groups = new Map();
+    for (const step of steps) {
+      const group = groups.get(step.degrau) || { degrau: step.degrau, replies: 0, hints: 0, solo: false, teach: false };
+      group.replies += 1;
+      group.hints += step.reveladas;
+      group.solo ||= step.sozinho;
+      group.teach ||= step.tipo === "ensino";
+      groups.set(step.degrau, group);
+    }
+    const ordered = [...groups.values()].sort((a, b) => a.degrau - b.degrau);
+    const current = ordered.at(-1)?.degrau;
+    ladderList.replaceChildren(...ordered.map((group) => {
       const item = element("li", "", "study-ladder__step");
-      if (step.sozinho) item.classList.add("study-ladder__step--solo");
-      if (step.tipo === "ensino") item.classList.add("study-ladder__step--teach");
-      item.append(element("strong", `Degrau ${step.degrau}`),
-        element("span", step.tipo === "ensino" ? "você ensinou" : step.sozinho ? "subiu sozinho" : help));
+      if (group.solo) item.classList.add("study-ladder__step--solo");
+      if (group.teach) item.classList.add("study-ladder__step--teach");
+      const marks = [group.solo && "subiu sozinho", group.teach && "você ensinou"].filter(Boolean);
+      if (!marks.length) marks.push(group.hints ? `${group.hints} ${group.hints === 1 ? "dica aberta" : "dicas abertas"}` : "sem dicas");
+      const title = element("strong", `Degrau ${group.degrau}`);
+      if (group.degrau === current) {
+        item.classList.add("study-ladder__step--current");
+        item.setAttribute("aria-current", "step");
+        title.append(element("span", "você está aqui", "study-ladder__here"));
+      }
+      const detail = element("span", marks.join(" · "));
+      if (group.replies > 1) detail.append(element("small", ` · ${group.replies} respostas`));
+      item.append(title, detail);
       return item;
     }));
     const top = steps.reduce((highest, step) => Math.max(highest, step.degrau), 0);
@@ -1073,13 +1096,11 @@
   let rebuildArmed = null;
   let rating = false;
   let lastDeckSignature = "";
-  const goodDays = [7, 14, 30];
-  function nextLabel(card, choice) {
-    if (choice === "again") return "amanhã";
-    if (choice === "hard") return "em 3 dias";
-    const box = Math.min((Number.isSafeInteger(card.caixa) ? card.caixa : 0) + 1, goodDays.length);
-    return `em ${goodDays[box - 1]} dias`;
-  }
+  let cardCount = 10;
+  try {
+    const saved = Number(localStorage.getItem("fatec-study.cards-count.v1"));
+    if ([5, 10, 15, 20].includes(saved)) cardCount = saved;
+  } catch {}
   function openCards(threadId = null) {
     cardView = { mode: "home" };
     renderCards();
@@ -1101,10 +1122,7 @@
     const end = endOfToday();
     const due = cards.filter((card) => new Date(card.due) <= end);
     const queue = (due.length ? due : cards).map((card) => card.id);
-    cardView = { mode: "study", threadId, queue, index: 0, revealed: false, flipped: false,
-      total: queue.length, good: new Set(), retry: new Set() };
-    renderCards();
-    cardsPanel.body.querySelector('[data-card-action="flip"]')?.focus();
+    startQueue(threadId, queue);
   }
   function renderCards() {
     if (!account) {
@@ -1149,10 +1167,17 @@
         create.disabled = generating;
         actions.append(create);
       }
+      const amount = choiceGroup("Quantos cartões?", { 5: "5", 10: "10", 15: "15", 20: "20" }, (id) => {
+        cardCount = Number(id);
+        try { localStorage.setItem("fatec-study.cards-count.v1", String(cardCount)); } catch {}
+        amount.select(String(cardCount));
+      });
+      amount.select(String(cardCount));
+      for (const option of Object.values(amount.buttons)) option.disabled = generating;
       parts.push(section("Este caderno", element("p", own
         ? `${own.total} cartões feitos a partir desta conversa.`
-        : "Os cartões saem só do que vocês conversaram aqui e da sua descoberta no Fichário, se houver.", "study-muted"),
-      actions, status));
+        : "Os cartões saem do que vocês conversaram aqui. Se faltar assunto, completamos com cartões do mesmo tema.", "study-muted"),
+      settingRow("Quantos cartões?", "Para criar ou refazer o baralho.", amount.group), actions, status));
     }
     const list = element("div", "", "study-decks");
     const end = endOfToday();
@@ -1175,7 +1200,7 @@
     const threadId = currentThread;
     cardsJob = { thread_id: threadId, status: "generating" };
     renderCards();
-    if (!(await request("study.cards", { thread_id: threadId }))) {
+    if (!(await request("study.cards", { thread_id: threadId, count: cardCount }))) {
       cardsJob = null;
       renderCards();
     }
@@ -1211,7 +1236,9 @@
     const inner = element("span", "", "study-flip__inner");
     const front = element("span", "", "study-flip__face study-flip__face--front");
     front.setAttribute("aria-hidden", "true");
-    front.append(element("span", notebookName(cardView.threadId), "study-flash__deck"),
+    const label = element("span", notebookName(cardView.threadId), "study-flash__deck");
+    if (card.extra) label.append(element("span", "Complementar", "study-flash__extra"));
+    front.append(label,
       element("span", card.frente, "study-flash__front"), element("span", "Toque para virar", "study-flip__hint"));
     const back = element("span", "", "study-flip__face study-flip__face--back");
     back.setAttribute("aria-hidden", "true");
@@ -1224,16 +1251,14 @@
     spoken.setAttribute("aria-live", "polite");
     const rate = element("div", "", "study-flash__rate");
     rate.setAttribute("role", "group");
-    rate.setAttribute("aria-label", "Quanto você lembrou?");
+    rate.setAttribute("aria-label", "Você acertou?");
     rate.hidden = !cardView.revealed;
-    for (const [id, label, className] of [["again", "Não lembrei", "study-button"], ["hard", "Quase", "study-button"],
-      ["good", "Lembrei", "study-button study-button--primary"]]) {
-      const option = button("", () => rateCurrent(id), className);
-      option.append(element("span", label), element("span", nextLabel(card, id), "study-flash__when"));
+    for (const [id, text, className] of [["again", "Errei", "study-button"], ["good", "Acertei", "study-button study-button--primary"]]) {
+      const option = button(text, () => rateCurrent(id), className);
       option.dataset.rating = id;
       rate.append(option);
     }
-    const keys = element("p", "Atalhos: Espaço vira o cartão; 1, 2 ou 3 avaliam.", "study-muted study-flash__keys");
+    const keys = element("p", "Atalhos: Espaço vira o cartão; 1 = Errei, 2 = Acertei.", "study-muted study-flash__keys");
     const parts = [head, flip, spoken, rate, keys];
     cardsPanel.body.replaceChildren(...parts);
   }
@@ -1245,35 +1270,61 @@
     const saved = await request("study.card", { thread_id: cardView.threadId, card_id: card.id, rating: choice });
     rating = false;
     if (!saved) { renderCards(); return; }
-    if (choice === "good") cardView.good.add(card.id);
-    // "Não lembrei" volta uma vez no fim da sessão, para uma nova tentativa ainda hoje.
-    if (choice === "again" && !cardView.retry.has(card.id)) {
-      cardView.retry.add(card.id);
-      cardView.queue.push(card.id);
-    }
+    // O resultado de cada cartão fica para a tela final; os erros podem ser revisados em seguida.
+    cardView.results.set(card.id, choice === "good");
     cardView.index += 1;
     cardView.revealed = false;
     cardView.flipped = false;
     renderCards();
     cardsPanel.body.querySelector('[data-card-action="flip"], .study-dialog--cards .study-button--primary')?.focus();
   }
+  function startQueue(threadId, queue) {
+    cardView = { mode: "study", threadId, queue, index: 0, revealed: false, flipped: false, results: new Map() };
+    renderCards();
+    cardsPanel.body.querySelector('[data-card-action="flip"]')?.focus();
+  }
+  // Resultado da sessão: acertos, cartões errados e o próximo passo sugerido.
   function renderDone() {
-    const total = cardView.total || 0;
-    const back = button("Voltar aos baralhos", () => { cardView = { mode: "home" }; renderCards(); }, "study-button study-button--primary");
+    const results = cardView.results || new Map();
+    const total = results.size;
+    const right = [...results.values()].filter(Boolean).length;
+    const percent = total ? Math.round((right / total) * 100) : 0;
+    const missed = (openDeck?.cards || []).filter((card) => results.get(card.id) === false);
+    const verdict = percent >= 80 ? "Mandou bem!" : percent >= 50 ? "Bom caminho." : "Vale revisar com calma.";
+    const meter = element("div", "", "study-score__bar");
+    meter.setAttribute("role", "img");
+    meter.setAttribute("aria-label", `${percent}% de acertos`);
+    const fill = element("span", "", "study-score__fill");
+    fill.style.width = `${percent}%`;
+    meter.append(fill);
+    const summary = element("div", "", "study-score");
+    summary.append(element("strong", `${percent}%`, "study-score__percent"),
+      element("p", `${verdict} Você acertou ${right} de ${total} ${total === 1 ? "cartão" : "cartões"}.`, "study-flash__summary"), meter);
+    const parts = [summary];
+    if (missed.length) {
+      const list = element("ul", "", "study-score__missed");
+      for (const card of missed) list.append(element("li", card.frente));
+      parts.push(element("p", "Para revisar:", "study-field-label"), list);
+    }
     const actions = element("div", "", "study-form-actions");
-    actions.append(back);
-    cardsPanel.body.replaceChildren(section("Sessão concluída",
-      element("p", `Você lembrou ${cardView.good?.size || 0} de ${total} ${total === 1 ? "cartão" : "cartões"}.`, "study-flash__summary"),
-      element("p", "Cada cartão volta na Revisão do dia conforme o quanto você lembrou.", "study-muted"), actions));
+    const threadId = cardView.threadId;
+    if (missed.length) {
+      actions.append(button("Revisar os que errei", () => startQueue(threadId, missed.map((card) => card.id)), "study-button study-button--primary"));
+    }
+    actions.append(button("Tentar todos de novo", () => startQueue(threadId, [...results.keys()]), missed.length ? "study-button" : "study-button study-button--primary"),
+      button("Voltar aos baralhos", () => { cardView = { mode: "home" }; renderCards(); }, "study-link-button"));
+    parts.push(actions, element("p", "Os cartões errados voltam amanhã na Revisão do dia; os certos, mais tarde.", "study-muted"));
+    cardsPanel.body.replaceChildren(section("Resultado", ...parts));
+    actions.querySelector("button")?.focus();
   }
   document.addEventListener("keydown", (event) => {
     if (!cardsPanel.dialog.open || cardView.mode !== "study" || event.target.closest?.("textarea, input")) return;
     if (event.key === " " && !event.target.closest?.("button")) {
       event.preventDefault();
       cardsPanel.body.querySelector('[data-card-action="flip"]')?.click();
-    } else if (cardView.revealed && ["1", "2", "3"].includes(event.key)) {
+    } else if (cardView.revealed && ["1", "2"].includes(event.key)) {
       event.preventDefault();
-      rateCurrent(["again", "hard", "good"][Number(event.key) - 1]);
+      rateCurrent(event.key === "1" ? "again" : "good");
     }
   });
 
@@ -1392,6 +1443,66 @@
     if (!materials.length) materialsList.append(element("p", "Nenhum material ainda.", "study-muted"));
     if (focused) materialsList.querySelector(`[data-material="${focused}"]`)?.focus();
   }
+
+  // Tutorial "Como usar": passos curtos sobre cada parte do sistema.
+  const tutorialKey = "fatec-study.tutorial.v1";
+  const tutorialSteps = [
+    ["edit", "Comece um caderno", "Escreva na capa o assunto que quer estudar. O companheiro explica primeiro, com um exemplo, e depois faz uma pergunta para conferir se ficou claro."],
+    ["steps", "A Escada de dicas", "Abaixo de cada resposta, as dicas abrem uma por vez, só quando você precisar. Cada degrau é um avanço no seu raciocínio; “subiu sozinho” aparece quando você avançou sem abrir dicas."],
+    ["companion", "Guia ou Aprende", "Na barra acima do campo de mensagem, escolha quem conduz. No Guia, o companheiro leva você passo a passo. No Aprende, você explica e ele aponta o que ficou claro e o que faltou."],
+    ["notes", "Fichário e Revisão do dia", "Guarde no Fichário o que você descobriu, com suas palavras. A capa lembra o que revisar, e o companheiro pergunta sem mostrar a anotação."],
+    ["cards", "Flash cards", "Escolha quantos cartões quer, toque no cartão para virar e marque Acertei ou Errei. No fim, veja seu resultado e revise o que errou."],
+    ["book", "Materiais", "Envie os PDFs da faculdade (apostilas, livros, listas). O companheiro consulta, cita a página e transforma exercícios em pistas, sem entregar a resposta."],
+    ["clock", "Foco, pausas e visual", "O Foco marca sessões de estudo; quando o tempo acaba, a tela entra em pausa, com opção de cancelar. Em Temas e Companheiros você muda o visual e quem estuda com você."],
+  ];
+  const tutorialPanel = panel("Como usar o Passo a Passo", "Um passo de cada vez, como nos cadernos.");
+  tutorialPanel.dialog.classList.add("study-dialog--tutorial");
+  let tutorialIndex = 0;
+  function tutorialSeen() {
+    try { return localStorage.getItem(tutorialKey) === "seen"; } catch { return true; }
+  }
+  function openTutorial(index = 0) {
+    try { localStorage.setItem(tutorialKey, "seen"); } catch {}
+    tutorialIndex = index;
+    renderTutorial();
+    if (!tutorialPanel.dialog.open) tutorialPanel.dialog.showModal();
+    tutorialPanel.body.querySelector(".study-tutorial__next")?.focus();
+  }
+  function renderTutorial() {
+    const [iconName, title, text] = tutorialSteps[tutorialIndex];
+    const last = tutorialIndex === tutorialSteps.length - 1;
+    const badge = element("span", "", "study-tutorial__icon");
+    badge.append(icon(iconName));
+    const card = element("article", "", "study-tutorial__step");
+    card.setAttribute("aria-live", "polite");
+    card.append(badge, element("span", `Passo ${tutorialIndex + 1} de ${tutorialSteps.length}`, "study-tutorial__count"),
+      element("h3", title), element("p", text));
+    const dots = element("div", "", "study-tutorial__dots");
+    tutorialSteps.forEach(([, label], index) => {
+      const dot = button("", () => { tutorialIndex = index; renderTutorial(); dots.children[index]?.focus(); }, "study-tutorial__dot");
+      dot.setAttribute("aria-label", `Passo ${index + 1}: ${label}`);
+      if (index === tutorialIndex) dot.setAttribute("aria-current", "step");
+      dots.append(dot);
+    });
+    const previous = button("Anterior", () => { tutorialIndex -= 1; renderTutorial(); }, "study-button");
+    previous.disabled = tutorialIndex === 0;
+    const next = button(last ? "Concluir" : "Próximo", () => {
+      if (last) { tutorialPanel.dialog.close(); return; }
+      tutorialIndex += 1;
+      renderTutorial();
+      tutorialPanel.body.querySelector(".study-tutorial__next")?.focus();
+    }, "study-button study-button--primary study-tutorial__next");
+    const actions = element("div", "", "study-tutorial__actions");
+    actions.append(previous, dots, next);
+    tutorialPanel.body.replaceChildren(card, actions);
+  }
+  tutorialPanel.dialog.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight" && tutorialIndex < tutorialSteps.length - 1) { tutorialIndex += 1; renderTutorial(); }
+    else if (event.key === "ArrowLeft" && tutorialIndex > 0) { tutorialIndex -= 1; renderTutorial(); }
+    else return;
+    event.preventDefault();
+    tutorialPanel.body.querySelector(".study-tutorial__next")?.focus();
+  });
 
   let fallbackHistory = null;
   let historyReturnFocus = null;
@@ -1984,7 +2095,7 @@
       pending.clear();
       if (account !== data.account) {
         confirmed = null;
-        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel, cardsPanel, materialsPanel]) dialog.close();
+        for (const { dialog } of [gallery, companionPanel, introPanel, profilePanel, toolsPanel, notesPanel, moodPanel, focusPanel, cardsPanel, materialsPanel, tutorialPanel]) dialog.close();
         lastAutoIntroAccount = null;
       }
       closeFallbackHistory();
@@ -2070,6 +2181,12 @@
       if (profile.intro === "new") {
         request("study.intro", { command: "begin" });
       }
+    }
+    // O tutorial abre sozinho uma única vez por navegador, sem cobrir outro painel aberto.
+    if (data.confirmed && !tutorialSeen()) {
+      setTimeout(() => {
+        if (!tutorialSeen() && !document.querySelector(".study-dialog[open], .study-break[open]")) openTutorial();
+      }, 1500);
     }
     const response = pending.get(data.request_id);
     if (response) {

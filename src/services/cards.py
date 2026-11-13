@@ -6,7 +6,8 @@ from uuid import uuid4
 
 from src.services.study_tools import clean_text
 
-MIN_CARDS, MAX_CARDS = 4, 10
+MIN_CARDS, MAX_CARDS = 4, 20
+COUNTS = (5, 10, 15, 20)
 FRONT_LIMIT, BACK_LIMIT = 160, 400
 # "Lembrei" sobe uma caixa; cada caixa adia mais a próxima vez.
 GOOD_INTERVALS = (7, 14, 30)
@@ -20,8 +21,11 @@ def _short(value, limit):
     return text[:limit].rstrip()
 
 
-def parse_deck(text, now=None):
-    """Lista de cartões válidos a partir da resposta da IA; erro se não houver o mínimo."""
+def parse_deck(text, now=None, wanted=10):
+    """Lista de cartões válidos a partir da resposta da IA; erro se não houver o mínimo.
+
+    Cartões complementares (fora da conversa, mesmo tema) chegam com "extra": true."""
+    wanted = min(max(int(wanted), 1), MAX_CARDS)
     now = now or datetime.now(timezone.utc)
     if not isinstance(text, str):
         raise ValueError("Resposta vazia.")
@@ -44,10 +48,10 @@ def parse_deck(text, now=None):
             continue
         seen.add(key)
         cards.append({"id": uuid4().hex[:10], "frente": front, "verso": back,
-                      "caixa": 0, "due": now.isoformat()})
-        if len(cards) == MAX_CARDS:
+                      "caixa": 0, "due": now.isoformat(), "extra": item.get("extra") is True})
+        if len(cards) == wanted:
             break
-    if len(cards) < MIN_CARDS:
+    if len(cards) < min(MIN_CARDS, wanted):
         raise ValueError("A conversa ainda não rendeu cartões suficientes.")
     return cards
 

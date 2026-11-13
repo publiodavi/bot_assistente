@@ -154,6 +154,15 @@ class CardTests(unittest.TestCase):
         with self.assertRaises(ValueError): parse_deck("sem json", self.now)
         with self.assertRaises(ValueError): parse_deck(json.dumps({"cartoes": cards[:3]}), self.now)
 
+    def test_quantidade_pedida_e_cartoes_complementares(self):
+        raw = json.dumps({"cartoes": [{"frente": f"Pergunta {i}?", "verso": f"Resposta {i}.", "extra": i >= 3}
+                                      for i in range(25)]})
+        self.assertEqual(len(parse_deck(raw, self.now, wanted=15)), 15)
+        self.assertEqual(len(parse_deck(raw, self.now, wanted=50)), 20)
+        cards = parse_deck(raw, self.now, wanted=5)
+        self.assertEqual([card["extra"] for card in cards], [False, False, False, True, True])
+        self.assertIn("Quantidade de cartões: 15.", cards_messages("x", count=15)[1]["content"])
+
     def test_caixas_de_leitner(self):
         card = {"id": "a", "frente": "f", "verso": "v", "caixa": 0, "due": ""}
         days = lambda c: (datetime.fromisoformat(c["due"]) - self.now).days

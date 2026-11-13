@@ -21,7 +21,7 @@ from src.prompts.pedagogical_prompt import (
     review_instruction,
 )
 from src.rag.indexer import MaterialIndex, chunk_pages, extract_pages
-from src.services.cards import RATINGS, deck_summary, parse_deck, rate_card, transcript
+from src.services.cards import COUNTS, RATINGS, deck_summary, parse_deck, rate_card, transcript
 from src.services.escada import EscadaStream, layers, tidy_visible
 from src.services.conversation import author_of, conversation_context, restore_history, stored_step
 from src.services.llm_client import ConfigurationError, complete_json, stream_reply
@@ -214,7 +214,7 @@ def valid_thread_id(value):
 async def send_deck(state, thread_id, deck):
     """Cartões de um baralho numa mensagem própria, para não pesar no estado enviado a cada mudança."""
     cards = [
-        {key: card[key] for key in ("id", "frente", "verso", "caixa", "due")}
+        {**{key: card[key] for key in ("id", "frente", "verso", "caixa", "due")}, "extra": card.get("extra") is True}
         for card in (deck.get("cards") if isinstance(deck.get("cards"), list) else [])
         if isinstance(card, dict) and all(key in card for key in ("id", "frente", "verso", "caixa", "due"))
     ]
@@ -239,13 +239,16 @@ async def card_request(state, kind, data):
             raise ValueError("Converse um pouco neste caderno antes de criar os cartões.")
         if (state["cards_job"] or {}).get("status") == "generating":
             raise ValueError("Os cartões ainda estão sendo preparados.")
+        count = data.get("count", 10)
+        if type(count) is not int or count not in COUNTS:
+            raise ValueError("Escolha 5, 10, 15 ou 20 cartões.")
         await deck_data(DATA_LAYER, user, thread_id)
         discovery = next((note["text"] for note in state["profile"].get("fichario", [])
                           if isinstance(note, dict) and note.get("thread_id") == thread_id
                           and isinstance(note.get("text"), str)), None)
         state["cards_job"] = {"thread_id": thread_id, "status": "generating"}
         state["cards_task"] = asyncio.create_task(
-            generate_deck(state, user, thread_id, transcript(state["history"]), discovery))
+            generate_deck(state, user, thread_id, transcript(state["history"]), discovery, count))
     elif kind == "study.deck":
         await send_deck(state, thread_id, await deck_data(DATA_LAYER, user, thread_id))
     else:
@@ -264,9 +267,9 @@ async def card_request(state, kind, data):
         await load_decks(state)
 
 
-async def generate_deck(state, user, thread_id, conversation, discovery):
+async def generate_deck(state, user, thread_id, conversation, discovery, count=10):
     try:
-        cards = parse_deck(await complete_json(cards_messages(conversation, discovery)))
+        cards = parse_deck(await complete_json(cards_messages(conversation, discovery, count)), wanted=count)
         created = datetime.now(timezone.utc).isoformat()
         await deck_data(DATA_LAYER, user, thread_id, lambda stored: {"cards": cards, "created": created})
         state["cards_job"] = {"thread_id": thread_id, "status": "ready"}
