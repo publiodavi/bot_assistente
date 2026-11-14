@@ -1,6 +1,6 @@
 # AjudAI
 
-Assistente de estudos com orientação por etapas, ambientes personalizáveis e histórico de conversas por conta.
+Assistente de estudos que conduz o estudante por etapas, com pistas graduais em vez de respostas prontas. A condução é inspirada na Zona de Desenvolvimento Proximal, de Vygotsky, e no conceito de andaimento (*scaffolding*).
 
 **Acesse:** https://ajudai.up.railway.app (login com conta Google)
 
@@ -8,82 +8,73 @@ Assistente de estudos com orientação por etapas, ambientes personalizáveis e 
 - **Autores:** Arthur Germano e Davi de Souza Públio
 - **Orientadora:** Prof.ª Esp. Jane Maria dos Santos Eberson
 - **Fatec Guarulhos**, Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas, 2026
+- **Monografia:** [DOCX](docs/TG_AjudAI_Arthur_Germano_Davi_Publio.docx) e [PDF](docs/TG_AjudAI_Arthur_Germano_Davi_Publio.pdf)
 
-Projeto de Trabalho de Graduação do curso de Análise e Desenvolvimento de Sistemas da Fatec Guarulhos. A pesquisa tem como foco o apoio a estudantes com dificuldades de aprendizagem no ensino superior. O protótipo permite conversar sobre diferentes assuntos, sem limitar a entrada a uma disciplina ou área de conhecimento.
+## Funcionalidades
 
-## Proposta
-
-O AjudAI utiliza perguntas, dicas graduais e exemplos parciais para ajudar o estudante a desenvolver o próprio raciocínio. A abordagem é inspirada na Zona de Desenvolvimento Proximal de Vygotsky e no conceito de andaimento pedagógico (*scaffolding*).
-
-A personalização visual e o companheiro de estudos complementam essa orientação. Seu efeito sobre acolhimento, autonomia e distração é uma hipótese de experiência do usuário a ser avaliada no TG; a implementação, por si só, não demonstra ganhos de aprendizagem.
-
-## Recursos implementados
-
-- Conversa com respostas em streaming pela API DeepSeek, na voz do companheiro escolhido.
-- **Mesa de estudos:** a conversa é uma folha sobre a mesa de cada ambiente (folha pautada, pergaminho, página de HQ ou painel), com as mensagens do estudante como anotações e, em telas largas, cartões com a escada, a condução e os cadernos.
-- **Escada de dicas:** cada resposta traz até três pistas graduais e um exemplo parcial, abertos um de cada vez pelo estudante. A escada registra os degraus e quantas dicas foram usadas em cada um.
-- **Ensine o companheiro:** quando o companheiro avalia que o estudante entendeu, convida-o a explicar o conceito; o companheiro faz o papel de aprendiz e devolve uma nota com o que ficou claro e o que faltou. O seletor Guia/Aprende, na barra de estudo, permite escolher esse modo para toda a conversa.
-- Entrada por assunto livre na capa de um caderno, com marcador opcional (entender, destravar ou praticar) e atalhos para continuar as conversas recentes.
-- Três níveis de apoio: menos dicas, dicas guiadas e mais apoio.
-- **Fichário e Revisão do dia:** uma descoberta por caderno, revisada por recuperação ativa em intervalos de 3, 7, 14 e 30 dias; as revisões pendentes aparecem na capa.
-- **Flash cards:** baralhos de 5, 10, 15 ou 20 cartões gerados a partir da conversa, com Acertei/Errei, resultado final, revisão dos erros e caixas de Leitner.
-- **Materiais:** PDFs privados da própria conta, indexados no ChromaDB e citados como fonte (nome e página) nas respostas.
-- **Foco:** sessão de estudo e pausa ajustáveis, com tela de pausa que cobre a interface e lembrete após 50 minutos de uso contínuo.
-- Tutorial "Como usar" em sete passos e página "Sobre" com autoria e créditos.
-- Seis ambientes: Caderno Vintage, Castelo da Magia, Herói Aracnídeo, Cyberpunk, Café Lo-fi e Jardim / Estufa, todos com aparência clara e escura.
-- Troca imediata de tema, aparência e companheiro, preservando a conversa, o rascunho e a posição de leitura.
-- Barra de estudo compacta acima do campo de mensagem, com companheiro, degrau atual (a escada completa abre sob demanda) e o seletor Guia/Aprende.
-- Doze companheiros com nome próprio (Eva para a Coruja, Foxi para a Raposa e Chappie para o Robô; Harry, Hermione, Dumbledore, Voldemort, Homem-Aranha, Miles, Batman, Exterminador e McCall pelo nome do personagem) e apelido individual guardado no perfil, além da opção de ocultá-los. Cada resposta mantém o nome de quem a assinou.
-- Painéis de Temas, Companheiros e Perfil com a mesma estrutura; o nível de apoio fica no Perfil e o apelido no painel Companheiros.
-- Animações de ambiente com pausa manual e respeito à preferência de movimento reduzido do sistema.
-- Autenticação Google, perfil por conta e persistência de conversas em PostgreSQL, quando configurados.
-- Histórico lateral com busca, retomada, renomeação e exclusão de conversas pelo Chainlit.
-- Interface em português brasileiro, fontes locais e ajustes para telas pequenas.
+| Funcionalidade | Descrição |
+|---|---|
+| Caderno por assunto | Cada conversa é um caderno aberto a partir de um assunto livre, com objetivo opcional (entender, destravar ou praticar). |
+| Escada de dicas | Cada resposta traz até três pistas graduais e um exemplo parcial, abertos um de cada vez pelo estudante. |
+| Modos Guia e Aprende | No Guia, o companheiro conduz; no Aprende, o estudante explica o conteúdo e recebe uma nota com o que ficou claro e o que faltou. |
+| Níveis de apoio | Menos dicas, dicas guiadas ou mais apoio, escolhidos no perfil. |
+| Fichário e Revisão do dia | Uma descoberta por caderno, revisada de memória em intervalos de 3, 7, 14 e 30 dias. |
+| Flash cards | Baralhos de 5, 10, 15 ou 20 cartões gerados a partir da conversa, revisados em caixas de Leitner. |
+| Materiais | PDFs do próprio estudante, indexados no ChromaDB e usados como fonte das pistas, com nome e página. |
+| Foco | Sessões de estudo e pausa ajustáveis, tela de pausa e lembrete após 50 minutos de uso contínuo. |
+| Personalização | Seis ambientes (claro e escuro), quatro cores de destaque, tamanho de texto e doze companheiros com apelido. |
+| Histórico | Busca, retomada, renomeação e exclusão de cadernos por conta Google. |
 
 ## Arquitetura
 
 ```text
-Estudante
+Navegador (Chainlit + custom.js, custom.css e EscadaDicas.jsx)
     |
     v
-Chainlit + CSS e JavaScript locais
-    |
-    +-- Preferências e perfil ----------> PostgreSQL
-    +-- Conversas e mensagens ----------> PostgreSQL
-    +-- Autenticação -------------------> Google OAuth
-    +-- Materiais (PDF) ----------------> pypdf em processo isolado -> ChromaDB
-    +-- Segurança ----------------------> limites HTTP, propriedade e cotas de uso
-    |
-    v
-Prompt pedagógico + contexto da conversa
-    |
-    v
-API DeepSeek -> resposta em streaming
+Servidor Python (src/app.py)
+    +-- camada de segurança --------> limites HTTP, propriedade e cotas de uso
+    +-- instruções pedagógicas -----> src/prompts
+    +-- modelo de linguagem --------> API DeepSeek, com streaming
+    +-- contas e dados -------------> PostgreSQL e Google OAuth
+    +-- materiais em PDF -----------> extração em processo separado e ChromaDB
 ```
-
-O Python mantém o estado da conversa e valida as preferências. O navegador aplica os tokens visuais e atualiza os componentes pelo canal de mensagens do Chainlit. O perfil é persistido por conta; o contexto é reconstruído a partir das mensagens concluídas da conversa retomada.
 
 | Componente | Tecnologia |
 |---|---|
 | Aplicação | Python 3.11 ou superior |
-| Interface | Chainlit 2.12.0, CSS e JavaScript |
-| Modelo de linguagem | DeepSeek pelo SDK compatível com OpenAI |
-| Autenticação | Google OAuth pelo Chainlit |
-| Persistência | PostgreSQL, SQLAlchemy e asyncpg |
+| Interface | Chainlit 2.12.0, CSS, JavaScript e um componente React |
+| Modelo de linguagem | DeepSeek, pelo SDK da OpenAI |
+| Autenticação | Google OAuth |
+| Banco de dados | PostgreSQL, com SQLAlchemy e asyncpg |
 | Materiais | pypdf e ChromaDB |
-| Configuração local | python-dotenv |
+| Publicação | Docker e Railway |
 
-Cada estudante pode enviar os próprios PDFs da faculdade no painel Materiais. O texto é dividido em trechos e indexado num ChromaDB local (`.local/chroma`, com o modelo de embeddings padrão, baixado uma única vez para `~/.cache/chroma`); o PDF original não é guardado. Nas respostas, até três trechos da própria conta são consultados, citados como fonte e usados para dar pistas, sem entregar resoluções. As trilhas geradas a partir de diagnóstico ainda estão planejadas. A trilha fixa anterior permanece no código para compatibilidade com conversas existentes.
+Cada resposta do modelo tem duas partes: o texto que o estudante lê e, depois do marcador `@@ESCADA@@`, um JSON com o degrau, as dicas e o exemplo parcial. O servidor separa as duas partes durante o streaming, valida o JSON e só envia as dicas quando o estudante pede.
+
+## Estrutura do repositório
+
+```text
+src/
+    app.py                  Ciclo da conversa, ferramentas de estudo e rotas dos materiais
+    study_accounts.py       Login Google e consultas ao banco
+    prompts/                Instruções pedagógicas e personalidade dos companheiros
+    pedagogy/               Introdução e trilha legada
+    services/               Escada de dicas, conversa, flash cards, Fichário, cliente da API e cópias de segurança
+    rag/                    Extração de PDF, indexação e busca
+    security*.py            Middleware, autorização, propriedade e cotas de uso
+public/                     CSS, JavaScript, componente da Escada, fontes, cenas e companheiros
+migrations/                 Estrutura do banco (001 a 005)
+scripts/migrate.py          Aplicação das migrações
+tests/                      Testes automatizados
+docs/                       Publicação, segurança e monografia
+Dockerfile                  Imagem de produção
+start.ps1                   Inicialização local no Windows
+.env.example                Variáveis de ambiente, sem credenciais
+```
 
 ## Execução local
 
-### Requisitos
-
-- Python 3.11 ou superior; o ambiente local foi exercitado com Python 3.12.
-- Chave válida da API DeepSeek para gerar respostas.
-- PostgreSQL e cliente OAuth Google para habilitar contas e histórico persistente.
-
-### Instalação no Windows
+Requisitos: Python 3.11 ou superior e uma chave da API DeepSeek. PostgreSQL e um cliente OAuth do Google são necessários apenas para contas e histórico.
 
 ```powershell
 git clone https://github.com/publiodavi/ajudai.git
@@ -93,165 +84,39 @@ python -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Edite o `.env` com a chave DeepSeek. Execute a cópia do arquivo de exemplo apenas na configuração inicial, preservando um `.env` que já contenha suas credenciais.
-
-```dotenv
-DEEPSEEK_API_KEY=sua_chave_aqui
-DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_MODEL=deepseek-chat
-CHAINLIT_URL=http://localhost:8103
-```
-
-Inicie o aplicativo:
+Preencha `DEEPSEEK_API_KEY` no `.env` e inicie o app:
 
 ```powershell
 .\.venv\Scripts\python.exe -m chainlit run src/app.py --headless --host 127.0.0.1 --port 8103
 ```
 
-Acesse [http://localhost:8103](http://localhost:8103). Sem as credenciais Google, o app funciona em modo demonstração, com conversas em memória. Esse modo também exige a chave DeepSeek para responder.
+Acesse http://localhost:8103. Sem as credenciais do Google, o app roda em modo de demonstração, com as conversas apenas em memória. No Linux e no macOS, use `.venv/bin/python` e `cp .env.example .env`.
 
-No Linux e no macOS, utilize `.venv/bin/python` e `cp .env.example .env` nos comandos equivalentes.
+### Contas e histórico
 
-### Conta Google e histórico persistente
+1. Crie um banco PostgreSQL e informe `DATABASE_URL` no `.env`, no formato `postgresql+asyncpg://usuario:senha@localhost:5432/ajudai`.
+2. Aplique as migrações com `python scripts/migrate.py`. Elas podem ser executadas novamente sem apagar dados.
+3. No Google Cloud, crie um cliente OAuth do tipo **Aplicativo da Web** com o retorno `http://localhost:8103/auth/oauth/google/callback`.
+4. Preencha `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET` e `CHAINLIT_AUTH_SECRET`. O segredo pode ser gerado com `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+5. Reinicie o app e entre com **Continuar com Google**.
 
-1. Crie um banco PostgreSQL e aplique as migrações, em ordem, a partir da raiz do repositório:
+No Windows, o `start.ps1` aplica as migrações e inicia o app na porta 8103.
 
-   ```shell
-   psql -h localhost -U seu_usuario -d ajudai -v ON_ERROR_STOP=1 -f migrations/001_study.sql
-   psql -h localhost -U seu_usuario -d ajudai -v ON_ERROR_STOP=1 -f migrations/002_chainlit_2_12_columns.sql
-   psql -h localhost -U seu_usuario -d ajudai -v ON_ERROR_STOP=1 -f migrations/003_cards_materials.sql
-   psql -h localhost -U seu_usuario -d ajudai -v ON_ERROR_STOP=1 -f migrations/004_security_usage.sql
-   psql -h localhost -U seu_usuario -d ajudai -v ON_ERROR_STOP=1 -f migrations/005_usage_daily_index.sql
-   ```
-
-   A segunda migração acrescenta a coluna `autoCollapse`, exigida pelo Chainlit 2.12.0. Sem ela, as respostas enviadas pelo campo de mensagem não reaparecem quando a conversa é retomada. A terceira cria as tabelas dos flash cards e dos materiais enviados, a quarta cria o registro de uso e os gatilhos que impedem transferir a propriedade das conversas, e a quinta cria o índice usado pelo teto diário global. Todas podem ser executadas novamente sem apagar dados; o script `scripts/migrate.py` aplica todas em ordem e é usado pelo `start.ps1` e pelo Docker.
-
-2. No Google Cloud, configure a tela de consentimento e crie um cliente OAuth do tipo **Aplicativo da Web**. Cadastre o retorno exato:
-
-   ```text
-   http://localhost:8103/auth/oauth/google/callback
-   ```
-
-3. Para um aplicativo em teste, adicione as contas do piloto à lista de usuários de teste.
-4. Preencha as variáveis abaixo no `.env`:
-
-   ```dotenv
-   OAUTH_GOOGLE_CLIENT_ID=
-   OAUTH_GOOGLE_CLIENT_SECRET=
-   CHAINLIT_AUTH_SECRET=
-   DATABASE_URL=postgresql+asyncpg://usuario:senha@localhost:5432/ajudai
-   CHAINLIT_URL=http://localhost:8103
-   ```
-
-   Gere um segredo de sessão com `python -c "import secrets; print(secrets.token_urlsafe(48))"` e copie o resultado para `CHAINLIT_AUTH_SECRET`.
-
-5. Reinicie o servidor e selecione **Continuar com Google**.
-
-As quatro variáveis de conta devem estar preenchidas para ativar o modo autenticado. O histórico desta versão cobre mensagens de texto. Conversas anônimas anteriores não são migradas para as contas.
-
-O script `start.ps1` inicia um PostgreSQL local já preparado em `.local/postgresql`, quando disponível, aplica as migrações e inicia o app na porta 8103. Ele não instala nem configura um banco em um novo computador. Binários, banco de dados e credenciais locais não fazem parte do repositório.
-
-Referências de configuração: [OAuth no Chainlit](https://docs.chainlit.io/authentication/oauth) e [histórico de conversas](https://docs.chainlit.io/data-persistence/history).
-
-## Publicação na web
-
-O projeto inclui um `Dockerfile` e o script `scripts/migrate.py`, que aplica as migrações a cada início. O passo a passo para publicar no Railway, com PostgreSQL, volume para os materiais e login Google, está em [docs/PUBLICAR.md](docs/PUBLICAR.md). A imagem Docker permite contas Google verificadas com `STUDY_ACCESS_MODE=public`; para restringir convidados, use `invited` e `STUDY_ALLOWED_EMAILS`. As proteções, os limites de uso e os testes de segurança estão descritos em [docs/SEGURANCA.md](docs/SEGURANCA.md).
-
-## Estrutura do repositório
-
-```text
-.chainlit/
-    config.toml                 Configuração da interface
-    translations/pt-BR.json     Tradução brasileira
-migrations/
-    001_study.sql ... 005_usage_daily_index.sql   Estrutura de persistência, cartões, materiais e uso
-public/
-    custom.css                  Tokens, temas e componentes visuais
-    custom.js                   Galerias, mesa de estudos, eventos e sincronização
-    elements/EscadaDicas.jsx    Escada de dicas e nota do companheiro
-    fonts/                      Fontes locais e licenças
-    characters/sprite.svg       Companheiros e expressões
-    privacy.html                Política de privacidade
-    themes/                     Ilustrações dos ambientes
-src/
-    app.py                      Ciclo de vida e interação do chat
-    study_accounts.py           Autenticação e dados por conta
-    pedagogy/                   Introdução e trilha legada
-    prompts/                    Orientação pedagógica e vozes dos companheiros
-    services/llm_client.py       Integração com DeepSeek
-    services/escada.py          Separação do texto visível e das dicas em camadas
-    services/conversation.py    Histórico, autoria e contexto da conversa
-    services/cards.py           Flash cards e caixas de Leitner
-    services/study_tools.py     Fichário, revisão espaçada e avatar
-    services/backups.py         Cópia e restauração do banco
-    rag/                        Extração isolada de PDF, indexação e busca no ChromaDB
-    security*.py                Limites HTTP, validação, propriedade e cotas de uso
-scripts/migrate.py              Aplicação das migrações
-tests/                          Testes automatizados (49)
-docs/                           Publicação, revisões e monografia
-Dockerfile                      Imagem para publicação
-.env.example                    Variáveis necessárias, sem credenciais
-start.ps1                       Inicialização local no Windows
-ESCOPO_E_ARQUITETURA.md          Escopo e decisões do projeto
-```
-
-## Validação e limites do protótipo
-
-Foram exercitados os seis ambientes visuais, a entrada por diferentes assuntos, a troca de preferências durante streaming simulado, o cancelamento e o layout de 320 px. Os tokens de texto e controles foram verificados quanto ao contraste. A persistência em PostgreSQL foi testada com usuários fictícios, incluindo isolamento de perfis, recuperação de mensagens, renomeação e exclusão.
-
-Em 11/11/2026, o fluxo com uma conta Google real e a API DeepSeek foi verificado no navegador: login e criação do perfil, duas conversas de assuntos diferentes, renomeação, retomada pelo histórico, reinício do servidor com o contexto correto em cada conversa, edição de mensagem sem resíduos no contexto e restauração das preferências visuais a partir do banco, sem depender do cache do navegador. O isolamento visual entre duas contas Google ainda precisa ser conferido com uma segunda conta. Esses testes manuais não substituem um estudo de usabilidade com estudantes.
-
-Na mesma data, a Mesa de estudos, a Escada de dicas e o modo de ensino foram exercitados com a API real: abertura de dicas em sequência com gravação no banco, recomposição da escada após reiniciar o servidor, troca de "Quem conduz?" persistida por conversa, convite para ensinar e nota do companheiro. Os campos "degrau", "subiu sozinho" e "pronto para ensinar" são avaliações do modelo de linguagem, não correções automáticas, e podem variar entre respostas.
-
-### Roteiro de demonstração
-
-1. Entre na conta e informe um assunto e um objetivo de estudo.
-2. Faça uma tentativa e peça uma dica para avançar no raciocínio.
-3. Crie outra conversa sobre um assunto diferente e retome a primeira pelo histórico.
-4. Durante uma resposta, altere o ambiente, a aparência e o companheiro.
-5. Ajuste o nível de dicas e confira seu efeito no próximo turno.
-
-## Referências acadêmicas
-
-- VYGOTSKY, L. S. **A formação social da mente**. 7. ed. São Paulo: Martins Fontes, 2007.
-- LUCKIN, R. et al. **Intelligence Unleashed: an argument for AI in education**. Londres: Pearson, 2016.
-- ZAWACKI-RICHTER, O. et al. Systematic review of research on artificial intelligence applications in higher education — where are the educators? **International Journal of Educational Technology in Higher Education**, v. 16, n. 39, 2019.
-
-A fundamentação de personalização, presença social e carga cognitiva está detalhada em [Escopo e arquitetura](ESCOPO_E_ARQUITETURA.md).
-
-
-## Ferramentas e personalização ampliada
-
-O painel de cadernos pode ser redimensionado no desktop por arraste ou pelas setas quando a alça está focada. Home e duplo clique restauram a largura padrão. Em telas pequenas, permanece o painel móvel nativo.
-
-Os seis ambientes têm cenas SVG próprias para claro e escuro, quatro cores de destaque, três intensidades de cenário e três tamanhos de leitura. Companheiros usam um sprite SVG com expressões e enquadramentos próprios para retratos, galeria e cenário.
-
-- **Foco:** estudo e pausa ajustáveis, com início, pausa e reinício. O relógio usa horário de término e fica apenas neste navegador.
-- **Fichário:** uma descoberta escrita pelo estudante por conversa, com revisão espaçada opcional (3, 7, 14 e 30 dias). Requer conta; aceita até 100 descobertas de 1.000 caracteres. Uma conversa removida deixa sua anotação disponível, sem link de retorno.
-- **Perfil:** cartão de estudante com frase, ilustrações locais, iniciais ou uma imagem preparada como WebP de 256 × 256 pixels e até 80 KiB. A imagem só é enviada ao salvar. A validação estrutural no servidor não equivale a um decodificador completo de imagens.
-
-As estatísticas são calculadas a partir das respostas concluídas existentes da própria conta: quantidade de cadernos, soma do maior degrau por conversa, conquistas solo distintas por degrau/conversa e turnos de ensino. Degraus e conquistas são avaliações do companheiro.
-
-### Testes automatizados
+## Testes
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest
-.\.venv\Scripts\python.exe -m compileall -q src
-node --check public/custom.js
-git diff --check
 ```
 
-São 49 testes. Os de `tests/test_study.py` e `tests/test_security.py` não exigem banco nem credenciais e cobrem a Escada (delimitador partido entre tokens, dados inválidos), apelidos, autoria, contexto após edição, Fichário, avatares, flash cards e Leitner, trechos dos materiais, cabeçalhos e limites HTTP, política de e-mail, cotas e prazo do streaming. Os 7 de `tests/test_security_db.py` rodam num schema descartável de um PostgreSQL local indicado por `STUDY_TEST_DATABASE_URL`.
+São 49 testes. Os de `tests/test_study.py` e `tests/test_security.py` não precisam de banco nem de credenciais e cobrem a Escada de dicas, o histórico, o Fichário, os flash cards, os materiais, os limites HTTP, a política de login, as cotas e o prazo do streaming. Os 7 de `tests/test_security_db.py` usam um esquema descartável num PostgreSQL local, indicado por `STUDY_TEST_DATABASE_URL`.
 
+## Publicação e segurança
 
-### Revisão de ambientes, ferramentas e perfil
+- [docs/PUBLICAR.md](docs/PUBLICAR.md): publicação no Railway com PostgreSQL, volume para os materiais e login Google.
+- [docs/SEGURANCA.md](docs/SEGURANCA.md): proteções, limites de uso, testes de segurança e riscos que permanecem.
 
-A revisão ampliada e seus limites estão em [Relatório da interface](docs/REVISAO_INTERFACE.md). Foram medidos 288 pares de contraste nas 48 combinações de ambiente, aparência e destaque. A instância com conta fictícia e streaming simulado permitiu conferir histórico redimensionável, Fichário após reinício, três modalidades de avatar e layouts desktop/móvel. Os testes automatizados da época passaram; hoje a suíte tem 49 testes, 7 deles com PostgreSQL local (`STUDY_TEST_DATABASE_URL`). O login com duas contas Google e o uso com a DeepSeek real foram verificados depois; leitor de tela real e zoom de 200% continuam pendentes.
+## Limitações
 
-
-A revisão visual posterior corrigiu os campos do Foco e a composição dos cartões do histórico. A folha agora decora o próprio viewport de rolagem, preenchendo o espaço até a barra de estudo mesmo depois da última mensagem. A lista de mensagens e a rolagem nativa do Chainlit foram preservadas. Os detalhes e capturas locais estão descritos no relatório da interface.
-
-
-## Direção visual
-
-O arquivo [design.md](design.md) registra a direção visual adotada, com critérios para botões, tipografia, navegação e configurações e uma sequência de validação por amostra. Parte dessa direção já foi aplicada, como as fontes unificadas e os cartões de tema só com a cena.
+- As dicas e as avaliações de degrau são geradas pelo modelo de linguagem e podem variar ou conter erros.
+- O projeto não mediu ganho de aprendizagem; a avaliação feita foi técnica e exploratória.
+- A trilha fixa de exercícios de versões anteriores continua no código para manter compatibilidade com conversas antigas.

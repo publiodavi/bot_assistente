@@ -1353,7 +1353,7 @@ html[data-study-theme] .study-sheet { background-attachment:local; }
 
 @media(max-width:36rem) { html[data-study-theme="vintage"] .study-sheet { background-position:-1.25rem 0,0 1.1rem,0 0; } }
 
-/* 30. Acabamento geral (ver design.md): fonte de interface, papéis de botão,
+/* 30. Acabamento geral: fonte de interface, papéis de botão,
    navegação lateral e painel Temas. */
 :root {
   --study-font-ui: "Study Inter", system-ui, -apple-system, "Segoe UI", sans-serif;

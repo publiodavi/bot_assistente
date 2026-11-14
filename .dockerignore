@@ -12,3 +12,8 @@ __pycache__
 .files
 chroma
 chroma_db
+# Documentação e testes não fazem parte da imagem de produção
+docs
+tests
+*.pdf
+*.zip

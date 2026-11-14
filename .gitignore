@@ -39,3 +39,11 @@ chroma/
 # Variações de arquivos de ambiente
 .env.*
 !.env.example
+
+# Documentos e pacotes locais (só a monografia final em docs/ é versionada)
+*.docx
+*.pdf
+*.zip
+!docs/TG_AjudAI_Arthur_Germano_Davi_Publio.docx
+!docs/TG_AjudAI_Arthur_Germano_Davi_Publio.pdf
+~$*
